@@ -1,0 +1,7 @@
+Set up virtualenv using:
+
+$virtualenv .venv --python="<PATH_TO_PYTHON_EXE>" --system-site-packages
+
+where <PATH_TO_PYTHON_EXE> is the path of your python.exe with pytorch installed. 
+In my case it is: "C:\Program Files\Python310\python.exe"
+
