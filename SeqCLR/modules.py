@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as fn
 import torch
 
 class RecurrentEncoder(nn.Module):
@@ -25,9 +26,13 @@ class RecurrentEncoder(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.gru0 = nn.GRU(input_size=in_dim, hidden_size=in_dim*2)
-        self.gru1 = nn.GRU(input_size=in_dim//2, hidden_size=in_dim)
-        self.gru2 = nn.GRU(input_size=in_dim//4, hidden_size=in_dim//2)
+        # dimension of hidden state is not described in the paper, and has
+        # arbitrarily been chosen to be equal to the input size
+        # TODO: Test in_dim//2 for all three, since all sizes could contain
+        # the same amount of information
+        self.gru0 = nn.GRU(input_size=in_dim, hidden_size=in_dim)
+        self.gru1 = nn.GRU(input_size=in_dim//2, hidden_size=in_dim//2)
+        self.gru2 = nn.GRU(input_size=in_dim//4, hidden_size=in_dim//4)
 
         self.dense0 = nn.Linear(in_features=in_dim*3, out_features=128)
         self.relu0 = nn.ReLU()
@@ -42,13 +47,13 @@ class RecurrentEncoder(nn.Module):
     def forward(self, x):
         x0 = self.gru0(x)
 
-        x1 = nn.functional.interpolate(x, scale_factor=0.5, mode='nearest')
+        x1 = fn.interpolate(x, scale_factor=0.5, mode='nearest')
         x1 = self.gru1(x1)
-        x1 = nn.functional.interpolate(x1, scale_factor=2)
+        x1 = fn.interpolate(x1, scale_factor=2, mode='nearest')
 
-        x2 = nn.functional.interpolate(x, scale_factor=0.25, mode='nearest')
+        x2 = fn.interpolate(x, scale_factor=0.25, mode='nearest')
         x2 = self.gru2(x2)
-        x2 = nn.functional.interpolate(x2, scale_factor=4)
+        x2 = fn.interpolate(x2, scale_factor=4, mode='nearest')
 
         x = torch.cat((x0, x1, x2))
 
@@ -147,3 +152,56 @@ class ConvolutionalEncoder(nn.Module):
         x = self.net_end(x)
         return x
 
+
+class Projector(nn.Module):
+    """Recurrent projection head using bidirectional LSTM units
+    to collapse the encoder output to a 32-dimensionall point for
+    contrastive loss calculation
+
+    Args:
+        nn (_type_): _description_
+    """
+    def __init__(self, in_dim=256, dense_dims=[128,32]) -> None:
+        super().__init__()
+
+        # dimension of hidden state is not described in the paper, and has
+        # arbitrarily been chosen to be equal to the input size
+        # TODO: Test in_dim//2 for all three, since all sizes could contain
+        # the same amount of information
+        self.lstm0 = nn.LSTM(
+            input_size=in_dim,
+            hidden_size=in_dim,
+            bidirectional=True,
+        )
+        self.lstm1 = nn.LSTM(
+            input_size=in_dim//2,
+            hidden_size=in_dim//2,
+            bidirectional=True,
+        )
+        self.lstm2 = nn.LSTM(
+            input_size=in_dim//4,
+            hidden_size=in_dim//4,
+            bidirectional=True,
+        )
+
+        self.net_end = nn.Sequential(
+            nn.Linear(in_features=6, out_features=dense_dims[0]),
+            nn.ReLU(),
+            nn.Linear(dense_dims[0], dense_dims[1])
+        )
+
+    def forward(self, x):
+        x0 = self.lstm0(x)
+
+        x1 = fn.interpolate(x, scale_factor=0.5, mode='nearest')
+        x1 = self.lstm1(x1)
+
+        x2 = fn.interpolate(x, scale_factor=0.25, mode='nearest')
+        x2 = self.lstm1(x2)
+
+        # TODO: implement First-Last-output here
+        
+        x = torch.cat((x0, x1, x2))
+
+        x = self.net_end(x)
+        return x
