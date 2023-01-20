@@ -2,21 +2,22 @@ import torch.nn as nn
 import torch.nn.functional as fn
 import torch
 
+
 class RecurrentEncoder(nn.Module):
 
     class GRU_Block(nn.Module):
         """Simple GRU block with layernorm and residual connection
         """
+
         def __init__(self, dim) -> None:
             super().__init__()
             self.ln = nn.LayerNorm(dim)
             self.gru = nn.GRU(dim, dim * 2)
-        
+
         def forward(self, x):
             x0 = self.ln(x)
             x0 = self.gru(x0)
             return torch.add(x, x0)
-
 
     def __init__(
         self,
@@ -43,7 +44,6 @@ class RecurrentEncoder(nn.Module):
 
         self.dense_final = nn.Linear(in_features=128, out_features=out_dim)
 
-        
     def forward(self, x):
         x0 = self.gru0(x)
 
@@ -62,7 +62,7 @@ class RecurrentEncoder(nn.Module):
 
         for gru in self.gru_blocks:
             x = gru(x)
-        
+
         x = self.dense_final(x)
         return x
 
@@ -86,19 +86,18 @@ class ConvolutionalEncoder(nn.Module):
                 nn.ReflectionPad1d(kernel_size//2),
                 nn.Conv1d(dim+kernel_size, dim, kernel_size)
             )
-        
+
         def forward(self, x):
             x0 = self.net(x)
             return torch.add(x0, x)
-
 
     def __init__(
         self,
         in_dim=128,
         out_dim=4,
-        conv_out_channels=[100, 100, 50],
-        kernel_sizes=[128, 64, 16],
-        n_blocks=[4],
+        conv_out_channels=(100, 100, 50),
+        kernel_sizes=(128, 64, 16),
+        n_blocks=4,
         block_kernel_size=64,
     ) -> None:
         super().__init__()
@@ -133,7 +132,7 @@ class ConvolutionalEncoder(nn.Module):
             nn.ReflectionPad1d(block_kernel_size//2),
             nn.Conv1d(dim, out_dim, block_kernel_size)
         )
-    
+
     def forward(self, x):
         x0 = self.rp0(x)
         x0 = self.conv0(x0)
@@ -148,7 +147,7 @@ class ConvolutionalEncoder(nn.Module):
 
         for conv_block in self.conv_blocks:
             x = conv_block(x)
-        
+
         x = self.net_end(x)
         return x
 
@@ -161,7 +160,8 @@ class Projector(nn.Module):
     Args:
         nn (_type_): _description_
     """
-    def __init__(self, in_dim=256, dense_dims=[128,32]) -> None:
+
+    def __init__(self, in_dim=256, dense_dims=(128, 32)) -> None:
         super().__init__()
 
         # dimension of hidden state is not described in the paper, and has
@@ -192,15 +192,16 @@ class Projector(nn.Module):
 
     def forward(self, x):
         x0 = self.lstm0(x)
+        x0 = torch.cat((x0[0], x0[-1]))
 
         x1 = fn.interpolate(x, scale_factor=0.5, mode='nearest')
         x1 = self.lstm1(x1)
+        x1 = torch.cat((x1[0], x1[-1]))
 
         x2 = fn.interpolate(x, scale_factor=0.25, mode='nearest')
         x2 = self.lstm1(x2)
+        x2 = torch.cat((x2[0], x2[-1]))
 
-        # TODO: implement First-Last-output here
-        
         x = torch.cat((x0, x1, x2))
 
         x = self.net_end(x)
