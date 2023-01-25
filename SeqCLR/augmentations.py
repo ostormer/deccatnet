@@ -2,6 +2,8 @@ from random import randint, random
 import numpy as np
 from scipy import signal
 
+import matplotlib.pyplot as plt
+
 
 def amplitude_scale(x, min_scale, max_scale):
     """Rescale. Equal chance of upscale or downscale,
@@ -89,7 +91,24 @@ def add_gaussian_noise(x, min_sd, max_sd):
     return x + noise
 
 
-def band_stop_filter(x, min_freq, max_freq):
+def band_stop_filter(x, sig_freq, min_freq, max_freq):
     # TODO: Implement this using scipy signal
     # see https://stackoverflow.com/questions/50247517/python-specific-frequency-removenotch-filter/63038706#63038706
-    return
+    stop_freq = min_freq + random()*(max_freq-min_freq)
+    notch_width = 5
+    quality_factor = notch_width / stop_freq
+    b_notch, a_notch = signal.iirnotch(stop_freq, quality_factor, sig_freq)
+    freq, h = signal.freqz(b_notch, a_notch, fs=sig_freq)  # type: ignore
+    plt.plot(freq, 20*np.log10(abs(h)))
+    plt.show()
+    x_filtered = signal.filtfilt(b_notch, a_notch, x)
+    plt.plot(x_filtered, 'r-')
+    plt.plot(x, 'b-')
+    plt.show()
+
+
+    return x_filtered
+
+
+if __name__ == "__main__":
+    pass
