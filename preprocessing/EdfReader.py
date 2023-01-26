@@ -1,6 +1,4 @@
 import mne
-from datetime import datetime
-
 
 class EDF_reader:
 
@@ -17,5 +15,7 @@ class EDF_reader:
     def get_time(self):
         return self.edf_file.info['meas_date']
 
-#test = EDF_reader('../datasets/TUH/normal/01_tcp_ar/aaaaaaav_s004_t000.edf')
-#print(test.get_header())
+    def plot_file(self):
+        self.edf_file.plot()
+
+
