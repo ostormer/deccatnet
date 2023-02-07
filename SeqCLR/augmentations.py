@@ -110,5 +110,5 @@ def band_stop_filter(x, sig_freq, min_freq, max_freq):
     return x_filtered
 
 
-if __name__ == "__main__":
-    pass
+# if __name__ == "__main__":
+#     pass

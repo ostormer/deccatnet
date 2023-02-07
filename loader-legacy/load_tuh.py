@@ -3,7 +3,6 @@ import numpy as np
 from pyedflib import EdfReader
 from tqdm import tqdm
 
-from sample import Sample
 
 USED_CHANNELS = [
     "EEG FP1-REF",
