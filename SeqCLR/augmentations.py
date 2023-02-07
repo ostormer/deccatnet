@@ -4,6 +4,8 @@ from scipy import signal
 
 import matplotlib.pyplot as plt
 
+from mne.io.edf import read_raw_edf
+
 
 def amplitude_scale(x, min_scale, max_scale):
     """Rescale. Equal chance of upscale or downscale,
@@ -110,5 +112,7 @@ def band_stop_filter(x, sig_freq, min_freq, max_freq):
     return x_filtered
 
 
-# if __name__ == "__main__":
-#     pass
+if __name__ == "__main__":
+
+    sample = read_raw_edf("datasets/TUH/normal/01_tcp_ar/aaaaaalk_s002_t000.edf")
+    fig = sample.plot(block=True)

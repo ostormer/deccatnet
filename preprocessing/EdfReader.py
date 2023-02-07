@@ -16,6 +16,6 @@ class EDF_reader:
         return self.edf_file.info['meas_date']
 
     def plot_file(self):
-        self.edf_file.plot()
+        self.edf_file.plot(block=True)
 
 

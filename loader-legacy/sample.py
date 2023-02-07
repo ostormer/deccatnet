@@ -1,7 +1,6 @@
 from copy import copy, deepcopy
 
 import numpy as np
-import matplotlib.pyplot as plt
 # from scipy.interpolate import interp1d
 
 
@@ -17,7 +16,7 @@ class Sample():
         self.extra_srs = extra_srs  # int
         self.extra_signals = extra_signals  # np array
 
-        self.channel_indexes = {}  # TODO: find out whether it is necessary, or if a general channel renaming + sorting during dataset loading could be done.
+        self.channel_indexes = {}  # find out whether it is necessary, or if a general channel renaming + sorting during dataset loading could be done.
         for i, c in enumerate(channel_names):
             self.channel_indexes[c] = i
         self.seconds = self.signal.shape[1] / self.sr
@@ -50,4 +49,5 @@ class Sample():
     def plot_channels(self, channels=None):
         if channels is None:
             channels = self.channel_names
-        for channel in channels:
+        for _channel in channels:
+            pass
