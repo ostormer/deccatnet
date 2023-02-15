@@ -128,12 +128,10 @@ AUG_PARAMS = {
 }
 
 
-def apply_random_aug(x, aug_params=None):
+def apply_chosen_aug(x, aug_n, aug_params=None):
     if aug_params is None:
         aug_params = AUG_PARAMS
-
-    r = randint(0, 5)
-    match r:
+    match aug_n:
         case 0:
             return amplitude_scale(x, aug_params["amp_shift_max"])
         case 1:
@@ -148,6 +146,12 @@ def apply_random_aug(x, aug_params=None):
             return band_stop_filter(x, aug_params["sig_freq"], aug_params["band_stop_min"], aug_params["band_stop_max"])
 
 
+def create_positive_pair(x, aug_params):
+    augs = random.sample(range(6), 2)
+    print(augs)
+
+
+
 if __name__ == "__main__":
 
     a = np.random.random((50))
@@ -157,17 +161,18 @@ if __name__ == "__main__":
 
     sample = read_raw_edf(
         "datasets/TUH/normal/01_tcp_ar/aaaaaalk_s002_t000.edf")
-    sample.crop(1, 2)
+    sample.crop(0, 10)
 
     single_channel = sample.pick_channels(["EEG FP1-REF"])
-    sig, times = single_channel[:, :]
+    sig, times = single_channel[:, :] # type: ignore 
     ch_1 = sig[0:1, :].flatten()
+    print(sample.info)
     
     single_copy = single_channel.copy()
     single_copy.rename_channels({'EEG FP1-REF': 'EEG FP1-REF aug'})
     single_copy.load_data()
     single_channel.load_data()
-    aug_fn = lambda x: zero_mask(x, 0, 50, 0)  # Tested, works
+    aug_fn = lambda x: zero_mask(x, 50, 250, 0)  # Tested, works
     # aug_fn = lambda x: time_shift(x, 50, 150)  # Tested, works
     single_copy = single_copy.apply_function(aug_fn, picks=['EEG FP1-REF aug'])
     single_channel.add_channels([single_copy])
