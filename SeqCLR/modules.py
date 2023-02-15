@@ -21,7 +21,7 @@ class RecurrentEncoder(nn.Module):
 
     def __init__(
         self,
-        in_dim=256,
+        in_dim=250*10,
         latent_dim=4,
         n_blocks=2,
     ) -> None:
@@ -93,7 +93,7 @@ class ConvolutionalEncoder(nn.Module):
 
     def __init__(
         self,
-        in_dim=128,
+        in_dim=250*10,
         latent_dim=4,
         conv_out_channels=(100, 100, 50),
         kernel_sizes=(128, 64, 16),
