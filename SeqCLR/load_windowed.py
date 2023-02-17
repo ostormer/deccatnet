@@ -45,7 +45,7 @@ if __name__ == "__main__":
     READ_CACHED_DS = True
     # DATASET_ROOT = 'D:/TUH/tuh_eeg_abnormal'
     # CACHE_PATH = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
-    DATASET_ROOT = 'tuh-test/tuh-eeg'
+    DATASET_ROOT = 'datasets/tuh-test/tuh-eeg'
     CACHE_PATH = 'datasets/tuh_braindecode/tuh_eeg.pkl'
 
     if READ_CACHED_DS:
