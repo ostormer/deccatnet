@@ -21,8 +21,8 @@ class RecurrentEncoder(nn.Module):
 
     def __init__(
         self,
-        in_dim=256,
-        out_dim=4,
+        in_dim=250*10,
+        latent_dim=4,
         n_blocks=2,
     ) -> None:
         super().__init__()
@@ -42,7 +42,7 @@ class RecurrentEncoder(nn.Module):
         for i in range(n_blocks):
             self.gru_blocks.append(self.GRU_Block(128))
 
-        self.dense_final = nn.Linear(in_features=128, out_features=out_dim)
+        self.dense_final = nn.Linear(in_features=128, out_features=latent_dim)
 
     def forward(self, x):
         x0 = self.gru0(x)
@@ -93,8 +93,8 @@ class ConvolutionalEncoder(nn.Module):
 
     def __init__(
         self,
-        in_dim=128,
-        out_dim=4,
+        in_dim=250*10,
+        latent_dim=4,
         conv_out_channels=(100, 100, 50),
         kernel_sizes=(128, 64, 16),
         n_blocks=4,
@@ -130,7 +130,7 @@ class ConvolutionalEncoder(nn.Module):
             nn.ReLU(),
             nn.BatchNorm1d(dim),
             nn.ReflectionPad1d(block_kernel_size//2),
-            nn.Conv1d(dim, out_dim, block_kernel_size)
+            nn.Conv1d(dim, latent_dim, block_kernel_size)
         )
 
     def forward(self, x):
@@ -188,6 +188,61 @@ class Projector(nn.Module):
             nn.Linear(in_features=6, out_features=dense_dims[0]),
             nn.ReLU(),
             nn.Linear(dense_dims[0], dense_dims[1])
+        )
+
+    def forward(self, x):
+        x0 = self.lstm0(x)
+        x0 = torch.cat((x0[0], x0[-1]))
+
+        x1 = fn.interpolate(x, scale_factor=0.5, mode='nearest')
+        x1 = self.lstm1(x1)
+        x1 = torch.cat((x1[0], x1[-1]))
+
+        x2 = fn.interpolate(x, scale_factor=0.25, mode='nearest')
+        x2 = self.lstm1(x2)
+        x2 = torch.cat((x2[0], x2[-1]))
+
+        x = torch.cat((x0, x1, x2))
+
+        x = self.net_end(x)
+        return x
+
+
+class DownstreamClassifier(nn.Module):
+    """Classifier for downstream task, almost identical to the projector
+
+    Args:
+        nn (_type_): _description_
+    """
+
+    def __init__(self, in_channels=2, latent_dim=4, dense_dim=128, n_classes=2) -> None:
+        super().__init__()
+        # dimension of hidden state is not described in the paper, and has
+        # arbitrarily been chosen to be equal to the input size
+        # TODO: Test in_dim//2 for all three, since all sizes could contain
+        # the same amount of information
+        in_dim = in_channels = in_channels * latent_dim
+        self.lstm0 = nn.LSTM(
+            input_size=in_dim,
+            hidden_size=in_dim,
+            bidirectional=True,
+        )
+        self.lstm1 = nn.LSTM(
+            input_size=in_dim//2,
+            hidden_size=in_dim//2,
+            bidirectional=True,
+        )
+        self.lstm2 = nn.LSTM(
+            input_size=in_dim//4,
+            hidden_size=in_dim//4,
+            bidirectional=True,
+        )
+
+        self.net_end = nn.Sequential(
+            nn.Linear(in_features=6, out_features=dense_dim),
+            nn.ReLU(),
+            nn.Linear(dense_dim, n_classes),
+            nn.LogSoftmax(n_classes)
         )
 
     def forward(self, x):

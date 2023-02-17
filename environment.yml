@@ -1,0 +1,27 @@
+name: eeg-ssl-trans
+channels:
+  - conda-forge
+  - nvidia
+  - pytorch
+  - defaults
+dependencies:
+- python>=3.10
+- numpy
+- pandas
+- scipy
+- mkl
+- matplotlib
+- h5py
+- cuda=11.7.1=0
+- pytorch
+- pytest
+- pip
+- skorch
+- joblib
+- memory_profiler
+- tqdm
+- pip:
+  - torchaudio==0.13.1  
+  - torchvision==0.14.1
+  - mne
+  - braindecode
