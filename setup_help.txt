@@ -1,3 +1,13 @@
+Conda installation: 
+run 
+
+$conda env create -f environment.yml
+
+$conda activate eeg-ssl-trans
+
+That is all! 
+
+Alternate pip installation without conda:
 Set up virtualenv using:
 
 $virtualenv .venv --python="<PATH_TO_PYTHON_EXE>" --system-site-packages
@@ -5,3 +15,7 @@ $virtualenv .venv --python="<PATH_TO_PYTHON_EXE>" --system-site-packages
 where <PATH_TO_PYTHON_EXE> is the path of your python.exe with pytorch installed. 
 In my case it is: "C:\Program Files\Python310\python.exe"
 
+$ .venv/Scripts/Activate.ps1
+
+$ pip install -r requirements.txt
+(requirements.txt for pip has not been set up as of 2023-02-17)
