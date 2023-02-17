@@ -1,11 +1,9 @@
-from braindecode.datasets import BaseConcatDataset, BaseDataset
-from mne import Epochs
-from mne.io import read_raw_edf
 import pickle
 from tqdm import tqdm
 import os
 import braindecode.datasets.tuh as tuh
-
+from braindecode.preprocessing import create_fixed_length_windows
+from torch.utils.data import DataLoader
 
 # def walk_sub_dirs(path, function) -> list:
 #     """Walk subdir tree of path, apply 'function' to all .edf files.
@@ -60,4 +58,29 @@ if __name__ == "__main__":
             # pickle.dump(ds_abnormal, f)
             pickle.dump(ds, f)
     
-    print(ds.description)
+    # print(ds.description)
+
+    subset = ds.split(by=range(10))['0']
+    print(subset.description)
+
+    subset_windows = create_fixed_length_windows(
+        subset,
+        start_offset_samples=0,
+        stop_offset_samples=None,
+        window_size_samples=2500,
+        window_stride_samples=2500,
+        drop_last_window=False,
+        # mapping={'M': 0, 'F': 1},  # map non-digit targets
+    )
+    # store the number of windows required for loading later on
+    subset_windows.set_description({
+        "n_windows": [len(d) for d in subset_windows.datasets]})  # type: ignore
+    
+    dl = DataLoader(dataset=subset_windows, batch_size=4)
+
+    batch_X, batch_y, batch_ind = None, None, None
+    for batch_X, batch_y, batch_ind in dl:
+        pass
+    print('batch_X:', batch_X)
+    print('batch_y:', batch_y)
+    print('batch_ind:', batch_ind)
