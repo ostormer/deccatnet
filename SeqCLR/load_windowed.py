@@ -40,27 +40,37 @@ from torch.utils.data import DataLoader
 
 
 if __name__ == "__main__":
-    READ_CACHED_DS = True
-    # DATASET_ROOT = 'D:/TUH/tuh_eeg_abnormal'
-    # CACHE_PATH = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
-    DATASET_ROOT = 'datasets/tuh-test/tuh-eeg'
-    CACHE_PATH = 'datasets/tuh_braindecode/tuh_eeg.pkl'
+    read_cached_ds = True
+    load_abnormal = True
 
-    if READ_CACHED_DS:
-        with open(CACHE_PATH, 'rb') as f:
-            # ds_abnormal = pickle.load(f)
-            ds = pickle.load(f)
+    DATASET_ROOT = None
+    CACHE_PATH = None
+    dataset = None
+    if load_abnormal:
+        DATASET_ROOT = 'D:/TUH/tuh_test/tuh_eeg_abnormal'
+        CACHE_PATH = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
+
     else:
-        # ds_abnormal = tuh.TUHAbnormal(DATASET_ROOT)
-        ds = tuh.TUH(DATASET_ROOT)
+        DATASET_ROOT = 'datasets/tuh_test/tuh_eeg'
+        CACHE_PATH = 'datasets/tuh_braindecode/tuh_eeg.pkl'
+
+    if read_cached_ds:
+        with open(CACHE_PATH, 'rb') as f:
+            
+            dataset = pickle.load(f)
+    else:
+        if load_abnormal:
+            ds_abnormal = tuh.TUHAbnormal(DATASET_ROOT)
+        else:
+            dataset = tuh.TUH(DATASET_ROOT)
 
         with open(CACHE_PATH, 'wb') as f:
             # pickle.dump(ds_abnormal, f)
-            pickle.dump(ds, f)
+            pickle.dump(dataset, f)
     
     # print(ds.description)
 
-    subset = ds.split(by=range(10))['0']
+    subset = dataset.split(by=range(10))['0']
     print(subset.description)
 
     subset_windows = create_fixed_length_windows(
@@ -77,6 +87,8 @@ if __name__ == "__main__":
         "n_windows": [len(d) for d in subset_windows.datasets]})  # type: ignore
     
     dl = DataLoader(dataset=subset_windows, batch_size=4)
+
+    
 
     batch_X, batch_y, batch_ind = None, None, None
     for batch_X, batch_y, batch_ind in dl:
