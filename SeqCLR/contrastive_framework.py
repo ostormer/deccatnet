@@ -8,6 +8,7 @@ from data_loaders import ContrastiveDataset
 
 from modules import ConvolutionalEncoder, Projector, DownstreamClassifier
 from tqdm import tqdm
+import os
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -216,9 +217,7 @@ def pre_train_model():
     model = test_model()#probably some hyperparams here
     if model_weights_dict is not None: # TODO: implement model weights dict
         model.load_state_dict(torch.load(model_weights_dict)) # loaded already trained-model
-    projector = test_projector()# probably some hyperparams
-    if projector_weights_dict is not None: # TODO: implement projector weights dict
-        projector.load_state_dict(torch.load(projector_weights_dict)) # loaded already trained-model
+
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature) # TODO:need temperature hyperparam
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay) # TODO: implement hyperparam and check out betas for adam
@@ -236,18 +235,15 @@ def pre_train_model():
             # send through model and projector, asssume not splitted for now
             # TODO: decided wether projector and model should be splitted, how do we save encoder weights if they are not splitted
             x1_encoded, x2_encoded = model(x1),model(x2)
-            x1_latent,x2_latent = projector(x1_encoded),projector(x2_encoded)
 
             # get loss, update weights and perform step
-            loss = loss_func(x1_latent,x2_latent)
+            loss = loss_func(x1_encoded,x2_encoded)
             loss.backward()
             optimizer.step()
 
             # free cuda memory
             del x1
             del x2
-            del x1_latent
-            del x2_latent
             del x2_encoded
             del x1_encoded
             del loss
@@ -259,18 +255,34 @@ def pre_train_model():
             counter += 1
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
+        # for now we will use save_frequencie
+        if epoch != save_freq == 0 and epoch != 0:
+            temp_save_path_model = os.path.join(save_dir_model, "temp_"+str(epoch)+"_"+ model_file_name)
+            torch.save(model.state_dict(), temp_save_path_model)
+            # here is the solution, have the model as several modules; then different modules can be saved seperately
+            temp_save_path_enocder = os.path.join(save_dir_model, "temp_encoder"+str(epoch)+"_"+ model_file_name)
+            torch.save(model.encoder.state_dict(), temp_save_path_enocder)
 
+    # save function for final model
+    save_path_model = os.path.join(save_dir_model, model_file_name)
+    torch.save(model.state_dict(), save_path_model)
+    # here is the solution, have the model as several modules; then different modules can be saved seperately
+    save_path_enocder = os.path.join(save_dir_model, "encoder_" + model_file_name)
+    torch.save(model.encoder.state_dict(), save_path_enocder)
 
-
-class test_projector(nn.Module):
-    def __init__(self):
-        super(test_projector,self)
-    def forward(self,x):
-        return x
+    # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
+    print('Traning Done!!')
 
 class test_model(nn.Module):
     def __init__(self):
         super(test_model,self)
+        self.encoder = test_encoder()
+    def forward(self,x):
+        return self.encoder.forward(x)
+
+class test_encoder(nn.Module):
+    def __init__(self):
+        super(test_encoder,self)
     def forward(self,x):
         return x
 
