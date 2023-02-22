@@ -4,9 +4,10 @@ import torch.nn as nn
 import torch.nn.functional as fn
 import torch
 import numpy as np
+from data_loaders import ContrastiveDataset
 
 from modules import ConvolutionalEncoder, Projector, DownstreamClassifier
-
+from tqdm import tqdm
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -168,11 +169,110 @@ class ContrastiveLossGPT(nn.Module):
 
         return loss
 
+# Next up: contrastive training framework
+def pre_train_model():
+    """
+    Needs:
+    destination to load model, save model
+    Hyperparameters for: Training loop, maybe model if not initialised and data_loaders
+    Dependes a little bit about the overall architecture
+
+    Need to implement som sort of support for GPUs and remote access to server.
+
+    Need to figure out a good flow: first thought:
+        - apply augmentations: either in dataloader or here in the pre_training
+        - exstract two channels, to learn the dependencies between different channels. How should they be exstracted
+            * from the same recodring at the same time? (will sucsefully learn the dependencies between channels at
+                same time from same subject, maybe the most valuable of the proposed)
+            * from the same subject, but at different times (will not focus on dependencies across time, but will learn to map
+                samples from same subject closer in latent space. The dependencies learn will be time-invariant, which might not
+                be something we are looking for. However frequencies-realated approaches have gotten a lot of success.
+            * from different subjects at different times. Honestly dont know what will be learnt here. Will be taking two
+                completely different recordings, apply transformations and try to learn to differentiate the latent space
+                representations from two random channels from other random channel combinations.
+            Need to rethink what are we trying to learn, what do we want to create a diversified latent space from??
+        - send x (signals, recordings) through encoder
+        - send x through projector which projects to a latent space.
+        - us contrastive loss function on latent space created by projector.
+
+
+    :return: None
+    """
+    # TODO seams like output from dataloader is planned as x , [x_1_aug, x_2_aug], need confirmation on this.
+    # TODO: get confirmation on where augmentations are applied
+
+    # load dataset
+    train_set, val_set, test_set = ContrastiveDataset.get_dataset()
+
+    # create data_loaders, here batch size is decided
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel)
+                                               #maybe alos num_workers)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffel=Shuffel)
+                                               #maybe alos num_workers) # TODO: need batch size and shuffe, maybe also num workets
+    # check if cuda setup allowed:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # init model adn check if weights already given
+    model = test_model()#probably some hyperparams here
+    if model_weights_dict is not None: # TODO: implement model weights dict
+        model.load_state_dict(torch.load(model_weights_dict)) # loaded already trained-model
+    projector = test_projector()# probably some hyperparams
+    if projector_weights_dict is not None: # TODO: implement projector weights dict
+        projector.load_state_dict(torch.load(projector_weights_dict)) # loaded already trained-model
+    # get loss function and optimizer
+    loss_func = ContrastiveLoss(temperature=temperature) # TODO:need temperature hyperparam
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay) # TODO: implement hyperparam and check out betas for adam
+
+    # iterative traning loop
+    for epoch in tqdm(range(max_epochs)): # TODO: add max epochs
+        print('epoch number: ', epoch 'of: ', max_epochs)
+        counter = 0 # counter for batch print.
+        # start traning by looping through batches
+        for x1,x2 in train_loader:
+            # transfer to GPU or CUDA
+            x1,x2 = x1.to(device), x2.to(device)
+            # zero out existing gradients
+            optimizer.zero_grad()
+            # send through model and projector, asssume not splitted for now
+            # TODO: decided wether projector and model should be splitted, how do we save encoder weights if they are not splitted
+            x1_encoded, x2_encoded = model(x1),model(x2)
+            x1_latent,x2_latent = projector(x1_encoded),projector(x2_encoded)
+
+            # get loss, update weights and perform step
+            loss = loss_func(x1_latent,x2_latent)
+            loss.backward()
+            optimizer.step()
+
+            # free cuda memory
+            del x1
+            del x2
+            del x1_latent
+            del x2_latent
+            del x2_encoded
+            del x1_encoded
+            del loss
+            torch.cuda.empty_cache()
+
+            # check counter and print one some codition
+            if counter % batch_print_condition == 0: # TODO: Implement
+                print("trained for: ", counter, " batches")
+            counter += 1
+        # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
+        # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
 
 
 
+class test_projector(nn.Module):
+    def __init__(self):
+        super(test_projector,self)
+    def forward(self,x):
+        return x
 
-
+class test_model(nn.Module):
+    def __init__(self):
+        super(test_model,self)
+    def forward(self,x):
+        return x
 
 class SeqCLR(nn.Module):
     def __init__(self):
@@ -189,11 +289,3 @@ class SeqCLR(nn.Module):
         x2 = self.projector(x2)
 
         return x1, x2
-
-def contrastive_training():
-    batch = []  # Make it a list of signals or something
-    for signal in batch:
-        s1, s2 =  # Two augmentations
-
-if __name__ == '__main__':
-    loader = torch.
