@@ -33,12 +33,38 @@ class SingleChannelDataset(tuh.TUHAbnormal):
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
-        # Don't know how this one would read
+        # Don't know how this one would read single channels from each file on request.
+        # Will take a look on extending WindowedDataset instead 
+
+        # Iterating without shuffling could be supported, only one file would 
+        # have to be read at a time and kept open in memory. However if indexing
+        # and shuffling should be supported, a list of number of channels would
+        # need to be stored together with the paths, and indexes would have to be
+        # the total cumulative channel number
+        # 
+        # This is possible, though each chanel read would require to load and unload
+        # a edf file when shuffling.
+        # Would be just as efficient to just extract a single channel from the 
+        # WindowsDataset 
+
+
+class SingleChannelWindowsDataset(braindecode.datasets.base.WindowsDataset):
+    def __init__(self):
+        super(SingleChannelWindowsDataset, self).__init__()
+        pass
+    # Possible class to use.
+
+
+def split_channels_and_window():
+    # Easy solution, but runs into memory issues
+    pass
+
+
 
 
 if __name__ == "__main__":
     READ_CACHED_DS = False  # Change to read cache or not
-    SOURCE_DS = 'tuh_eeg_abnormal'  # Which dataset to load
+    SOURCE_DS = 'tuh_eeg'  # Which dataset to load
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
@@ -73,7 +99,7 @@ if __name__ == "__main__":
 
     subset_windows = create_fixed_length_windows(
         subset,
-        picks="eeg"
+        picks="eeg",
         start_offset_samples=0,
         stop_offset_samples=None,
         window_size_samples=2500,
@@ -93,7 +119,7 @@ if __name__ == "__main__":
     batch_X, batch_y, batch_ind = None, None, None
     for batch_X, batch_y, batch_ind in dl:
         pass
-    print(batch_X.shape)  
+    print(batch_X.shape)  # type: ignore
     print('batch_X:', batch_X)
     print('batch_y:', batch_y)
     print('batch_ind:', batch_ind)
