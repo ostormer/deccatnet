@@ -2,11 +2,12 @@ import pickle
 from tqdm import tqdm
 import os
 from braindecode.datasets import BaseConcatDataset
+import braindecode
 import braindecode.datasets.tuh as tuh
 from braindecode.preprocessing import create_fixed_length_windows
 from torch.utils.data import DataLoader
 from mne import set_log_level
-from pytorch import torch
+import torch
     
 
 # I don't think SingleChannelDataset is necessary, it would be better to split into single channels
