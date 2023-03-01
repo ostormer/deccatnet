@@ -171,7 +171,7 @@ class ContrastiveLossGPT(nn.Module):
         return loss
 
 # Next up: contrastive training framework
-def pre_train_model():
+def pre_train_model(batch_size, num_workers, save_freq, Shuffel,model_weights_dict,temperature,learning_rate,weight_decay,max_epochs,batch_print_condition,save_dir_model, model_file_name,):
     """
     Needs:
     destination to load model, save model
@@ -206,25 +206,24 @@ def pre_train_model():
     train_set, val_set, test_set = ContrastiveDataset.get_dataset()
 
     # create data_loaders, here batch size is decided
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel,num_workers=num_workers)
                                                #maybe alos num_workers)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffel=Shuffel)
-                                               #maybe alos num_workers) # TODO: need batch size and shuffe, maybe also num workets
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffel=Shuffel, num_workers=num_workers)
     # check if cuda setup allowed:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model adn check if weights already given
     model = test_model()#probably some hyperparams here
-    if model_weights_dict is not None: # TODO: implement model weights dict
+    if model_weights_dict is not None:
         model.load_state_dict(torch.load(model_weights_dict)) # loaded already trained-model
 
     # get loss function and optimizer
-    loss_func = ContrastiveLoss(temperature=temperature) # TODO:need temperature hyperparam
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay) # TODO: implement hyperparam and check out betas for adam
+    loss_func = ContrastiveLoss(temperature=temperature)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay) # TODO: check out betas for Adam
 
     # iterative traning loop
-    for epoch in tqdm(range(max_epochs)): # TODO: add max epochs
-        print('epoch number: ', epoch 'of: ', max_epochs)
+    for epoch in tqdm(range(max_epochs)):
+        print('epoch number: ', epoch ,'of: ', max_epochs)
         counter = 0 # counter for batch print.
         # start traning by looping through batches
         for x1,x2 in train_loader:
@@ -233,7 +232,6 @@ def pre_train_model():
             # zero out existing gradients
             optimizer.zero_grad()
             # send through model and projector, asssume not splitted for now
-            # TODO: decided wether projector and model should be splitted, how do we save encoder weights if they are not splitted
             x1_encoded, x2_encoded = model(x1),model(x2)
 
             # get loss, update weights and perform step
@@ -250,7 +248,7 @@ def pre_train_model():
             torch.cuda.empty_cache()
 
             # check counter and print one some codition
-            if counter % batch_print_condition == 0: # TODO: Implement
+            if counter % batch_print_condition == 0:
                 print("trained for: ", counter, " batches")
             counter += 1
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
@@ -274,6 +272,10 @@ def pre_train_model():
     print('Traning Done!!')
 
 class test_model(nn.Module):
+    """
+    A trainable model for the framework moust have an encoder-projector strucutre. The encoder is what our goal is to pre-train
+        Bacause of this, as the model is saved, the encoder is also saved.
+    """
     def __init__(self):
         super(test_model,self)
         self.encoder = test_encoder()
