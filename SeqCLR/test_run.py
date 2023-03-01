@@ -1,5 +1,5 @@
 from contrastive_framework import pre_train_model
-from load_windowed import SingleChannelDataset
+from load_windowed import SingleChannelDataset,TUHSingleChannelDataset
 import pickle
 from tqdm import tqdm
 import os
@@ -14,7 +14,7 @@ import torch
 if __name__=="__main__":
     # the goal for this iteration is to run pre_train_model function
     # still need a way to load the dataset,
-    READ_CACHED_DS = True  # Change to read cache or not
+    READ_CACHED_DS = False # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
@@ -41,34 +41,18 @@ if __name__=="__main__":
         with open(cache_path, 'rb') as f:
             dataset = pickle.load(f)
     else:
-        dataset = SingleChannelDataset(dataset_root, SOURCE_DS)
-
+        print('creating TUHSingleChannelDataset')
+        dataset = TUHSingleChannelDataset(path=dataset_root, source_dataset=SOURCE_DS)
         with open(cache_path, 'wb') as f:
             pickle.dump(dataset, f)
 
-    # print(ds.description)
-
-    subset = dataset.split(by=range(10))['0']
-    #print(subset.description)
-
-    subset_windows = create_fixed_length_windows(
-        subset,
-        picks="eeg",
-        start_offset_samples=0,
-        stop_offset_samples=None,
-        window_size_samples=2500,
-        window_stride_samples=2500,
-        drop_last_window=False,
-        # mapping={'M': 0, 'F': 1},  # map non-digit targets
-    )
-    # store the number of windows required for loading later on
-    subset_windows.set_description({
-        "n_windows": [len(d) for d in subset_windows.datasets]})  # type: ignore
-
-    # Default DataLoader object lets us iterate through the dataset.
-    # Each call to get item returns a batch of samples,
-    # each batch has shape: (batch_size, n_channels, n_time_points)
-    dl = DataLoader(dataset=subset_windows, batch_size=5)
+    #print(ds.description)
+    #subset = dataset.split(by=range(10))['0']
+    """
+    NB!! important to not create a subset as this creates a new class which has a new
+    __getitem__ function which overrides the original. 
+    """
+    dl = DataLoader(dataset=dataset, batch_size=5)
 
     batch_X, batch_y, batch_ind = None, None, None
     for batch_X, batch_y, batch_ind in dl:
@@ -78,6 +62,6 @@ if __name__=="__main__":
     print('batch_y:', batch_y)
     print('batch_ind:', batch_ind)
 
-    pre_train_model(batch_size=100, num_workers=1,save_freq=10,Shuffel=False,save_dir_model='models',model_file_name='test',model_weights_dict=None,temperature= 2
-                    ,learning_rate= 0.01
-                    , weight_decay= 0.01,max_epochs=20,batch_print_condition=5)
+    #pre_train_model(batch_size=100, num_workers=1,save_freq=10,Shuffel=False,save_dir_model='models',model_file_name='test',model_weights_dict=None,temperature= 2
+    #               ,learning_rate= 0.01
+    #               , weight_decay= 0.01,max_epochs=20,batch_print_condition=5)
