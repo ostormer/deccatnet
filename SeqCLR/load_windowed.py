@@ -1,13 +1,18 @@
 import pickle
 from tqdm import tqdm
-import os
-from braindecode.datasets import BaseConcatDataset
+import time
+from braindecode.datasets import BaseConcatDataset, BaseDataset
 import braindecode.datasets.tuh as tuh
 from braindecode.preprocessing import create_fixed_length_windows
 from torch.utils.data import DataLoader
 from mne import set_log_level
+import mne
+import braindecode
+import torch
+import torch.utils.data
     
 
+'''
 # I don't think SingleChannelDataset is necessary, it would be better to split into single channels
 # or channel pairs while/after/before windowing.
 # If we want a custom dataset object to handle augmentations etc, we can make a wrapper
@@ -46,18 +51,80 @@ class SingleChannelDataset(tuh.TUHAbnormal):
         # a edf file when shuffling.
         # Would be just as efficient to just extract a single channel from the 
         # WindowsDataset 
+'''
 
 
-class SingleChannelWindowsDataset(braindecode.datasets.base.WindowsDataset):
-    def __init__(self):
-        super(SingleChannelWindowsDataset, self).__init__()
-        pass
-    # Possible class to use.
+
+def split_channels_and_window(dataset:BaseConcatDataset, mode='single', window_size_samples=2500) -> BaseConcatDataset:
+
+    assert mode in ['single', 'pairs'], f'{mode} not a valid spliting strategy'
+
+    all_base_ds = []
+    for base_ds in tqdm(dataset.datasets):
+        base_ds.raw.drop_channels(['IBI', 'BURSTS', 'SUPPR'], on_missing='ignore')
+        if base_ds.raw.n_times < window_size_samples:
+            # Drop short recordings
+            continue
+        if mode == 'single':
+            split_concat_ds = _split_into_single_channels(base_ds)
+        else: #  mode == 'pairs':
+            split_concat_ds = _split_into_all_channel_pairs(base_ds, unique_pairs=True)
+    
+        # Create list of BaseDatasets containing one split_raw sample each
+        all_base_ds.append(split_concat_ds)
+        
+    concat_ds = BaseConcatDataset(all_base_ds)
+    # print(concat_ds.description)
+    t0 = time.time()
+    print(f"Begun windowing at {time.ctime(time.time())}")
+    windowed_ds = create_fixed_length_windows(
+        concat_ds,
+        start_offset_samples=0,
+        stop_offset_samples=None,
+        window_size_samples=window_size_samples,
+        window_stride_samples=2500,
+        drop_last_window=False,
+    )
+    # store the number of windows required for loading later on
+    windowed_ds.set_description({
+        "n_windows": [len(d) for d in windowed_ds.datasets]})  # type: ignore
+    print(f'Finished windowing in {time.time()-t0} seconds')
+    return windowed_ds
+
+def _split_into_single_channels(base_ds:BaseDataset) -> BaseConcatDataset:
+    base_ds_list = []
+    raw = base_ds.raw
+    for channel in raw.ch_names:
+        new_raw = raw.copy().pick_channels([channel])
+        ds = BaseDataset(new_raw, description=base_ds.description)
+        ds.set_description({"Channels": channel})
+
+        base_ds_list.append(ds)
+    concat = BaseConcatDataset(base_ds_list)
+    return concat
 
 
-def split_channels_and_window():
-    # Easy solution, but runs into memory issues
-    pass
+def _split_into_all_channel_pairs(base_ds:BaseDataset, unique_pairs=True) -> BaseConcatDataset:
+    pairs = []
+    raw = base_ds.raw
+    if not unique_pairs:
+        for channel_i in raw.ch_names[:]:
+            for channel_j in raw.ch_names[:]:
+                pairs.append([channel_i, channel_j])
+    else:  # Only unique pairs, i.e. not (i,j) if (j,i) exists, and not (i,i)
+        for i, channel_i in enumerate(raw.ch_names[:]):
+            for j, channel_j in enumerate(raw.ch_names[i+1:]):
+                pairs.append([channel_i, channel_j])
+    
+    base_ds_list = []
+    for pair in pairs:
+        new_raw = raw.copy().pick_channels(pair)
+        ds = BaseDataset(new_raw, description=base_ds.description)
+        ds.set_description({"Channels": pair})
+        base_ds_list.append(ds)
+        
+    concat = BaseConcatDataset(base_ds_list)
+    return concat
 
 
 
@@ -87,37 +154,29 @@ if __name__ == "__main__":
             dataset = pickle.load(f)
     else:
 
-        dataset = SingleChannelDataset(dataset_root, SOURCE_DS)
+        if SOURCE_DS == 'tuh_eeg_abnormal':
+            dataset = tuh.TUHAbnormal(dataset_root)
+
+        else:
+            dataset = tuh.TUH(dataset_root)
 
         with open(cache_path, 'wb') as f:
             pickle.dump(dataset, f)
 
-    # print(ds.description)
+    print(dataset.description)
 
-    subset = dataset.split(by=range(10))['0']
-    print(subset.description)
+    print('Loaded DS')
 
-    subset_windows = create_fixed_length_windows(
-        subset,
-        picks="eeg",
-        start_offset_samples=0,
-        stop_offset_samples=None,
-        window_size_samples=2500,
-        window_stride_samples=2500,
-        drop_last_window=False,
-        # mapping={'M': 0, 'F': 1},  # map non-digit targets
-    )
-    # store the number of windows required for loading later on
-    subset_windows.set_description({
-        "n_windows": [len(d) for d in subset_windows.datasets]})  # type: ignore
+    single_channel_windows = split_channels_and_window(dataset, mode='single')
 
+    print("Windowing complete")
     # Default DataLoader object lets us iterate through the dataset.
     # Each call to get item returns a batch of samples,
     # each batch has shape: (batch_size, n_channels, n_time_points)
-    dl = DataLoader(dataset=subset_windows, batch_size=5)
+    loader = DataLoader(dataset=single_channel_windows, batch_size=32)
 
     batch_X, batch_y, batch_ind = None, None, None
-    for batch_X, batch_y, batch_ind in dl:
+    for batch_X, batch_y, batch_ind in loader:
         pass
     print(batch_X.shape)  # type: ignore
     print('batch_X:', batch_X)
