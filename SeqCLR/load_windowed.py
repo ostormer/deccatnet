@@ -1,7 +1,7 @@
 import pickle
 from tqdm import tqdm
 import time
-from braindecode.datasets import BaseConcatDataset, BaseDataset
+from braindecode.datasets import BaseConcatDataset, BaseDataset, WindowsDataset
 import braindecode.datasets.tuh as tuh
 from braindecode.preprocessing import create_fixed_length_windows
 from torch.utils.data import DataLoader
@@ -146,48 +146,61 @@ class TUHSingleChannelDataset(tuh.TUH):
 
 
 
-def split_channels_and_window(dataset:BaseConcatDataset, mode='single', window_size_samples=2500) -> BaseConcatDataset:
+def split_channels_and_window(concat_dataset:BaseConcatDataset, mode='single', window_size_samples=2500) -> BaseConcatDataset:
 
     assert mode in ['single', 'pairs'], f'{mode} not a valid spliting strategy'
 
-    all_base_ds = []
-    for base_ds in tqdm(dataset.datasets):
-        base_ds.raw.drop_channels(['IBI', 'BURSTS', 'SUPPR'], on_missing='ignore')
-        if base_ds.raw.n_times < window_size_samples:
-            # Drop short recordings
-            continue
-        if mode == 'single':
-            split_concat_ds = _split_into_single_channels(base_ds)
-        else: #  mode == 'pairs':
-            split_concat_ds = _split_into_all_channel_pairs(base_ds, unique_pairs=True)
-    
-        # Create list of BaseDatasets containing one split_raw sample each
-        all_base_ds.append(split_concat_ds)
-        
-    concat_ds = BaseConcatDataset(all_base_ds)
-    # print(concat_ds.description)
+    # Windowing
     t0 = time.time()
     print(f"Begun windowing at {time.ctime(time.time())}")
     windowed_ds = create_fixed_length_windows(
-        concat_ds,
+        concat_dataset,
         start_offset_samples=0,
         stop_offset_samples=None,
         window_size_samples=window_size_samples,
-        window_stride_samples=2500,
-        drop_last_window=False,
+        window_stride_samples=window_size_samples,
+        drop_last_window=True,
     )
     # store the number of windows required for loading later on
     windowed_ds.set_description({
         "n_windows": [len(d) for d in windowed_ds.datasets]})  # type: ignore
     print(f'Finished windowing in {time.time()-t0} seconds')
-    return windowed_ds
 
-def _split_into_single_channels(base_ds:BaseDataset) -> BaseConcatDataset:
+    print(windowed_ds.description)
+
+
+    all_base_ds = []
+    for windows_ds in tqdm(windowed_ds.datasets):
+        windows_ds.windows._raw.drop_channels(['IBI', 'BURSTS', 'SUPPR'], on_missing='ignore')
+
+        if mode == 'single':
+            split_concat_ds = _split_into_single_channels(windows_ds)
+        else: #  mode == 'pairs':
+            split_concat_ds = _split_into_all_channel_pairs(windows_ds, unique_pairs=True)
+    
+        # Create list of BaseDatasets containing one split_raw sample each
+        all_base_ds.append(split_concat_ds)
+        
+    final_ds = BaseConcatDataset(all_base_ds)
+    # print(concat_ds.description)
+    return final_ds
+
+def _split_into_single_channels(base_ds:WindowsDataset) -> BaseConcatDataset:
     base_ds_list = []
-    raw = base_ds.raw
-    for channel in raw.ch_names:
-        new_raw = raw.copy().pick_channels([channel])
-        ds = BaseDataset(new_raw, description=base_ds.description)
+    old_epochs = base_ds.windows
+    old_raw = base_ds.windows._raw
+    for channel in old_raw.ch_names:
+        new_epochs = mne.Epochs(
+            raw=old_raw,
+            events=old_epochs.events,
+            picks=[channel],
+            baseline=None,
+            tmin=0,
+            tmax=old_epochs.tmax,
+            metadata=old_epochs.metadata
+        )
+        # ds = BaseDataset(new_raw, description=base_ds.description)
+        ds = WindowsDataset(new_epochs, base_ds.description)
         ds.set_description({"Channels": channel})
 
         base_ds_list.append(ds)
@@ -195,9 +208,9 @@ def _split_into_single_channels(base_ds:BaseDataset) -> BaseConcatDataset:
     return concat
 
 
-def _split_into_all_channel_pairs(base_ds:BaseDataset, unique_pairs=True) -> BaseConcatDataset:
+def _split_into_all_channel_pairs(base_ds:WindowsDataset, unique_pairs=True) -> BaseConcatDataset:
     pairs = []
-    raw = base_ds.raw
+    raw = base_ds.windows._raw
     if not unique_pairs:
         for channel_i in raw.ch_names[:]:
             for channel_j in raw.ch_names[:]:
@@ -258,7 +271,12 @@ if __name__ == "__main__":
 
     print('Loaded DS')
 
+    dataset = dataset.split(by=range(10))['0']
+    print(dataset.description)
     single_channel_windows = split_channels_and_window(dataset, mode='single')
+
+    with open('windowed_test.pkl', 'wb') as f:
+        pickle.dump(single_channel_windows, f)
 
     print("Windowing complete")
     # Default DataLoader object lets us iterate through the dataset.
@@ -267,7 +285,14 @@ if __name__ == "__main__":
     loader = DataLoader(dataset=single_channel_windows, batch_size=32)
 
     batch_X, batch_y, batch_ind = None, None, None
+    i = 0
     for batch_X, batch_y, batch_ind in loader:
+        if i < 1:
+            i+=1
+            print(batch_X.shape)  # type: ignore
+            print('batch_X:', batch_X)
+            print('batch_y:', batch_y)
+            print('batch_ind:', batch_ind)
         pass
     print(batch_X.shape)  # type: ignore
     print('batch_X:', batch_X)
