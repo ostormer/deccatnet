@@ -2,7 +2,7 @@ import bisect
 import pickle
 from tqdm import tqdm
 import time
-from braindecode.datasets import BaseConcatDataset, BaseDataset, WindowsDataset
+from braindecode.datasets import BaseConcatDataset, WindowsDataset
 import braindecode.datasets.tuh as tuh
 from braindecode.preprocessing import create_fixed_length_windows
 from torch.utils.data import DataLoader
@@ -13,7 +13,7 @@ import torch
 import torch.utils.data
 
 
-def split_channels_and_window(concat_dataset:braindecode.datasets.BaseConcatDataset, channel_split_func=None, window_size_samples=2500) -> braindecode.datasets.BaseConcatDataset:
+def split_channels_and_window(concat_dataset:BaseConcatDataset, channel_split_func=None, window_size_samples=2500) -> BaseConcatDataset:
     """Splits BaseConcatDataset into set containing non-overlapping windows split into channels according to channel_split_func
 
     Args:
@@ -89,7 +89,7 @@ def _make_overlapping_adjacent_pairs(ch_list:'list[str]') -> 'list[list[str]]':
         pairs.append([ch_list[i], ch_list[i+1]])    
     return pairs
 
-def _split_windows_into_channels(base_ds:braindecode.datasets.WindowsDataset, channel_split_func=_make_single_channels) -> braindecode.datasets.BaseConcatDataset:
+def _split_windows_into_channels(base_ds:WindowsDataset, channel_split_func=_make_single_channels) -> BaseConcatDataset:
     raw = base_ds.windows._raw
     channel_selections = channel_split_func(raw.ch_names)
 
