@@ -150,6 +150,8 @@ def split_channels_and_window(concat_dataset:BaseConcatDataset, mode='single', w
 
     assert mode in ['single', 'pairs'], f'{mode} not a valid spliting strategy'
 
+    for base_ds in concat_dataset.datasets:
+        base_ds.raw.drop_channels(['IBI', 'BURSTS', 'SUPPR', 'PHOTIC PH'], on_missing='ignore')  # type: ignore
     # Windowing
     t0 = time.time()
     print(f"Begun windowing at {time.ctime(time.time())}")
@@ -166,17 +168,13 @@ def split_channels_and_window(concat_dataset:BaseConcatDataset, mode='single', w
         "n_windows": [len(d) for d in windowed_ds.datasets]})  # type: ignore
     print(f'Finished windowing in {time.time()-t0} seconds')
 
-    print(windowed_ds.description)
-
-
     all_base_ds = []
     for windows_ds in tqdm(windowed_ds.datasets):
-        windows_ds.windows._raw.drop_channels(['IBI', 'BURSTS', 'SUPPR'], on_missing='ignore')
 
         if mode == 'single':
-            split_concat_ds = _split_into_single_channels(windows_ds)
+            split_concat_ds = _split_into_single_channels(windows_ds)  # type: ignore
         else: #  mode == 'pairs':
-            split_concat_ds = _split_into_all_channel_pairs(windows_ds, unique_pairs=True)
+            split_concat_ds = _split_into_all_channel_pairs(windows_ds, unique_pairs=True)  # type: ignore
     
         # Create list of BaseDatasets containing one split_raw sample each
         all_base_ds.append(split_concat_ds)
@@ -199,10 +197,10 @@ def _split_into_single_channels(base_ds:WindowsDataset) -> BaseConcatDataset:
             tmax=old_epochs.tmax,
             metadata=old_epochs.metadata
         )
-        # ds = BaseDataset(new_raw, description=base_ds.description)
-        ds = WindowsDataset(new_epochs, base_ds.description)
-        ds.set_description({"Channels": channel})
+        new_epochs.drop_bad()
 
+        ds = WindowsDataset(new_epochs, base_ds.description)
+        ds.set_description({"channels": channel})
         base_ds_list.append(ds)
     concat = BaseConcatDataset(base_ds_list)
     return concat
@@ -221,16 +219,26 @@ def _split_into_all_channel_pairs(base_ds:WindowsDataset, unique_pairs=True) -> 
                 pairs.append([channel_i, channel_j])
     
     base_ds_list = []
+    old_epochs = base_ds.windows
+    old_raw = base_ds.windows._raw
     for pair in pairs:
-        new_raw = raw.copy().pick_channels(pair)
-        ds = BaseDataset(new_raw, description=base_ds.description)
+        new_epochs = mne.Epochs(
+            raw=old_raw,
+            events=old_epochs.events,
+            picks=pair,
+            baseline=None,
+            tmin=0,
+            tmax=old_epochs.tmax,
+            metadata=old_epochs.metadata
+        )
+        new_epochs.drop_bad()
+
+        ds = WindowsDataset(new_epochs, base_ds.description)
         ds.set_description({"Channels": pair})
         base_ds_list.append(ds)
         
     concat = BaseConcatDataset(base_ds_list)
     return concat
-
-
 
 
 if __name__ == "__main__":
@@ -273,7 +281,7 @@ if __name__ == "__main__":
 
     dataset = dataset.split(by=range(10))['0']
     print(dataset.description)
-    single_channel_windows = split_channels_and_window(dataset, mode='single')
+    single_channel_windows = split_channels_and_window(dataset, mode='pairs')
 
     with open('windowed_test.pkl', 'wb') as f:
         pickle.dump(single_channel_windows, f)
@@ -286,7 +294,7 @@ if __name__ == "__main__":
 
     batch_X, batch_y, batch_ind = None, None, None
     i = 0
-    for batch_X, batch_y, batch_ind in loader:
+    for batch_X, batch_y, batch_ind in tqdm(loader):
         if i < 1:
             i+=1
             print(batch_X.shape)  # type: ignore
