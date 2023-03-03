@@ -1,3 +1,4 @@
+import bisect
 import pickle
 from tqdm import tqdm
 import time
@@ -53,6 +54,51 @@ class SingleChannelDataset(tuh.TUHAbnormal):
         # WindowsDataset 
 '''
 
+def new_len(self:BaseConcatDataset):
+    # TODO: need to find a way to find correct len
+    counter = []
+    for dataset in self.datasets:
+        counter.append(len(dataset.windows.ch_names))
+    cum_sizes = self.cumsum(self.datasets)
+    for i in len(cum_sizes):
+        if i == 0:
+            cum_sizes[0] = counter[0]*cum_sizes[0]
+        else:
+            cum_sizes[i] = cum_sizes[i-1] + cum_sizes[i] * counter[i]
+    self.cumulative_sizes = cum_sizes
+    return cum_sizes[-1]*counter[-1]
+
+def new_getitem(self:BaseConcatDataset, idx):
+    """
+    data is stored in self.datasets, so self.datasets is a concated dataset of baseDatasets types.
+    BaseDataset is also a braindecode extension of pytroch Dataset.
+    Could mean that we should not overwrite this __getitem__, but the one for the base datasets.
+    :param index:
+    :return:
+    """
+    if idx < 0:
+        if -idx > len(self):
+            raise ValueError("absolute value of index should not exceed dataset length")
+        idx = len(self) + idx
+    dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+
+    self.n_channels = len(self.datasets[dataset_idx].windows.ch_names)
+
+    if dataset_idx == 0:
+        sample_idx = idx
+    else:
+        sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+    new_sample_idx = sample_idx // self.n_channels
+    # want to find recording_idx from idx
+    if new_sample_idx == 0:
+        channel_idx = sample_idx
+    else:
+        channel_idx = sample_idx - new_sample_idx * self.n_channels
+
+    #print(self.datasets[dataset_idx][new_sample_idx][0].shape)
+    print('using the monkey patched __getitem__ function')
+
+    return self.datasets[dataset_idx][new_sample_idx][0][channel_idx].reshape(1,-1)
 
 class TUHSingleChannelDataset(tuh.TUH):
     def __init__(self, path, source_dataset, recording_ids=None, target_name=None,
@@ -62,10 +108,29 @@ class TUHSingleChannelDataset(tuh.TUH):
                              preload=preload, target_name=None,
                              add_physician_reports=add_physician_reports,
                              n_jobs=n_jobs)
-        print(len(self.datasets)) # 35 datasets right now
-        print(type(self))
+        self.cumulative_sizes = self.cumsum(self.datasets)
+        self.n_channels = self.datasets[0][0][0].shape[0]
+        #we sample each chanel with the next channel, and the last one with the first
+        # so now we go channel-wise
+        #print(self.datasets[0][0].get_sequence)
+        #self.cumulative_sizes = [i * self.n_channels for i in self.cumulative_sizes]
+        assert len(self.datasets) == len(self.cumulative_sizes)
 
-    def __getitem__(self, index):
+
+    def __len__(self):
+        """
+        important to overwrtie __len__ aswell as the
+        :return:
+        """
+        return self.cumulative_sizes[-1]
+    """
+    This is how __len__() is inherited from the base file
+    self.cumulative_sizes = self.cumsum(self.datasets)
+
+    def __len__(self):
+        return self.cumulative_sizes[-1]
+    """
+    def __getitem__(self, idx):
         """
     data is stored in self.datasets, so self.datasets is a concated dataset of baseDatasets types.
     BaseDataset is also a braindecode extension of pytroch Dataset.
@@ -73,9 +138,50 @@ class TUHSingleChannelDataset(tuh.TUH):
         :param index:
         :return:
     """
-        return index# first test with super
+        # access one and one dataset and rewrite the __getitem__ function of the
+            # downstream dataset to return two and two or one and one sample?
+        if idx < 0:
+            if -idx > len(self):
+                raise ValueError("absolute value of index should not exceed dataset length")
+            idx = len(self) + idx
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        # get dataset
+        #dataset = self.datasets[dataset_idx]
+        # create cumulative sizes for sample
+        #print(dataset.)
+        #cumulative_sample_sizes = dataset
+        #print(cumulative_sample_sizes)
+        if dataset_idx == 0:
+            sample_idx = idx
+        else:
+            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+        new_sample_idx = sample_idx//self.n_channels
+        # want to find recording_idx from idx
+        if new_sample_idx == 0:
+            recording_idx = sample_idx
+        else:
+            recording_idx = sample_idx - new_sample_idx*self.n_channels
+
+        # now we have a way to iterate through each dataset
+        # need a way to exstract two and two channels
+        #one_recording = self.datasets[dataset_idx][0][0] #this is one recording
+        # now self.cumulative sizes is n_channels as large. We need to get sample_idx
+        # correct, hopefully
+        #print(one_recording.shape, self.n_channels)
+        #self.cumsum(one_recording)
+        #print(self.datasets[dataset_idx][new_sample_idx])
+        """
+        This appoarch doesnt work now as __getitem__ returns
+        one and one datapoint when not windowed
+        """
+        print(self.datasets[dataset_idx].shape, self.datasets[dataset_idx][new_sample_idx].shape)
+        print(self.datasets[dataset_idx][new_sample_idx][recording_idx].shape)
+        return self.datasets[dataset_idx][new_sample_idx][0][recording_idx]
 
     """
+    Thoughts: we have to read the data twice, one time when we pre-process and when we train
+        the model. Applying augmentations during pre-processing doesnt seam optimal.
+    
     Hirearchy:
     TUHDataset is an extension of BaseConcatDataset which a concatination of several BaseDataset. 
     However BaseConcatDataset is an extension of Pytorch ConcatDataset. 
@@ -100,7 +206,7 @@ class TUHSingleChannelDataset(tuh.TUH):
         return tuple(tensor[index] for tensor in self.tensors)
     """
 
-    """ getitem of concat, so super for a TUH dataset
+    """ getitem of BaseConcat, so super for a TUH dataset
     def __getitem__(self, idx):
         Parameters
         ----------
