@@ -346,3 +346,244 @@ if __name__=="__main__":
     #pre_train_model(batch_size=100, num_workers=1,save_freq=10,Shuffel=False,save_dir_model='models',model_file_name='test',model_weights_dict=None,temperature= 2
     #               ,learning_rate= 0.01
     #               , weight_decay= 0.01,max_epochs=20,batch_print_condition=5)
+
+'''
+# I don't think SingleChannelDataset is necessary, it would be better to split into single channels
+# or channel pairs while/after/before windowing.
+# If we want a custom dataset object to handle augmentations etc, we can make a wrapper
+# class that contains a Dataset or BaseConcatDataset or whatever and can get items and apply augmentations to it
+class SingleChannelDataset(tuh.TUHAbnormal):
+    def __init__(self, path, source_dataset, recording_ids=None, target_name=None,
+                 preload=False, add_physician_reports=False, n_jobs=1):
+        if source_dataset == "tuh_eeg_abnormal":
+            print("Initializing TUHAbnormal object")
+            tuh.TUHAbnormal.__init__(self, path=path, recording_ids=recording_ids,
+                                     preload=preload, target_name='pathological',
+                                     add_physician_reports=add_physician_reports,
+                                     n_jobs=n_jobs)
+        elif source_dataset == "tuh_eeg":
+            print("Initializing TUH object")
+            tuh.TUH.__init__(self, path=path, recording_ids=recording_ids,
+                             preload=preload, target_name=None,
+                             add_physician_reports=add_physician_reports,
+                             n_jobs=n_jobs)
+        else:
+            print(f"Dataset type <{source_dataset}> has not been implemented")
+            raise NotImplementedError
+
+    def __getitem__(self, idx):
+        return super().__getitem__(idx)
+        # Don't know how this one would read single channels from each file on request.
+        # Will take a look on extending WindowedDataset instead 
+
+        # Iterating without shuffling could be supported, only one file would 
+        # have to be read at a time and kept open in memory. However if indexing
+        # and shuffling should be supported, a list of number of channels would
+        # need to be stored together with the paths, and indexes would have to be
+        # the total cumulative channel number
+        # 
+        # This is possible, though each chanel read would require to load and unload
+        # a edf file when shuffling.
+        # Would be just as efficient to just extract a single channel from the 
+        # WindowsDataset 
+'''
+
+
+def new_len(self: BaseConcatDataset):
+    # TODO: need to find a way to find correct len
+    counter = []
+    for dataset in self.datasets:
+        counter.append(len(dataset.windows.ch_names))
+    cum_sizes = self.cumsum(self.datasets)
+    for i in len(cum_sizes):
+        if i == 0:
+            cum_sizes[0] = counter[0] * cum_sizes[0]
+        else:
+            cum_sizes[i] = cum_sizes[i - 1] + cum_sizes[i] * counter[i]
+    self.cumulative_sizes = cum_sizes
+    return cum_sizes[-1] * counter[-1]
+
+
+def new_getitem(self: BaseConcatDataset, idx):
+    """
+    data is stored in self.datasets, so self.datasets is a concated dataset of baseDatasets types.
+    BaseDataset is also a braindecode extension of pytroch Dataset.
+    Could mean that we should not overwrite this __getitem__, but the one for the base datasets.
+    :param index:
+    :return:
+    """
+    if idx < 0:
+        if -idx > len(self):
+            raise ValueError("absolute value of index should not exceed dataset length")
+        idx = len(self) + idx
+    dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+
+    self.n_channels = len(self.datasets[dataset_idx].windows.ch_names)
+
+    if dataset_idx == 0:
+        sample_idx = idx
+    else:
+        sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+    new_sample_idx = sample_idx // self.n_channels
+    # want to find recording_idx from idx
+    if new_sample_idx == 0:
+        channel_idx = sample_idx
+    else:
+        channel_idx = sample_idx - new_sample_idx * self.n_channels
+
+    # print(self.datasets[dataset_idx][new_sample_idx][0].shape)
+    print('using the monkey patched __getitem__ function')
+
+    return self.datasets[dataset_idx][new_sample_idx][0][channel_idx].reshape(1, -1)
+
+
+class TUHSingleChannelDataset(tuh.TUH):
+    def __init__(self, path, source_dataset, recording_ids=None, target_name=None,
+                 preload=False, add_physician_reports=False, n_jobs=1):
+
+        super().__init__(path=path, recording_ids=recording_ids,
+                         preload=preload, target_name=None,
+                         add_physician_reports=add_physician_reports,
+                         n_jobs=n_jobs)
+        self.cumulative_sizes = self.cumsum(self.datasets)
+        self.n_channels = self.datasets[0][0][0].shape[0]
+        # we sample each chanel with the next channel, and the last one with the first
+        # so now we go channel-wise
+        # print(self.datasets[0][0].get_sequence)
+        # self.cumulative_sizes = [i * self.n_channels for i in self.cumulative_sizes]
+        assert len(self.datasets) == len(self.cumulative_sizes)
+
+    def __len__(self):
+        """
+        important to overwrtie __len__ aswell as the
+        :return:
+        """
+        return self.cumulative_sizes[-1]
+
+    """
+    This is how __len__() is inherited from the base file
+    self.cumulative_sizes = self.cumsum(self.datasets)
+
+    def __len__(self):
+        return self.cumulative_sizes[-1]
+    """
+
+    def __getitem__(self, idx):
+        """
+    data is stored in self.datasets, so self.datasets is a concated dataset of baseDatasets types.
+    BaseDataset is also a braindecode extension of pytroch Dataset.
+    Could mean that we should not overwrite this __getitem__, but the one for the base datasets.
+        :param index:
+        :return:
+    """
+        # access one and one dataset and rewrite the __getitem__ function of the
+        # downstream dataset to return two and two or one and one sample?
+        if idx < 0:
+            if -idx > len(self):
+                raise ValueError("absolute value of index should not exceed dataset length")
+            idx = len(self) + idx
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        # get dataset
+        # dataset = self.datasets[dataset_idx]
+        # create cumulative sizes for sample
+        # print(dataset.)
+        # cumulative_sample_sizes = dataset
+        # print(cumulative_sample_sizes)
+        if dataset_idx == 0:
+            sample_idx = idx
+        else:
+            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+        new_sample_idx = sample_idx // self.n_channels
+        # want to find recording_idx from idx
+        if new_sample_idx == 0:
+            recording_idx = sample_idx
+        else:
+            recording_idx = sample_idx - new_sample_idx * self.n_channels
+
+        # now we have a way to iterate through each dataset
+        # need a way to exstract two and two channels
+        # one_recording = self.datasets[dataset_idx][0][0] #this is one recording
+        # now self.cumulative sizes is n_channels as large. We need to get sample_idx
+        # correct, hopefully
+        # print(one_recording.shape, self.n_channels)
+        # self.cumsum(one_recording)
+        # print(self.datasets[dataset_idx][new_sample_idx])
+        """
+        This appoarch doesnt work now as __getitem__ returns
+        one and one datapoint when not windowed
+        """
+        print(self.datasets[dataset_idx].shape, self.datasets[dataset_idx][new_sample_idx].shape)
+        print(self.datasets[dataset_idx][new_sample_idx][recording_idx].shape)
+        return self.datasets[dataset_idx][new_sample_idx][0][recording_idx]
+
+    """
+    Thoughts: we have to read the data twice, one time when we pre-process and when we train
+        the model. Applying augmentations during pre-processing doesnt seam optimal.
+
+    Hirearchy:
+    TUHDataset is an extension of BaseConcatDataset which a concatination of several BaseDataset. 
+    However BaseConcatDataset is an extension of Pytorch ConcatDataset. 
+    BaseDataset is an extension of Pytorch Dataset, however few or no super() calls is utilized.
+    """
+
+    """    getitem of base
+    def __getitem__(self, index):
+        X = self.raw[:, index][0]
+        y = None
+        if self.target_name is not None:
+            y = self.description[self.target_name]
+        if isinstance(y, pd.Series):
+            y = y.to_list()
+        if self.transform is not None:
+            X = self.transform(X)
+        return X, y
+
+
+    __getitem__ of basic dataset
+    def __getitem__(self, index):
+        return tuple(tensor[index] for tensor in self.tensors)
+    """
+
+    """ getitem of BaseConcat, so super for a TUH dataset
+    def __getitem__(self, idx):
+        Parameters
+        ----------
+        idx : int | list
+            Index of window and target to return. If provided as a list of
+            ints, multiple windows and targets will be extracted and
+            concatenated. The target output can be modified on the
+            fly by the ``traget_transform`` parameter.
+        if isinstance(idx, Iterable):  # Sample multiple windows
+            item = self._get_sequence(idx)
+        else:
+            item = super().__getitem__(idx)
+        if self.target_transform is not None:
+            item = item[:1] + (self.target_transform(item[1]),) + item[2:]
+        return item
+
+    def _get_sequence(self, indices):
+        X, y = list(), list()
+        for ind in indices:
+            out_i = super().__getitem__(ind)
+            X.append(out_i[0])
+            y.append(out_i[1])
+
+        X = np.stack(X, axis=0)
+        y = np.array(y)
+
+        return X, y
+
+    getitem of pytroch concat dataset, used in the two above
+    def __getitem__(self, idx):
+        if idx < 0:
+            if -idx > len(self):
+                raise ValueError("absolute value of index should not exceed dataset length")
+            idx = len(self) + idx
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        if dataset_idx == 0:
+            sample_idx = idx
+        else:
+            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+        return self.datasets[dataset_idx][sample_idx]
+
+    """
