@@ -1,3 +1,4 @@
+import bisect
 import pickle
 from tqdm import tqdm
 import time
