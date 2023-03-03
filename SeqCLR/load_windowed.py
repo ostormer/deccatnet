@@ -10,146 +10,21 @@ import mne
 import braindecode
 import torch
 import torch.utils.data
-    
-
-'''
-# I don't think SingleChannelDataset is necessary, it would be better to split into single channels
-# or channel pairs while/after/before windowing.
-# If we want a custom dataset object to handle augmentations etc, we can make a wrapper
-# class that contains a Dataset or BaseConcatDataset or whatever and can get items and apply augmentations to it
-class SingleChannelDataset(tuh.TUHAbnormal):
-    def __init__(self, path, source_dataset, recording_ids=None, target_name=None,
-                 preload=False, add_physician_reports=False, n_jobs=1):
-        if source_dataset == "tuh_eeg_abnormal":
-            print("Initializing TUHAbnormal object")
-            tuh.TUHAbnormal.__init__(self, path=path, recording_ids=recording_ids,
-                                     preload=preload, target_name='pathological',
-                                     add_physician_reports=add_physician_reports,
-                                     n_jobs=n_jobs)
-        elif source_dataset == "tuh_eeg":
-            print("Initializing TUH object")
-            tuh.TUH.__init__(self, path=path, recording_ids=recording_ids,
-                             preload=preload, target_name=None,
-                             add_physician_reports=add_physician_reports,
-                             n_jobs=n_jobs)
-        else:
-            print(f"Dataset type <{source_dataset}> has not been implemented")
-            raise NotImplementedError
-
-    def __getitem__(self, idx):
-        return super().__getitem__(idx)
-        # Don't know how this one would read single channels from each file on request.
-        # Will take a look on extending WindowedDataset instead 
-
-        # Iterating without shuffling could be supported, only one file would 
-        # have to be read at a time and kept open in memory. However if indexing
-        # and shuffling should be supported, a list of number of channels would
-        # need to be stored together with the paths, and indexes would have to be
-        # the total cumulative channel number
-        # 
-        # This is possible, though each chanel read would require to load and unload
-        # a edf file when shuffling.
-        # Would be just as efficient to just extract a single channel from the 
-        # WindowsDataset 
-'''
 
 
-class TUHSingleChannelDataset(tuh.TUH):
-    def __init__(self, path, source_dataset, recording_ids=None, target_name=None,
-                 preload=False, add_physician_reports=False, n_jobs=1):
+def split_channels_and_window(concat_dataset:braindecode.datasets.BaseConcatDataset, channel_split_func=None, window_size_samples=2500) -> braindecode.datasets.BaseConcatDataset:
+    """Splits BaseConcatDataset into set containing non-overlapping windows split into channels according to channel_split_func
 
-        super().__init__(path=path, recording_ids=recording_ids,
-                             preload=preload, target_name=None,
-                             add_physician_reports=add_physician_reports,
-                             n_jobs=n_jobs)
-        print(len(self.datasets)) # 35 datasets right now
-        print(type(self))
+    Args:
+        concat_dataset (braindecode.datasets.BaseConcatDataset): Input dataset
+        channel_split_func (callable, optional): Callable function f(ch_names:list[str]) -> list[list[str]]. If None, _make_overlapping_adjacent_pairs is used. Defaults to None.
+        window_size_samples (int, optional): Number of time points per window. Defaults to 2500.
 
-    def __getitem__(self, index):
-        """
-    data is stored in self.datasets, so self.datasets is a concated dataset of baseDatasets types.
-    BaseDataset is also a braindecode extension of pytroch Dataset.
-    Could mean that we should not overwrite this __getitem__, but the one for the base datasets.
-        :param index:
-        :return:
+    Returns:
+        braindecode.datasets.BaseConcatDataset: BaseConcatDataset containing WindowDatasets which have been split up into time windows and channel combinations
     """
-        return index# first test with super
-
-    """
-    Hirearchy:
-    TUHDataset is an extension of BaseConcatDataset which a concatination of several BaseDataset. 
-    However BaseConcatDataset is an extension of Pytorch ConcatDataset. 
-    BaseDataset is an extension of Pytorch Dataset, however few or no super() calls is utilized.
-    """
-
-    """    getitem of base
-    def __getitem__(self, index):
-        X = self.raw[:, index][0]
-        y = None
-        if self.target_name is not None:
-            y = self.description[self.target_name]
-        if isinstance(y, pd.Series):
-            y = y.to_list()
-        if self.transform is not None:
-            X = self.transform(X)
-        return X, y
-        
-    
-    __getitem__ of basic dataset
-    def __getitem__(self, index):
-        return tuple(tensor[index] for tensor in self.tensors)
-    """
-
-    """ getitem of concat, so super for a TUH dataset
-    def __getitem__(self, idx):
-        Parameters
-        ----------
-        idx : int | list
-            Index of window and target to return. If provided as a list of
-            ints, multiple windows and targets will be extracted and
-            concatenated. The target output can be modified on the
-            fly by the ``traget_transform`` parameter.
-        if isinstance(idx, Iterable):  # Sample multiple windows
-            item = self._get_sequence(idx)
-        else:
-            item = super().__getitem__(idx)
-        if self.target_transform is not None:
-            item = item[:1] + (self.target_transform(item[1]),) + item[2:]
-        return item
-        
-    def _get_sequence(self, indices):
-        X, y = list(), list()
-        for ind in indices:
-            out_i = super().__getitem__(ind)
-            X.append(out_i[0])
-            y.append(out_i[1])
-
-        X = np.stack(X, axis=0)
-        y = np.array(y)
-
-        return X, y
-    
-    getitem of pytroch concat dataset, used in the two above
-    def __getitem__(self, idx):
-        if idx < 0:
-            if -idx > len(self):
-                raise ValueError("absolute value of index should not exceed dataset length")
-            idx = len(self) + idx
-        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
-        if dataset_idx == 0:
-            sample_idx = idx
-        else:
-            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
-        return self.datasets[dataset_idx][sample_idx]
-    
-    """
-
-
-
-def split_channels_and_window(concat_dataset:BaseConcatDataset, mode='single', window_size_samples=2500) -> BaseConcatDataset:
-
-    assert mode in ['single', 'pairs'], f'{mode} not a valid spliting strategy'
-
+    if channel_split_func is None:
+        channel_split_func = _make_overlapping_adjacent_pairs
     for base_ds in concat_dataset.datasets:
         base_ds.raw.drop_channels(['IBI', 'BURSTS', 'SUPPR', 'PHOTIC PH'], on_missing='ignore')  # type: ignore
     # Windowing
@@ -170,62 +45,61 @@ def split_channels_and_window(concat_dataset:BaseConcatDataset, mode='single', w
 
     all_base_ds = []
     for windows_ds in tqdm(windowed_ds.datasets):
-
-        if mode == 'single':
-            split_concat_ds = _split_into_single_channels(windows_ds)  # type: ignore
-        else: #  mode == 'pairs':
-            split_concat_ds = _split_into_all_channel_pairs(windows_ds, unique_pairs=True)  # type: ignore
-    
-        # Create list of BaseDatasets containing one split_raw sample each
+        split_concat_ds = _split_windows_into_channels(windows_ds, channel_split_func)  # type: ignore
         all_base_ds.append(split_concat_ds)
         
     final_ds = BaseConcatDataset(all_base_ds)
     # print(concat_ds.description)
     return final_ds
 
-def _split_into_single_channels(base_ds:WindowsDataset) -> BaseConcatDataset:
-    base_ds_list = []
-    old_epochs = base_ds.windows
-    old_raw = base_ds.windows._raw
-    for channel in old_raw.ch_names:
-        new_epochs = mne.Epochs(
-            raw=old_raw,
-            events=old_epochs.events,
-            picks=[channel],
-            baseline=None,
-            tmin=0,
-            tmax=old_epochs.tmax,
-            metadata=old_epochs.metadata
-        )
-        new_epochs.drop_bad()
 
-        ds = WindowsDataset(new_epochs, base_ds.description)
-        ds.set_description({"channels": channel})
-        base_ds_list.append(ds)
-    concat = BaseConcatDataset(base_ds_list)
-    return concat
+def _make_single_channels(ch_list:'list[str]') -> 'list[list[str]]':
+    return [[ch] for ch in ch_list]
 
-
-def _split_into_all_channel_pairs(base_ds:WindowsDataset, unique_pairs=True) -> BaseConcatDataset:
+def _make_unique_pair_combos(ch_list:'list[str]') -> 'list[list[str]]':
+    assert len(ch_list) > 1
     pairs = []
+    for i, channel_i in enumerate(ch_list):
+        for channel_j in ch_list[i+1:]:
+            pairs.append([channel_i, channel_j])
+    return pairs
+
+def _make_all_pair_combos(ch_list:'list[str]') -> 'list[list[str]]':
+    assert len(ch_list) > 1
+    pairs = []
+    for channel_i in ch_list:
+        for channel_j in ch_list:
+            pairs.append([channel_i, channel_j])
+    return pairs
+
+def _make_adjacent_pairs(ch_list:'list[str]') -> 'list[list[str]]':
+    assert len(ch_list) > 1
+    pairs = []
+    for i in range(len(ch_list)//2):
+        pairs.append([ch_list[2*i], ch_list[2*i + 1]])
+    if len(ch_list) % 2 == 1:
+        pairs.append([ch_list[-1], ch_list[-2]])
+    return pairs
+
+def _make_overlapping_adjacent_pairs(ch_list:'list[str]') -> 'list[list[str]]':
+    assert len(ch_list) > 1
+    pairs = []
+    for i in range(len(ch_list) - 1):
+        pairs.append([ch_list[i], ch_list[i+1]])    
+    return pairs
+
+def _split_windows_into_channels(base_ds:braindecode.datasets.WindowsDataset, channel_split_func=_make_single_channels) -> braindecode.datasets.BaseConcatDataset:
     raw = base_ds.windows._raw
-    if not unique_pairs:
-        for channel_i in raw.ch_names[:]:
-            for channel_j in raw.ch_names[:]:
-                pairs.append([channel_i, channel_j])
-    else:  # Only unique pairs, i.e. not (i,j) if (j,i) exists, and not (i,i)
-        for i, channel_i in enumerate(raw.ch_names[:]):
-            for j, channel_j in enumerate(raw.ch_names[i+1:]):
-                pairs.append([channel_i, channel_j])
-    
+    channel_selections = channel_split_func(raw.ch_names)
+
     base_ds_list = []
     old_epochs = base_ds.windows
-    old_raw = base_ds.windows._raw
-    for pair in pairs:
+    raw.load_data()
+    for channels in channel_selections:
         new_epochs = mne.Epochs(
-            raw=old_raw,
+            raw=raw,
             events=old_epochs.events,
-            picks=pair,
+            picks=channels,
             baseline=None,
             tmin=0,
             tmax=old_epochs.tmax,
@@ -234,7 +108,7 @@ def _split_into_all_channel_pairs(base_ds:WindowsDataset, unique_pairs=True) -> 
         new_epochs.drop_bad()
 
         ds = WindowsDataset(new_epochs, base_ds.description)
-        ds.set_description({"Channels": pair})
+        ds.set_description({"channels": channels})
         base_ds_list.append(ds)
         
     concat = BaseConcatDataset(base_ds_list)
@@ -280,8 +154,7 @@ if __name__ == "__main__":
     print('Loaded DS')
 
     dataset = dataset.split(by=range(10))['0']
-    print(dataset.description)
-    single_channel_windows = split_channels_and_window(dataset, mode='pairs')
+    single_channel_windows = split_channels_and_window(dataset, channel_split_func=_make_overlapping_adjacent_pairs)
 
     with open('windowed_test.pkl', 'wb') as f:
         pickle.dump(single_channel_windows, f)
