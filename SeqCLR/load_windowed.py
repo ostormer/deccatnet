@@ -8,9 +8,50 @@ from braindecode.preprocessing import create_fixed_length_windows
 from torch.utils.data import DataLoader
 from mne import set_log_level
 import mne
-import braindecode
-import torch
-import torch.utils.data
+
+
+# def split_channels_and_window_2(concat_dataset:BaseConcatDataset, channel_split_func=None, window_size_samples=2500) -> BaseConcatDataset:
+#     """Splits BaseConcatDataset into set containing non-overlapping windows split into channels according to channel_split_func
+
+#     Args:
+#         concat_dataset (braindecode.datasets.BaseConcatDataset): Input dataset
+#         channel_split_func (callable, optional): Callable function f(ch_names:list[str]) -> list[list[str]]. If None, _make_overlapping_adjacent_pairs is used. Defaults to None.
+#         window_size_samples (int, optional): Number of time points per window. Defaults to 2500.
+
+#     Returns:
+#         braindecode.datasets.BaseConcatDataset: BaseConcatDataset containing WindowDatasets which have been split up into time windows and channel combinations
+#     """
+#     if channel_split_func is None:
+#         channel_split_func = _make_overlapping_adjacent_pairs
+#     # Windowing
+#     t0 = time.time()
+#     print(f"Begun windowing at {time.ctime(time.time())}")
+#     windowed_sets = []
+#     for base_ds in tqdm(concat_dataset.datasets):
+#         base_ds.raw.drop_channels(['IBI', 'BURSTS', 'SUPPR', 'PHOTIC PH'], on_missing='ignore')  # type: ignore
+#         picks = channel_split_func(base_ds.raw.ch_names)  # type: ignore
+#         print(picks)
+#         for pick in picks:
+#             single_windowed_ds = create_fixed_length_windows(
+#                 concat_dataset,
+#                 picks=pick,
+#                 start_offset_samples=0,
+#                 stop_offset_samples=None,
+#                 window_size_samples=window_size_samples,
+#                 window_stride_samples=window_size_samples,
+#                 drop_last_window=True,
+#             )
+#             if len(single_windowed_ds.datasets[0].windows.ch_names) != len(pick):
+#                 continue
+#             # store the number of windows required for loading later on
+#             single_windowed_ds.set_description({
+#                 "n_windows": [len(d) for d in single_windowed_ds.datasets]})  # type: ignore
+#             windowed_sets.append(single_windowed_ds)
+#     print(f'Finished windowing in {time.time()-t0} seconds')
+
+#     final_ds = BaseConcatDataset(windowed_sets)
+#     # print(concat_ds.description)
+#     return final_ds
 
 
 def split_channels_and_window(concat_dataset:BaseConcatDataset, channel_split_func=None, window_size_samples=2500) -> BaseConcatDataset:
