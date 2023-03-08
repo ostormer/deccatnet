@@ -53,6 +53,44 @@ import mne
 #     # print(concat_ds.description)
 #     return final_ds
 
+"""
+Plan and things which needs to be done:
+For one and one file:
+- preprocess, split into windows and parallelize(split into channels) and then finally add some more preprocessing. 
+    This may take several days, but it doesnt matter
+- window and split into channels
+- save data in a file structure
+
+After this:
+- read new data to a dataset
+- create dataset which is where we apply augmentations
+
+Two main approaches: use first 11 and remove first and then use 21 minutes, drop last window. 
+windows size = 60s
+
+
+"""
+def select_duration(ds, t_min=0, t_max=None):
+    """
+    Selects all recordings which fulfills: t_min < duration < t_max, data is not loaded here, only metadata
+    :param ds: dataset
+    :param t_min: mimimum length of recordings
+    :param t_max: maximum length of recordings
+    :return: satisfactory recordings
+    """
+
+
+
+def first_preprocess_step(concat_dataset:BaseConcatDataset, n_jobs):
+    """
+    renames channels to common nameing, resamples all data to one frequency, sets common eeg_reference, applies
+    bandpass filter and crops.
+    :param concat_dataset: a TUH BaseConcatDataset which
+    :param n_jobs: number of aviables jobs for parallelization
+    :return: preprocessed BaseConcatDataset
+    """
+
+
 
 def split_channels_and_window(concat_dataset:BaseConcatDataset, channel_split_func=None, window_size_samples=2500) -> BaseConcatDataset:
     """Splits BaseConcatDataset into set containing non-overlapping windows split into channels according to channel_split_func
