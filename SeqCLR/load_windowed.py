@@ -74,6 +74,7 @@ def split_channels_and_window(concat_dataset:BaseConcatDataset, channel_split_fu
     print(f"Begun windowing at {time.ctime(time.time())}")
     windowed_ds = create_fixed_length_windows(
         concat_dataset,
+        n_jobs=4,
         start_offset_samples=0,
         stop_offset_samples=None,
         window_size_samples=window_size_samples,
@@ -93,6 +94,33 @@ def split_channels_and_window(concat_dataset:BaseConcatDataset, channel_split_fu
     final_ds = BaseConcatDataset(all_base_ds)
     # print(concat_ds.description)
     return final_ds
+
+
+def _split_windows_into_channels(base_ds:WindowsDataset, channel_split_func=_make_single_channels) -> BaseConcatDataset:
+    raw = base_ds.windows._raw
+    channel_selections = channel_split_func(raw.ch_names)
+
+    base_ds_list = []
+    old_epochs = base_ds.windows
+    raw.load_data()
+    for channels in channel_selections:
+        new_epochs = mne.Epochs(
+            raw=raw,
+            events=old_epochs.events,
+            picks=channels,
+            baseline=None,
+            tmin=0,
+            tmax=old_epochs.tmax,
+            metadata=old_epochs.metadata
+        )
+        new_epochs.drop_bad()
+
+        ds = WindowsDataset(new_epochs, base_ds.description)
+        ds.set_description({"channels": channels})
+        base_ds_list.append(ds)
+        
+    concat = BaseConcatDataset(base_ds_list)
+    return concat
 
 
 def _make_single_channels(ch_list:'list[str]') -> 'list[list[str]]':
@@ -130,36 +158,12 @@ def _make_overlapping_adjacent_pairs(ch_list:'list[str]') -> 'list[list[str]]':
         pairs.append([ch_list[i], ch_list[i+1]])    
     return pairs
 
-def _split_windows_into_channels(base_ds:WindowsDataset, channel_split_func=_make_single_channels) -> BaseConcatDataset:
-    raw = base_ds.windows._raw
-    channel_selections = channel_split_func(raw.ch_names)
 
-    base_ds_list = []
-    old_epochs = base_ds.windows
-    raw.load_data()
-    for channels in channel_selections:
-        new_epochs = mne.Epochs(
-            raw=raw,
-            events=old_epochs.events,
-            picks=channels,
-            baseline=None,
-            tmin=0,
-            tmax=old_epochs.tmax,
-            metadata=old_epochs.metadata
-        )
-        new_epochs.drop_bad()
-
-        ds = WindowsDataset(new_epochs, base_ds.description)
-        ds.set_description({"channels": channels})
-        base_ds_list.append(ds)
-        
-    concat = BaseConcatDataset(base_ds_list)
-    return concat
 
 
 if __name__ == "__main__":
     READ_CACHED_DS = False  # Change to read cache or not
-    SOURCE_DS = 'tuh_eeg'  # Which dataset to load
+    SOURCE_DS = 'tuh_eeg_abnormal'  # Which dataset to load
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution

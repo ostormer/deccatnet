@@ -4,6 +4,7 @@ import itertools
 import pickle
 import warnings
 import braindecode.datasets.tuh as tuh
+from copy import deepcopy
 from braindecode.datasets import BaseConcatDataset, BaseDataset, WindowsDataset
 from braindecode.preprocessing import create_fixed_length_windows
 from joblib import Parallel, delayed
@@ -40,21 +41,20 @@ def split_and_window(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         os.makedirs(save_dir)
     # TODO: Delete old?
 
-    subset_paths = Parallel(n_jobs=n_jobs)(
+    indexes = Parallel(n_jobs=n_jobs)(
         delayed(_split_channels)(windows_ds, i, save_dir, channel_split_func)
         for i, windows_ds in enumerate(windows_ds.datasets)
     )
-    subsets = Parallel(n_jobs=n_jobs)(
-        delayed(load_concat_dataset)(subset_path, preload=False, n_jobs=1)
-        for subset_path in subset_paths
-    )
-    concat_ds = BaseConcatDataset(subsets)
-    # concat_ds = load_concat_dataset(save_dir, preload=False, n_jobs=n_jobs, ids_to_load=indexes)
+    indexes = itertools.chain.from_iterable(indexes)
+    # subsets = (load_concat_dataset(subset_path, preload=False, n_jobs=1)
+    #     for subset_path in subset_paths)
+    # concat_ds = BaseConcatDataset(subsets)
+    concat_ds = load_concat_dataset(save_dir, preload=False, n_jobs=n_jobs, ids_to_load=indexes)
     print(concat_ds.description)
     return concat_ds
 
 
-def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str, channel_split_func) -> str:
+def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str, channel_split_func) -> 'list[int]':
     mne.set_log_level("ERROR")
     raw = windows_ds.windows._raw
     raw.drop_channels(['IBI', 'BURSTS', 'SUPPR', 'PHOTIC PH'],
@@ -75,23 +75,32 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
         new_epochs.drop_bad()
 
         ds = WindowsDataset(new_epochs, windows_ds.description)
+        ds.window_kwargs = deepcopy(windows_ds.window_kwargs)
         ds.set_description({"channels": channels})
         windows_ds_list.append(ds)
     # Serialization:
     # Create new BaseConcatDataset from each dataset, and save it to disk.
     # Then it can be unloaded from memory
+    # OLD: ----------------------------
+    '''
     rec_id = "{:}_s{:02d}_t{:02d}".format(
         windows_ds.description["subject"],
         windows_ds.description["session"],
         windows_ds.description["segment"])
     save_path = os.path.join(save_dir, rec_id)
     if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    # indexes = list(range(record_index*100, record_index*100+len(windows_ds_list)))
+    os.makedirs(save_path)
+
     concat_ds = BaseConcatDataset(windows_ds_list)
     concat_ds.save(save_path, overwrite=True)
 
     return save_path
+    '''
+    # NEW:
+    concat_ds = BaseConcatDataset(windows_ds_list)
+    concat_ds.save(save_dir, overwrite=True, offset=record_index*100)
+    indexes = list(range(record_index*100, record_index*100+len(windows_ds_list)))
+    return indexes
 
 
 def _make_single_channels(ch_list: 'list[str]') -> 'list[list[str]]':
