@@ -289,11 +289,11 @@ if __name__=="__main__":
         dataset_root = '../datasets/TUH/tuh_eeg_abnormal'
         # remeber to choose correct cache part for your computer, or drive, in addition tuh.py does not work for mye
         # for tuh_eeg_abnormal
-        cache_path = '../datasets/tuh_braindecode/styrk_tuh_abnormal.pkl'
+        cache_path = '../../datasets/tuh_braindecode/styrk_tuh_abnormal.pkl'
 
     else:
         dataset_root = '../datasets/TUH/tuh_eeg'
-        cache_path = '../datasets/tuh_braindecode/styrk_tuh_eeg.pkl'
+        cache_path = '../../datasets/tuh_braindecode/styrk_tuh_eeg.pkl'
 
     # since the pickel files are references to locations on a disk, traversing between computers is hard. However
     # It is possible to do this with

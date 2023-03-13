@@ -75,7 +75,7 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
         new_epochs.drop_bad()
 
         ds = WindowsDataset(new_epochs, windows_ds.description)
-        ds.window_kwargs = deepcopy(windows_ds.window_kwargs)
+        ds.window_kwargs = deepcopy(windows_ds.window_kwargs)  # type: ignore
         ds.set_description({"channels": channels})
         windows_ds_list.append(ds)
     # Serialization:

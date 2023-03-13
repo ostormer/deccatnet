@@ -10,6 +10,8 @@ from modules import ConvolutionalEncoder, Projector, DownstreamClassifier
 from tqdm import tqdm
 import os
 
+from models import TransPreTrain
+
 """
 SeqCLR contrastive pre-training algortihm summary
 Randomly transform a mininbatch of N channels into 2N augmented channels (two augmentations for each channel, creating pairs)
@@ -46,6 +48,7 @@ SeqCLR modules -> SeqCLR overallclass -> SQNet for pretraing -> pretrained as SQ
 This flow it the reason for no SeqCLR dataset or dataloader etc.
 """
 
+
 # start by creating contrastive loss function, first is inspired by (Section 2.3 of proceedings.mlr.press/v136/mohsenvand20a/mohsenvand20a.pdf)
 # which is a temperature contrastive loss
 
@@ -55,17 +58,18 @@ class ContrastiveLoss(nn.Module):
         two sets as input and returns a loss. This implementation is inspired by SimCLR Chen et al(2020) and SeqCLR Moshenvand
         et al (2021).
     """
-    def __init__(self,temperature):
+
+    def __init__(self, temperature):
         """
         Initiializes the Contrastive loss module
         :param temperature: Learnable temperature parameter
         """
-        super(ContrastiveLoss,self).__init__() #call super to access and overwrite nn.Module methods
+        super(ContrastiveLoss, self).__init__()  # call super to access and overwrite nn.Module methods
         self.tau = temperature
-        self.BATCH_DIM = 0 # the dimension in z.size which has the batch size
-        self.cos_sim = nn.CosineSimilarity(0) # use cosine similiarity as similairity measurement
+        self.BATCH_DIM = 0  # the dimension in z.size which has the batch size
+        self.cos_sim = nn.CosineSimilarity(0)  # use cosine similiarity as similairity measurement
 
-    def forward(self, z1:torch.Tensor, z2:torch.Tensor):
+    def forward(self, z1: torch.Tensor, z2: torch.Tensor):
         """
         Called whenever ContrastiveLoss class is called after initialization
         In original paper, only z2 is assumed to be augmented, we augment both input signals
@@ -74,8 +78,8 @@ class ContrastiveLoss(nn.Module):
         :return: ContrastiveLoss maximizing agreement between pairs and minimizing agreement with
             negative pairs
         """
-        contrastive_loss = 0. # set loss
-        batch_size = z1.size(self.BATCH_DIM) # get batch size from input
+        contrastive_loss = 0.  # set loss
+        batch_size = z1.size(self.BATCH_DIM)  # get batch size from input
 
         # normalize data in batch as is has increased performance, however may be double
         # TODO: check if double normalization
@@ -90,32 +94,33 @@ class ContrastiveLoss(nn.Module):
             # iterate over the entire batch, calculate loss with regard to one and one sample
 
             # calculte loss contirbutions from set z1 on z2
-            cosine_pair = self.cos_sim(z1[i,:], z2[i,:]) # compute cosine similarity for positive pair
-            num_1 = torch.exp(cosine_pair/self.tau) # get numerator for loss function
-            denom_1 = 0. # define denominator in loss function
+            cosine_pair = self.cos_sim(z1[i, :], z2[i, :])  # compute cosine similarity for positive pair
+            num_1 = torch.exp(cosine_pair / self.tau)  # get numerator for loss function
+            denom_1 = 0.  # define denominator in loss function
             for k in range(batch_size):
                 # iterate over all samples with regard to sample i, calculate contirbution to loss from each sample
-                cosine_z2 = self.cos_sim(z1[i,:], z2[k,:])
-                denom_1 += torch.exp(cosine_z2/self.tau) # update denominator, include i == k for because z1 != z2
+                cosine_z2 = self.cos_sim(z1[i, :], z2[k, :])
+                denom_1 += torch.exp(cosine_z2 / self.tau)  # update denominator, include i == k for because z1 != z2
                 if k != i:
                     # avoid calculating loss with regard to itself
-                    cosine_z1 = self.cos_sim(z1[i,:], z1[k,:])
-                    denom_1 += torch.exp(cosine_z1/self.tau) # update denominator with negative pairs from own set
-            contrastive_loss += -1*torch.log(num_1/denom_1) # update loss
+                    cosine_z1 = self.cos_sim(z1[i, :], z1[k, :])
+                    denom_1 += torch.exp(cosine_z1 / self.tau)  # update denominator with negative pairs from own set
+            contrastive_loss += -1 * torch.log(num_1 / denom_1)  # update loss
 
             # calculate loss contirbutions from set z2 on z1
-            num_2 = num_1 # as CosineSimilarity in pytorch is a cumulative function
-            denom_2 = 0. # define new demnominator
+            num_2 = num_1  # as CosineSimilarity in pytorch is a cumulative function
+            denom_2 = 0.  # define new demnominator
             for k in range(batch_size):
                 # switch z1 and z2
-                cosine_z1 = self.cos_sim(z2[i,:],z1[k,:])
-                denom_2 += torch.exp(cosine_z1/self.tau)
-                if k  != i:
-                    cosine_z2 = self.cos_sim(z2[i,:], z2[k,:])
-                    denom_2 += torch.exp(cosine_z2/self.tau)
-            contrastive_loss += -1*torch.log(num_2/denom_2)
+                cosine_z1 = self.cos_sim(z2[i, :], z1[k, :])
+                denom_2 += torch.exp(cosine_z1 / self.tau)
+                if k != i:
+                    cosine_z2 = self.cos_sim(z2[i, :], z2[k, :])
+                    denom_2 += torch.exp(cosine_z2 / self.tau)
+            contrastive_loss += -1 * torch.log(num_2 / denom_2)
         # avreage out loss for both batches, minus 1 because cosine_similiarty with itself is not included
-        return contrastive_loss/(batch_size*2.*(2.*batch_size - 1.))
+        return contrastive_loss / (batch_size * 2. * (2. * batch_size - 1.))
+
 
 class ContrastiveLossGPT(nn.Module):
     """
@@ -123,6 +128,7 @@ class ContrastiveLossGPT(nn.Module):
         two sets as input and returns a loss. This implementation is inspired by SimCLR Chen et al(2020) and SeqCLR Moshenvand
         et al (2021).
     """
+
     def __init__(self, temperature):
         """
         Initiializes the Contrastive loss module
@@ -130,10 +136,10 @@ class ContrastiveLossGPT(nn.Module):
         """
         super(ContrastiveLoss, self).__init__()
         self.tau = temperature
-        self.BATCH_DIM = 0 # the dimension in z.size which has the batch size
-        self.cos_sim = nn.CosineSimilarity(0) # use cosine similarity as similarity measurement
+        self.BATCH_DIM = 0  # the dimension in z.size which has the batch size
+        self.cos_sim = nn.CosineSimilarity(0)  # use cosine similarity as similarity measurement
 
-    def forward(self, z1:torch.Tensor, z2:torch.Tensor):
+    def forward(self, z1: torch.Tensor, z2: torch.Tensor):
         """
         Called whenever ContrastiveLoss class is called after initialization
         In original paper, only z2 is assumed to be augmented, we augment both input signals
@@ -142,7 +148,7 @@ class ContrastiveLossGPT(nn.Module):
         :return: ContrastiveLoss maximizing agreement between pairs and minimizing agreement with
             negative pairs
         """
-        batch_size = z1.size(self.BATCH_DIM) # get batch size from input
+        batch_size = z1.size(self.BATCH_DIM)  # get batch size from input
 
         z1 = fn.normalize(z1, dim=1)
         z2 = fn.normalize(z2, dim=1)
@@ -170,8 +176,10 @@ class ContrastiveLossGPT(nn.Module):
 
         return loss
 
+
 # Next up: contrastive training framework
-def pre_train_model(batch_size, num_workers, save_freq, Shuffel,model_weights_dict,temperature,learning_rate,weight_decay,max_epochs,batch_print_condition,save_dir_model, model_file_name,):
+def pre_train_model(batch_size, num_workers, save_freq, Shuffel, model_weights_dict, temperature, learning_rate,
+                    weight_decay, max_epochs, batch_print_condition, save_dir_model, model_file_name):
     """
     Needs:
     destination to load model, save model
@@ -203,39 +211,44 @@ def pre_train_model(batch_size, num_workers, save_freq, Shuffel,model_weights_di
     # TODO: get confirmation on where augmentations are applied
 
     # load dataset
-    train_set, val_set, test_set = ContrastiveDataset.get_dataset()
+    train_set, val_set, test_set = ContrastiveDataset.get_dataset()  # TODO: how to get dataset and initalize Dataloaders
 
     # create data_loaders, here batch size is decided
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel,num_workers=num_workers)
-                                               #maybe alos num_workers)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel,
+                                               num_workers=num_workers)
+    # maybe alos num_workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffel=Shuffel, num_workers=num_workers)
     # check if cuda setup allowed:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # init model adn check if weights already given
-    model = test_model()#probably some hyperparams here
+    # init model and check if weights already given
+    model = test_model()  # probably some hyperparams here
     if model_weights_dict is not None:
-        model.load_state_dict(torch.load(model_weights_dict)) # loaded already trained-model
+        model.load_state_dict(torch.load(model_weights_dict))  # loaded already trained-model
 
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay) # TODO: check out betas for Adam
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
+                                 weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
+
+    # track losses
+    losses = []
 
     # iterative traning loop
     for epoch in tqdm(range(max_epochs)):
-        print('epoch number: ', epoch ,'of: ', max_epochs)
-        counter = 0 # counter for batch print.
+        print('epoch number: ', epoch, 'of: ', max_epochs)
+        counter = 0  # counter for batch print.
         # start traning by looping through batches
-        for x1,x2 in train_loader:
+        for x1, x2 in train_loader:
             # transfer to GPU or CUDA
-            x1,x2 = x1.to(device), x2.to(device)
+            x1, x2 = x1.to(device), x2.to(device)
             # zero out existing gradients
             optimizer.zero_grad()
             # send through model and projector, asssume not splitted for now
-            x1_encoded, x2_encoded = model(x1),model(x2)
+            x1_encoded, x2_encoded = model(x1), model(x2)
 
             # get loss, update weights and perform step
-            loss = loss_func(x1_encoded,x2_encoded)
+            loss = loss_func(x1_encoded, x2_encoded)
             loss.backward()
             optimizer.step()
 
@@ -255,12 +268,12 @@ def pre_train_model(batch_size, num_workers, save_freq, Shuffel,model_weights_di
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
         if epoch != save_freq == 0 and epoch != 0:
-            temp_save_path_model = os.path.join(save_dir_model, "temp_"+str(epoch)+"_"+ model_file_name)
+            temp_save_path_model = os.path.join(save_dir_model, "temp_" + str(epoch) + "_" + model_file_name)
             torch.save(model.state_dict(), temp_save_path_model)
             # here is the solution, have the model as several modules; then different modules can be saved seperately
-            temp_save_path_enocder = os.path.join(save_dir_model, "temp_encoder"+str(epoch)+"_"+ model_file_name)
-            torch.save(model.encoder.state_dict(), temp_save_path_enocder)
-
+            temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch) + "_" + model_file_name)
+            torch.save(model.encoder.state_dict(), temp_save_path_encoder)
+        losses.append(loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)
@@ -268,25 +281,42 @@ def pre_train_model(batch_size, num_workers, save_freq, Shuffel,model_weights_di
     save_path_enocder = os.path.join(save_dir_model, "encoder_" + model_file_name)
     torch.save(model.encoder.state_dict(), save_path_enocder)
 
+    # save all of parameters to pickelfile
+    # Want to include
+    save_path_model
+    save_path_enocder
+    save_dir_model
+    losses
+    eval_losses  # TODO
+    batch_size, num_workers, save_freq, Shuffel, model_weights_dict, temperature, learning_rate,
+    weight_decay, max_epochs, batch_print_condition, save_dir_model, model_file_name
+
     # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
+
     print('Traning Done!!')
+
 
 class test_model(nn.Module):
     """
     A trainable model for the framework moust have an encoder-projector strucutre. The encoder is what our goal is to pre-train
         Bacause of this, as the model is saved, the encoder is also saved.
     """
+
     def __init__(self):
-        super(test_model,self)
+        super(test_model, self)
         self.encoder = test_encoder()
-    def forward(self,x):
+
+    def forward(self, x):
         return self.encoder.forward(x)
+
 
 class test_encoder(nn.Module):
     def __init__(self):
-        super(test_encoder,self)
-    def forward(self,x):
+        super(test_encoder, self)
+
+    def forward(self, x):
         return x
+
 
 class SeqCLR(nn.Module):
     def __init__(self):
