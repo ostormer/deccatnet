@@ -2,8 +2,9 @@ import mne
 import os
 import itertools
 import pickle
-import warnings
+import logging
 import braindecode.datasets.tuh as tuh
+from tqdm import tqdm
 from copy import deepcopy
 from braindecode.datasets import BaseConcatDataset, BaseDataset, WindowsDataset
 from braindecode.preprocessing import create_fixed_length_windows
@@ -16,11 +17,11 @@ def split_and_window(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
     if channel_split_func is None:
         channel_split_func = _make_adjacent_pairs
     # Drop too short samples
-    concat_ds.set_description({"n_samples": [ds.raw.n_times for ds in concat_ds.datasets]})
+    concat_ds.set_description({"n_samples": [ds.raw.n_times for ds in concat_ds.datasets]})  # type: ignore
     keep = [n >= window_size_samples for n in concat_ds.description["n_samples"]]
     keep_indexes = [i for i, k in enumerate(keep) if k == True]
     concat_ds = concat_ds.split(by=keep_indexes)["0"]
-    print("START WINDOWING")
+    print("WINDOWING DATASET")
     windows_ds = create_fixed_length_windows(
         concat_ds,
         n_jobs=n_jobs,
@@ -30,22 +31,22 @@ def split_and_window(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         window_stride_samples=window_size_samples,
         drop_last_window=True,
         drop_bad_windows=True,
-
+        verbose='error'
     )
-    print("DONE WONDOWING")
     # Prepare save dir
     save_dir = os.path.abspath(save_dir)
     if not overwrite:
         _check_save_dir_empty(save_dir)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    # TODO: Delete old?
-
+    # TODO: Delete old files from directory?
+    print('Splitting recordings into separate channels')
     indexes = Parallel(n_jobs=n_jobs)(
         delayed(_split_channels)(windows_ds, i, save_dir, channel_split_func)
-        for i, windows_ds in enumerate(windows_ds.datasets)
+        for i, windows_ds in tqdm(enumerate(windows_ds.datasets), total=len(windows_ds.datasets))
     )
-    indexes = itertools.chain.from_iterable(indexes)
+    print('Reloading serialized dataset')
+    indexes = itertools.chain.from_iterable(indexes)  # type: ignore
     # subsets = (load_concat_dataset(subset_path, preload=False, n_jobs=1)
     #     for subset_path in subset_paths)
     # concat_ds = BaseConcatDataset(subsets)
@@ -55,7 +56,7 @@ def split_and_window(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
 
 
 def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str, channel_split_func) -> 'list[int]':
-    mne.set_log_level("ERROR")
+    mne.set_log_level(verbose='ERROR')
     raw = windows_ds.windows._raw
     raw.drop_channels(['IBI', 'BURSTS', 'SUPPR', 'PHOTIC PH'],
                       on_missing='ignore')  # type: ignore
@@ -172,15 +173,15 @@ if __name__ == "__main__":
         with open(cache_path, 'wb') as f:
             pickle.dump(dataset, f)
 
-    print(dataset.description)
     print('Loaded DS')
 
-    dataset = dataset.split(by=range(10))['0']
+    # dataset = dataset.split(by=range(10))['0']
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        windowed = split_and_window(
-            dataset, "datasets/tuh_braindecode/tuh_split", overwrite=True, n_jobs=4)
+    # logger = logging.getLogger('mne')
+    # logger.setLevel(logging.ERROR)
+
+    windowed = split_and_window(
+        dataset, "datasets/tuh_braindecode/tuh_split", overwrite=True, n_jobs=4)
     
 
     print(windowed.description)
