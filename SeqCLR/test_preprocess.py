@@ -11,8 +11,9 @@ import mne
 from load_windowed import select_duration, rename_channels, get_unique_channel_names
 
 if __name__ == "__main__":
-    READ_CACHED_DS = True  # Change to read cache or not
+    READ_CACHED_DS = False  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
+    LOCAL_LOAD = True
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
@@ -26,8 +27,12 @@ if __name__ == "__main__":
         cache_path = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
 
     else:
-        dataset_root = 'D:/TUH/tuh_eeg'
-        cache_path = 'D:/TUH/pickles/tuh_eeg'
+        if LOCAL_LOAD:
+            dataset_root = 'datasets/TUH/tuh_eeg'
+            cache_path = 'datasets/tuh_braindecode/tuh_Styrk.pkl'
+        else:
+            dataset_root = 'D:/TUH/tuh_eeg'
+            cache_path = 'D:/TUH/pickles/tuh_eeg'
 
     if READ_CACHED_DS:
         with open(cache_path, 'rb') as f:
