@@ -82,29 +82,13 @@ def _split_channels(windows_ds: WindowsDataset, record_i: int, save_dir: str, ch
         )
         new_epochs.drop_bad()
 
+        # Serialization:
         for epoch_i, epoch in enumerate(new_epochs):
             file_path = os.path.join(
                 save_dir, "r{:06d}_w{:02d}_c{:02d}.npy".format(record_i, epoch_i, channels_i))
             print(epoch)
             print(type(epoch))
             epoch.save(file_path)
-    # Serialization:
-
-    '''
-    save_path = os.path.join(save_dir, rec_id)
-    if not os.path.exists(save_path):
-    os.makedirs(save_path)
-
-    concat_ds = BaseConcatDataset(windows_ds_list)
-    concat_ds.save(save_path, overwrite=True)
-
-    return save_path
-    '''
-    # NEW:
-    concat_ds = BaseConcatDataset(windows_ds_list)
-    concat_ds.save(save_dir, overwrite=True, offset=record_i*100)
-    indexes = list(range(record_i*100, record_i*100+len(windows_ds_list)))
-    return indexes
 
 
 def make_single_channels(ch_list: 'list[str]') -> 'list[list[str]]':
