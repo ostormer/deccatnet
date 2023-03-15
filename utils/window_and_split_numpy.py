@@ -1,7 +1,7 @@
 import mne
 import os
 import shutil
-import itertools
+import numpy as np
 import pickle
 import braindecode.datasets.tuh as tuh
 from tqdm import tqdm
@@ -53,8 +53,8 @@ def split_and_window(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         pickle.dump(windows_ds, file)
 
     # Prepare for channel splitting
-    os.makedirs(os.path.join(save_dir, "fif_ds"))
-    channel_split_dir = os.path.join(save_dir, "fif_ds")
+    os.makedirs(os.path.join(save_dir, "numpy_samples"))
+    channel_split_dir = os.path.join(save_dir, "numpy_samples")
     print('Splitting recordings into separate channels')
     Parallel(n_jobs=n_jobs)(
         delayed(_split_channels)(windows_ds, i, channel_split_dir, channel_split_func)
@@ -86,9 +86,7 @@ def _split_channels(windows_ds: WindowsDataset, record_i: int, save_dir: str, ch
         for epoch_i, epoch in enumerate(new_epochs):
             file_path = os.path.join(
                 save_dir, "r{:06d}_w{:02d}_c{:02d}.npy".format(record_i, epoch_i, channels_i))
-            print(epoch)
-            print(type(epoch))
-            epoch.save(file_path)
+            np.save(file_path, epoch.astype('float32'))  # TODO: Decide whether to use float32 or float64
 
 
 def make_single_channels(ch_list: 'list[str]') -> 'list[list[str]]':
@@ -132,24 +130,23 @@ def make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
 
 
 if __name__ == "__main__":
-    READ_CACHED_DS = True  # Change to read cache or not
+    READ_CACHED_DS = False  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
-    SOURCE_DS_ROOT = 'D:/TUH/tuh_eeg'
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
     mne.set_log_level(verbose='ERROR')
 
-    dataset_root = SOURCE_DS_ROOT
-    cache_path = 'D:/TUH/pickles/tuh_eeg'
+    # dataset_root = 'D:/TUH/tuh_eeg'
+    # cache_path = 'D:/TUH/pickles/tuh_eeg'
     dataset = None
-    # if SOURCE_DS == 'tuh_eeg_abnormal':
-    #     dataset_root = 'datasets/tuh_test/tuh_eeg_abnormal'
-    #     cache_path = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
+    if SOURCE_DS == 'tuh_eeg_abnormal':
+        dataset_root = 'datasets/tuh_test/tuh_eeg_abnormal'
+        cache_path = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
 
-    # else:
-    #     dataset_root = 'datasets/tuh_test/tuh_eeg'
-    #     cache_path = 'datasets/tuh_braindecode/tuh_eeg.pkl'
+    else:
+        dataset_root = 'datasets/tuh_test/tuh_eeg'
+        cache_path = 'datasets/tuh_braindecode/tuh_eeg.pkl'
 
     if READ_CACHED_DS:
         print(f"Reading cached ds from path: {cache_path}")
@@ -170,7 +167,4 @@ if __name__ == "__main__":
     # dataset = dataset.split(by=range(10))['0']
 
     ids_to_load = split_and_window(
-        dataset, "d:/TUH/preprocessed", overwrite=True, n_jobs=8)
-
-    with open('datasets/tuh_test/tuh_split_indexes.pkl', 'wb') as fd:
-        pickle.dump(ids_to_load, fd)
+        dataset, "datasets/tuh_test/tuh_split_numpy", overwrite=True, n_jobs=8)
