@@ -1,12 +1,13 @@
 import bisect
 import pickle
+import tempfile
 
 import numpy as np
 from tqdm import tqdm
 import time
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
 import braindecode.datasets.tuh as tuh
-from braindecode.preprocessing import create_fixed_length_windows
+from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
 from torch.utils.data import DataLoader
 from mne import set_log_level
 import mne
@@ -84,7 +85,7 @@ def select_duration(concat_ds:BaseConcatDataset, t_min=0, t_max=None):
         t_max = np.Inf
     idx = []
     test = []
-    for i,ds in tqdm(enumerate(concat_ds.datasets)):
+    for i,ds in enumerate(concat_ds.datasets):
         len_session = ds.raw.tmax - ds.raw.tmin
         duration = ds.raw.n_times / ds.raw.info['sfreq']
         assert round(len_session) == round(duration)
@@ -97,17 +98,33 @@ def select_duration(concat_ds:BaseConcatDataset, t_min=0, t_max=None):
 def rename_channels(raw,mapping):
     """
     Renames all channels such that the naming conventions is similar for all recordings
+    This will  work as a custom preprocessor functions form  braindecode preprocessors
     :param concat_ds: dataset
     :param mapping: a mapping object which maps a reference to
     :return: ds where similar recordings has similar names
     """
-    concat_ds.datasets[0].raw.rename_channels
+    ref = raw.ch_names[0].split('-')[-1].lower()
+    assert ref in ['le', 'ref'], "not valid reference for this experiment"
+    ref = 'ar' if ref != 'le' else 'le' # change from ref to ar if not le
+    # get valid channels
+    mapping = rewrite_mapping(raw.ch_names, mapping[ref])
+    raw.rename_channels(mapping)
 
-    # now we will select which ch_names we are interested in
+def rewrite_mapping(ch_names, mapping):
+    """
+
+    :param ch_names:
+    :param mapping:
+    :return:
+    """
+
+    ch_names = list(set(ch_names) & set(mapping.keys()))
+    new_dict = {key: mapping[key] for key in ch_names}
+    return new_dict
 
 def get_unique_channel_names(concat_ds:BaseConcatDataset):
     unique_ch_names = []
-    for i,ds in tqdm(enumerate(concat_ds.datasets)):
+    for i,ds in enumerate(concat_ds.datasets):
         unique_ch_names.extend(list(set(ds.raw.info.ch_names) - set(unique_ch_names)))
     print(unique_ch_names)
     le_channels = ['EEG 28-LE', 'EEG T1-LE', 'EEG T3-LE', 'EEG O1-LE', 'EEG T6-LE', 'EEG F3-LE', 'EEG F4-LE', 'EEG F8-LE',
@@ -139,8 +156,11 @@ def get_unique_channel_names(concat_ds:BaseConcatDataset):
 
     not_interesting = ['DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF', 'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS' , 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF']
 
+def custom_turn_off_log(raw,verbose='ERROR'):
+    mne.set_log_level(verbose)
+    return raw
 
-def first_preprocess_step(concat_dataset:BaseConcatDataset, n_jobs):
+def first_preprocess_step(concat_dataset:BaseConcatDataset, mapping, ch_name, crop_min, crop_max,sfreq, save_dir, n_jobs):
     """
     renames channels to common nameing, resamples all data to one frequency, sets common eeg_reference, applies
     bandpass filter and crops.
@@ -148,6 +168,20 @@ def first_preprocess_step(concat_dataset:BaseConcatDataset, n_jobs):
     :param n_jobs: number of aviables jobs for parallelization
     :return: preprocessed BaseConcatDataset
     """
+    mne.set_log_level('ERROR')
+    preprocessors = [Preprocessor(custom_turn_off_log), # turn off verbose
+                    Preprocessor('set_eeg_reference', ref_channels ='average', ch_type='eeg'), #set common reference for all
+                    Preprocessor(rename_channels,mapping=mapping, apply_on_array=False), #rename to common naming convention
+                    Preprocessor('pick_channels', ch_names=ch_name, ordered=True), #keep wanted channels
+                    Preprocessor(np.clip, a_min=crop_min, a_max=crop_max, apply_on_array=True), # clip all data within a given border
+                    Preprocessor('resample',sfreq=sfreq)]
+    OUT_PATH = tempfile.mkdtemp()  # please insert actual output directory here TODO: ADD save_dir
+    tuh_preproc = preprocess(
+        concat_ds=concat_dataset,
+        preprocessors=preprocessors,
+        n_jobs=n_jobs,
+        save_dir=OUT_PATH,
+    )
 
 
 
