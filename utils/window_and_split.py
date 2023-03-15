@@ -1,8 +1,6 @@
 import mne
-import os
-import itertools
+import os, shutil, itertools
 import pickle
-import logging
 import braindecode.datasets.tuh as tuh
 from tqdm import tqdm
 from copy import deepcopy
@@ -13,9 +11,9 @@ from braindecode.datautil.serialization import load_concat_dataset, _check_save_
 
 
 def split_and_window(concat_ds: BaseConcatDataset, save_dir: str, overwrite=False,
-                     window_size_samples=5000, n_jobs=1, channel_split_func=None) -> BaseConcatDataset:
+                     window_size_samples=5000, n_jobs=1, channel_split_func=None) -> 'list[int]':
     if channel_split_func is None:
-        channel_split_func = _make_adjacent_pairs
+        channel_split_func = make_adjacent_pairs
     # Drop too short samples
     concat_ds.set_description({"n_samples": [ds.raw.n_times for ds in concat_ds.datasets]})  # type: ignore
     keep = [n >= window_size_samples for n in concat_ds.description["n_samples"]]
@@ -31,28 +29,47 @@ def split_and_window(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         window_stride_samples=window_size_samples,
         drop_last_window=True,
         drop_bad_windows=True,
-        verbose='error'
+        verbose='ERROR'
     )
     # Prepare save dir
     save_dir = os.path.abspath(save_dir)
     if not overwrite:
         _check_save_dir_empty(save_dir)
+    # Create save_dir
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    # TODO: Delete old files from directory?
+    # Delete old contents of save_dir
+    for files in os.listdir(save_dir):
+        path = os.path.join(save_dir, files)
+        try:
+            shutil.rmtree(path)
+        except OSError:
+            os.remove(path)
+    # Save pickle of windows_dataset
+    os.makedirs(os.path.join(save_dir, "pickles"))
+    with open(os.path.join(save_dir, "pickles/windowed.pkl"), 'wb') as file:
+        pickle.dump(windows_ds, file)
+
+    # Prepare for channel splitting
+    os.makedirs(os.path.join(save_dir, "fif_ds"))
+    channel_split_dir = os.path.join(save_dir, "fif_ds")
     print('Splitting recordings into separate channels')
     indexes = Parallel(n_jobs=n_jobs)(
-        delayed(_split_channels)(windows_ds, i, save_dir, channel_split_func)
+        delayed(_split_channels)(windows_ds, i, channel_split_dir, channel_split_func)
         for i, windows_ds in tqdm(enumerate(windows_ds.datasets), total=len(windows_ds.datasets))
     )
     print('Reloading serialized dataset')
     indexes = itertools.chain.from_iterable(indexes)  # type: ignore
+
+    # Load concat dataset if saved to differently named subdirectories for each file
     # subsets = (load_concat_dataset(subset_path, preload=False, n_jobs=1)
     #     for subset_path in subset_paths)
     # concat_ds = BaseConcatDataset(subsets)
-    concat_ds = load_concat_dataset(save_dir, preload=False, n_jobs=n_jobs, ids_to_load=indexes)
-    print(concat_ds.description)
-    return concat_ds
+
+    # Load conncat dataset from offset indexes
+    # concat_ds = load_concat_dataset(save_dir, preload=False, n_jobs=n_jobs, ids_to_load=indexes)
+    # print(concat_ds.description)
+    return indexes  # type: ignore
 
 
 def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str, channel_split_func) -> 'list[int]':
@@ -77,6 +94,7 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
 
         ds = WindowsDataset(new_epochs, windows_ds.description)
         ds.window_kwargs = deepcopy(windows_ds.window_kwargs)  # type: ignore
+        print(ds.window_kwargs)
         ds.set_description({"channels": channels})
         windows_ds_list.append(ds)
     # Serialization:
@@ -104,10 +122,10 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
     return indexes
 
 
-def _make_single_channels(ch_list: 'list[str]') -> 'list[list[str]]':
+def make_single_channels(ch_list: 'list[str]') -> 'list[list[str]]':
     return [[ch] for ch in ch_list]
 
-def _make_unique_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
+def make_unique_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
     pairs = []
     for i, channel_i in enumerate(ch_list):
@@ -115,7 +133,7 @@ def _make_unique_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
             pairs.append([channel_i, channel_j])
     return pairs
 
-def _make_all_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
+def make_all_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
     pairs = []
     for channel_i in ch_list:
@@ -123,7 +141,7 @@ def _make_all_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
             pairs.append([channel_i, channel_j])
     return pairs
 
-def _make_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
+def make_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
     pairs = []
     for i in range(len(ch_list)//2):
@@ -132,7 +150,7 @@ def _make_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
         pairs.append([ch_list[-1], ch_list[-2]])
     return pairs
 
-def _make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
+def make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
     pairs = []
     for i in range(len(ch_list) - 1):
@@ -140,30 +158,33 @@ def _make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
     return pairs
 
 if __name__ == "__main__":
-    READ_CACHED_DS = False  # Change to read cache or not
+    READ_CACHED_DS = True  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
+    SOURCE_DS_ROOT = 'D:/TUH/tuh_eeg'
+
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
     mne.set_log_level(verbose='ERROR')
 
-    dataset_root = None
-    cache_path = None
+    dataset_root = SOURCE_DS_ROOT
+    cache_path = 'D:/TUH/pickles/tuh_eeg'
     dataset = None
-    if SOURCE_DS == 'tuh_eeg_abnormal':
-        dataset_root = 'datasets/tuh_test/tuh_eeg_abnormal'
-        cache_path = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
+    # if SOURCE_DS == 'tuh_eeg_abnormal':
+    #     dataset_root = 'datasets/tuh_test/tuh_eeg_abnormal'
+    #     cache_path = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
 
-    else:
-        dataset_root = 'datasets/tuh_test/tuh_eeg'
-        cache_path = 'datasets/tuh_braindecode/tuh_eeg.pkl'
+    # else:
+    #     dataset_root = 'datasets/tuh_test/tuh_eeg'
+    #     cache_path = 'datasets/tuh_braindecode/tuh_eeg.pkl'
 
     if READ_CACHED_DS:
+        print(f"Reading cached ds from path: {cache_path}")
         with open(cache_path, 'rb') as f:
 
             dataset = pickle.load(f)
     else:
-
+        print(f"Reading {SOURCE_DS} from path: {dataset_root}")
         if SOURCE_DS == 'tuh_eeg_abnormal':
             dataset = tuh.TUHAbnormal(dataset_root)
 
@@ -180,8 +201,9 @@ if __name__ == "__main__":
     # logger = logging.getLogger('mne')
     # logger.setLevel(logging.ERROR)
 
-    windowed = split_and_window(
-        dataset, "datasets/tuh_braindecode/tuh_split", overwrite=True, n_jobs=4)
+    ids_to_load = split_and_window(
+        dataset, "d:/TUH/preprocessed", overwrite=True, n_jobs=8)
     
+    with open('datasets/tuh_test/tuh_split_indexes.pkl', 'wb') as fd:
+        pickle.dump(ids_to_load, fd)
 
-    print(windowed.description)
