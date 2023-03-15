@@ -114,7 +114,7 @@ def get_unique_channel_names(concat_ds:BaseConcatDataset):
      'EEG A1-LE', 'EEG PG1-LE', 'EEG SP2-LE', 'EEG T2-LE', 'EEG T5-LE', 'EEG A2-LE', 'EEG OZ-LE', 'EEG F7-LE',
      'EEG FP1-LE', 'EEG P3-LE', 'EEG PG2-LE', 'EEG SP1-LE', 'EEG FZ-LE', 'EEG C3-LE', 'EEG T4-LE', 'EEG PZ-LE',
      'EEG 29-LE', 'EEG EKG-LE', 'PHOTIC PH', 'EEG P4-LE', 'EEG CZ-LE', 'EEG O2-LE', 'EEG C4-LE', 'EEG FP2-LE',
-     'EEG 30-LE', 'EEG RLC-LE', 'EEG LUC-LE''EEG 31-LE', 'EEG 27-LE', 'EEG 26-LE', 'EEG 32-LE','EEG 21-LE', 'EEG 24-LE', 'EEG 22-LE', 'EEG 25-LE', 'EEG 20-LE', 'EEG 23-LE']
+     'EEG 30-LE', 'EEG RLC-LE', 'EEG LUC-LE', 'EEG 31-LE', 'EEG 27-LE', 'EEG 26-LE', 'EEG 32-LE','EEG 21-LE', 'EEG 24-LE', 'EEG 22-LE', 'EEG 25-LE', 'EEG 20-LE', 'EEG 23-LE']
 
     ar_channels = ['EEG A1-REF', 'EEG T3-REF', 'EEG F7-REF', 'EEG F4-REF', 'EEG O1-REF',
      'EEG FP1-REF', 'EEG PZ-REF', 'EEG T4-REF', 'EEG CZ-REF', 'EEG FP2-REF', 'EEG RESP2-REF', 'EEG A2-REF',
@@ -137,9 +137,7 @@ def get_unique_channel_names(concat_ds:BaseConcatDataset):
                    ,'EEG EKG1-REF','EEG C3P-REF', 'EEG C4P-REF',
      'EEG OZ-REF','EEG LOC-REF']
 
-    not_interesting = ['DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC',
-     'DC1-DC', 'DC5-DC',
-      'EMG-REF', 'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS' , 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF']
+    not_interesting = ['DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF', 'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS' , 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF']
 
 
 def first_preprocess_step(concat_dataset:BaseConcatDataset, n_jobs):
@@ -194,6 +192,8 @@ def split_channels_and_window(concat_dataset:BaseConcatDataset, channel_split_fu
     # print(concat_ds.description)
     return final_ds
 
+def _make_single_channels(ch_list:'list[str]') -> 'list[list[str]]':
+    return [[ch] for ch in ch_list]
 
 def _split_windows_into_channels(base_ds:WindowsDataset, channel_split_func=_make_single_channels) -> BaseConcatDataset:
     raw = base_ds.windows._raw
@@ -220,10 +220,6 @@ def _split_windows_into_channels(base_ds:WindowsDataset, channel_split_func=_mak
         
     concat = BaseConcatDataset(base_ds_list)
     return concat
-
-
-def _make_single_channels(ch_list:'list[str]') -> 'list[list[str]]':
-    return [[ch] for ch in ch_list]
 
 def _make_unique_pair_combos(ch_list:'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
