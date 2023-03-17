@@ -183,6 +183,7 @@ def first_preprocess_step(concat_dataset:BaseConcatDataset, mapping, ch_name, cr
         preprocessors=preprocessors,
         n_jobs=n_jobs,
         save_dir=OUT_PATH,
+        overwrite=True,
     )
     return tuh_preproc
 

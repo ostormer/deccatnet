@@ -13,7 +13,7 @@ from load_windowed import select_duration, rename_channels, get_unique_channel_n
 if __name__ == "__main__":
     READ_CACHED_DS = True  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
-    LOCAL_LOAD = False
+    LOCAL_LOAD = True
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
@@ -24,15 +24,19 @@ if __name__ == "__main__":
     dataset = None
     if SOURCE_DS == 'tuh_eeg_abnormal':
         dataset_root = 'datasets/tuh_test/tuh_eeg_abnormal'
-        cache_path = 'datasets/tuh_braindecode/tuh_abnormal.pkl'
+        cache_path = 'datasets/TUH_pickles/tuh_abnormal.pkl'
 
     else:
         if LOCAL_LOAD:
             dataset_root = '../datasets/TUH/tuh_eeg'
-            cache_path = '../datasets/tuh_braindecode/tuh_Styrk.pkl'
+            cache_path = '../datasets/TUH_pickles/tuh_Styrk.pkl'
+            save_dir = '../datasets/test_disk'
+            pickle_duration_cache = '../datasets/TUH_pickles/tuh_duration.pkl'
         else:
             dataset_root = 'D:/TUH/tuh_eeg'
             cache_path = 'D:/TUH/pickles/tuh_eeg'
+            save_dir = 'D:/TUH/tuh_pre'
+            pickle_duration_cache = 'D:/TUH/pickles/tuh_eeg_duration.pkl'
 
     if READ_CACHED_DS:
         with open(cache_path, 'rb') as f:
@@ -52,7 +56,7 @@ if __name__ == "__main__":
         print('done pickling')
 
     dataset = select_duration(dataset, t_min=10, t_max=1000)
-    with open('D:/TUH/pickles/tuh_eeg_duration', 'wb') as f:
+    with open(pickle_duration_cache, 'wb') as f:
         pickle.dump(dataset, f)
     print('done selecting duration')
     #dataset = get_unique_channel_names(dataset)
@@ -115,5 +119,5 @@ if __name__ == "__main__":
     ch_mapping = {'ar': ar_to_common, 'le':le_to_common}
 
     # print(common_naming, '\n', le_to_common, '\n', ar_to_common, '\n', ch_mapping)
-    save_dir = 'D:/TUH/tuh_pre'
+
     tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,ch_name=common_naming,crop_min=0, crop_max=1, sfreq=250,save_dir=save_dir,n_jobs=2, )
