@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from mne import set_log_level
 import mne
 from load_windowed import select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
+from window_and_split import window_and_split
 
 if __name__ == "__main__":
     READ_CACHED_DS = True  # Change to read cache or not
@@ -32,7 +33,7 @@ if __name__ == "__main__":
             cache_path = '../datasets/tuh_braindecode/tuh_Styrk.pkl'
         else:
             dataset_root = 'D:/TUH/tuh_eeg'
-            cache_path = 'D:/TUH/pickles/tuh_eeg'
+            cache_path = 'D:/TUH/pickles/tuh_eeg.pkl'
 
     if READ_CACHED_DS:
         with open(cache_path, 'rb') as f:
@@ -50,12 +51,15 @@ if __name__ == "__main__":
         with open(cache_path, 'wb') as f:
             pickle.dump(dataset, f)
         print('done pickling')
-
-    dataset = select_duration(dataset, t_min=10, t_max=1000)
-    with open('D:/TUH/pickles/tuh_eeg_duration', 'wb') as f:
+    
+    print(dataset.description)
+    print('Start selecting duration')
+    dataset = select_duration(dataset, t_min=60, t_max=None)
+    with open('D:/TUH/pickles/tuh_eeg_duration.pkl', 'wb') as f:
         pickle.dump(dataset, f)
+    print(dataset.description)
     print('done selecting duration')
-    #dataset = get_unique_channel_names(dataset)
+    # dataset = get_unique_channel_names(dataset)
 
     # create mapping from channel names to channel
     le_channels = sorted(['EEG 20-LE', 'EEG 21-LE', 'EEG 22-LE', 'EEG 23-LE', 'EEG 24-LE', 'EEG 25-LE', 'EEG 26-LE',
@@ -116,4 +120,9 @@ if __name__ == "__main__":
 
     # print(common_naming, '\n', le_to_common, '\n', ar_to_common, '\n', ch_mapping)
     save_dir = 'D:/TUH/tuh_pre'
-    tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,ch_name=common_naming,crop_min=0, crop_max=1, sfreq=250,save_dir=save_dir,n_jobs=2, )
+    tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,
+                                        ch_name=common_naming, crop_min=0, crop_max=1,
+                                        sfreq=250, save_dir=save_dir, n_jobs=8, )
+    
+    save_dir_2 = 'D:/TUH/tuh_pre2'
+    tuh_preproc = window_and_split(tuh_preproc, save_dir=save_dir_2, overwrite=True, window_size_samples=15000, n_jobs=8)
