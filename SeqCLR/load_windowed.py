@@ -110,6 +110,7 @@ def rename_channels(raw,mapping):
     mapping = rewrite_mapping(raw.ch_names, mapping[ref])
     raw.rename_channels(mapping)
 
+
 def rewrite_mapping(ch_names, mapping):
     """
 
@@ -175,14 +176,15 @@ def first_preprocess_step(concat_dataset:BaseConcatDataset, mapping, ch_name, cr
                     Preprocessor('pick_channels', ch_names=ch_name, ordered=True), #keep wanted channels
                     Preprocessor(np.clip, a_min=crop_min, a_max=crop_max, apply_on_array=True), # clip all data within a given border
                     Preprocessor('resample',sfreq=sfreq)]
-    OUT_PATH = tempfile.mkdtemp()  # please insert actual output directory here TODO: ADD save_dir
+    # Could add normalization here also
+    OUT_PATH = save_dir # please insert actual output directory here TODO: ADD save_dir
     tuh_preproc = preprocess(
         concat_ds=concat_dataset,
         preprocessors=preprocessors,
         n_jobs=n_jobs,
         save_dir=OUT_PATH,
     )
-
+    return tuh_preproc
 
 
 def split_channels_and_window(concat_dataset:BaseConcatDataset, channel_split_func=None, window_size_samples=2500) -> BaseConcatDataset:

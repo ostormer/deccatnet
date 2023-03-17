@@ -423,6 +423,9 @@ class SQNet(torch.nn.Module):
         x = self.decode_model(x)
         return x
 
+
+
+
 class Projector(nn.Module):
     def __init__(self, params):
         for key in params:

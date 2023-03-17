@@ -112,4 +112,4 @@ if __name__ == "__main__":
     ch_mapping = {'ar': ar_to_common, 'le':le_to_common}
 
     # print(common_naming, '\n', le_to_common, '\n', ar_to_common, '\n', ch_mapping)
-    first_preprocess_step(dataset, ch_mapping,common_naming,crop_min=0, crop_max=1, sfreq=250,save_dir='attempt',n_jobs=2)
+    tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,ch_name=common_naming,crop_min=0, crop_max=1, sfreq=250,save_dir='../datasets/test_disk',n_jobs=2, )
