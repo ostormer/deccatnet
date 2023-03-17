@@ -31,7 +31,8 @@ if __name__ == "__main__":
         if LOCAL_LOAD:
             dataset_root = '../datasets/TUH/tuh_eeg'
             cache_path = '../datasets/TUH_pickles/tuh_Styrk.pkl'
-            save_dir = '../datasets/test_disk'
+            save_dir = '../datasets/test_disk/folder_1'
+            save_dir_2 = '../datasets/test_disk/folder_2'
             pickle_duration_cache = '../datasets/TUH_pickles/tuh_duration.pkl'
         else:
             dataset_root = 'D:/TUH/tuh_eeg'
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     print(dataset.description)
     print('Start selecting duration')
     dataset = select_duration(dataset, t_min=60, t_max=None)
-    with open('D:/TUH/pickles/tuh_eeg_duration.pkl', 'wb') as f:
+    with open(pickle_duration_cache, 'wb') as f:
 
         pickle.dump(dataset, f)
     print(dataset.description)
@@ -125,10 +126,6 @@ if __name__ == "__main__":
 
     # print(common_naming, '\n', le_to_common, '\n', ar_to_common, '\n', ch_mapping)
 
-    save_dir = 'D:/TUH/tuh_pre'
-    tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,
-                                        ch_name=common_naming, crop_min=0, crop_max=1,
-                                        sfreq=250, save_dir=save_dir, n_jobs=8, )
-    
-    save_dir_2 = 'D:/TUH/tuh_pre2'
-    tuh_preproc = window_and_split(tuh_preproc, save_dir=save_dir_2, overwrite=True, window_size_samples=15000, n_jobs=8)
+    tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,ch_name=common_naming,crop_min=0, crop_max=1, sfreq=250,save_dir=save_dir,n_jobs=2, )
+
+    final_dataset_ready = split_and_window(tuh_preproc, save_dir=save_dir_2 , overwrite=True, window_size_samples=15000,n_jobs=2 )
