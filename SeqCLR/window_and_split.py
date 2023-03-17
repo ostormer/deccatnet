@@ -11,7 +11,7 @@ from braindecode.datautil.serialization import load_concat_dataset, _check_save_
 
 
 def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=False,
-                     window_size_samples=5000, n_jobs=1, channel_split_func=None) -> 'list[int]':
+                     window_size_samples=5000, n_jobs=1, channel_split_func=None, save_dir_index= None) -> 'list[int]':
     if channel_split_func is None:
         channel_split_func = make_adjacent_pairs
     # Drop too short samples
@@ -59,8 +59,9 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         for i, windows_ds in tqdm(enumerate(windows_ds.datasets), total=len(windows_ds.datasets))
     )
     print('Reloading serialized dataset')
-    indexes = itertools.chain.from_iterable(indexes)  # type: ignore
-
+    indexes = list(itertools.chain.from_iterable(indexes))  # type: ignore
+    with open(save_dir_index, 'wb') as f:
+        pickle.dump(indexes, f)
     return indexes  # type: ignore
 
 
@@ -86,7 +87,6 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
 
         ds = WindowsDataset(new_epochs, windows_ds.description)
         ds.window_kwargs = deepcopy(windows_ds.window_kwargs)  # type: ignore
-        print(ds.window_kwargs)
         ds.set_description({"channels": channels})
         windows_ds_list.append(ds)
     # Serialization:
