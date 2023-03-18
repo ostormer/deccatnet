@@ -146,7 +146,7 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
                                   a_max=crop_max, apply_on_array=True),
                      Preprocessor('resample', sfreq=sfreq)]
     # Could add normalization here also
-    OUT_PATH = save_dir  # please insert actual output directory here TODO: ADD save_dir
+    OUT_PATH = save_dir  # please insert actual output directory here
     tuh_preproc = preprocess(
         concat_ds=concat_dataset,
         preprocessors=preprocessors,

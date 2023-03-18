@@ -4,13 +4,16 @@ from tqdm import tqdm
 import braindecode.datasets.tuh as tuh
 from mne import set_log_level
 from braindecode.datautil.serialization import load_concat_dataset
+from torch.utils.data import DataLoader
 
 from preprocess import window_and_split, select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
+from custom_dataset import ContrastiveAugmentedDataset
+from contrastive_framework import pre_train_model
 
 if __name__ == "__main__":
     READ_CACHED_DS = True  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
-    LOCAL_LOAD = False
+    LOCAL_LOAD = True
     CACHE_WINDOWS = True
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
@@ -121,7 +124,7 @@ if __name__ == "__main__":
         # print(common_naming, '\n', le_to_common, '\n', ar_to_common, '\n', ch_mapping)
 
         tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,
-                                            ch_name=common_naming, crop_min=0, crop_max=1, sfreq=250, save_dir=save_dir, n_jobs=8, )
+                                            ch_name=common_naming, crop_min=0, crop_max=1, sfreq=250, save_dir=save_dir, n_jobs=2, )
 
         ids_to_load = window_and_split(tuh_preproc, save_dir=save_dir_2, overwrite=True,
                                        window_size_samples=15000, n_jobs=2, save_dir_index=save_dir_indexes)
@@ -129,6 +132,19 @@ if __name__ == "__main__":
         with open(save_dir_indexes, 'rb') as f:
             ids_to_load = pickle.load(f)
 
-    windowed_datasets = load_concat_dataset(os.path.join(
-        save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load)
+    windowed_datasets = ContrastiveAugmentedDataset(load_concat_dataset(os.path.join(
+        save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load).datasets) # TODO: think about if target transforms is necessary
+
+
+
+    # how it will look in the end:
+    pre_train_model(windowed_datasets, batch_size=, num_workers=, save_freq=, Shuffel=, model_weights_path=, temperature=,
+                    learning_rate=, weight_decay=, max_epochs=, batch_print_freq=, save_dir_model=, model_file_name=, model_params=)
+
+
+
+
     print(windowed_datasets.description)
+
+    # next up: implement some sort of dataloader, general idea for now, create a custom datasetclass, where __getitem__ is overwritten. Then use standard dataloader to iterate through the dtaset
+
