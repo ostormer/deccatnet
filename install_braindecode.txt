@@ -1,0 +1,6 @@
+first uninstall existing version of braindecode.
+Reinstall braindecode using
+
+pip install -e git+https://github.com/ostormer/braindecode.git@master#egg=braindecode
+
+To edit our fork of braindecode edit that github repo, push your changes to master there, and reinstall braindecode using just the install command again.
