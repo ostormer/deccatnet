@@ -133,7 +133,7 @@ if __name__ == "__main__":
             ids_to_load = pickle.load(f)
 
     windowed_datasets = ContrastiveAugmentedDataset(load_concat_dataset(os.path.join(
-        save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load).datasets) # TODO: think about if target transforms is necessary
+        save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load).datasets).spl # TODO: think about if target transforms is necessary
 
 
 

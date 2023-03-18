@@ -145,6 +145,7 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
                      Preprocessor(np.clip, a_min=crop_min,
                                   a_max=crop_max, apply_on_array=True),
                      Preprocessor('resample', sfreq=sfreq)]
+    # TODO: shouldn't we add a bandstopfilter? though many before us has used this
     # Could add normalization here also
     OUT_PATH = save_dir  # please insert actual output directory here
     tuh_preproc = preprocess(
