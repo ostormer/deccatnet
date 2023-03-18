@@ -3,9 +3,9 @@ import pickle
 from tqdm import tqdm
 import braindecode.datasets.tuh as tuh
 from mne import set_log_level
-from load_windowed import select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
-from window_and_split import window_and_split
 from braindecode.datautil.serialization import load_concat_dataset
+
+from preprocess import window_and_split, select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
 
 if __name__ == "__main__":
     READ_CACHED_DS = True  # Change to read cache or not
