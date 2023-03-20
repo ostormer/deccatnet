@@ -1,5 +1,4 @@
-tuh_test/
-tuh_split/
+datasets/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

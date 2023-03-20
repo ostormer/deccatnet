@@ -3,7 +3,9 @@ import os
 import numpy as np
 import shutil
 import mne
+import itertools
 
+from copy import deepcopy
 from tqdm import tqdm
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
@@ -146,12 +148,13 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
                                   a_max=crop_max, apply_on_array=True),
                      Preprocessor('resample', sfreq=sfreq)]
     # Could add normalization here also
-    OUT_PATH = save_dir  # please insert actual output directory here TODO: ADD save_dir
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
     tuh_preproc = preprocess(
         concat_ds=concat_dataset,
         preprocessors=preprocessors,
         n_jobs=n_jobs,
-        save_dir=OUT_PATH,
+        save_dir=save_dir,
         overwrite=True,
     )
     return tuh_preproc
@@ -183,13 +186,11 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         drop_bad_windows=True,
         verbose='ERROR'
     )
-    # Prepare save dir
-    save_dir = os.path.abspath(save_dir)
-    if not overwrite:
-        _check_save_dir_empty(save_dir)
     # Create save_dir
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+    if not overwrite:
+        _check_save_dir_empty(save_dir)
     # Delete old contents of save_dir
     for files in os.listdir(save_dir):
         path = os.path.join(save_dir, files)

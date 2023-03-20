@@ -8,10 +8,11 @@ from braindecode.datautil.serialization import load_concat_dataset
 from preprocess import window_and_split, select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
 
 if __name__ == "__main__":
-    READ_CACHED_DS = True  # Change to read cache or not
+    READ_CACHED_DS = False  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
-    LOCAL_LOAD = False
-    CACHE_WINDOWS = True
+    LOCAL_LOAD = True
+    CACHE_WINDOWS = False
+    MIN_DURATION = 60
 
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
@@ -22,18 +23,22 @@ if __name__ == "__main__":
     dataset = None
 
     if SOURCE_DS == 'tuh_eeg_abnormal':
-        dataset_root = 'datasets/tuh_test/tuh_eeg_abnormal'
-        cache_path = 'datasets/TUH_pickles/tuh_abnormal.pkl'
+        dataset_root = 'D:/TUH/tuh_eeg_abnormal'
+        cache_path = 'D:/TUH/pickles/tuh_abnormal.pkl'
         save_dir = 'D:/TUH/tuh_eeg_abnormal_pre'
+        save_dir_2 = 'D:/TUH/tuh_eeg_abnormal_pre2'
+        save_dir_indexes = 'D:/TUH/pickles/abnormal_split_indexes.pkl'
+        pickle_duration_cache = 'D:/TUH/pickles/tuh_duration.pkl'
 
     else:
         if LOCAL_LOAD:
-            dataset_root = '../datasets/TUH/tuh_eeg'
-            cache_path = '../datasets/TUH_pickles/tuh_Styrk.pkl'
-            save_dir = '../datasets/test_disk/folder_1'
-            save_dir_2 = '../datasets/test_disk/folder_2'
-            save_dir_indexes = '../datasets/test_disk/folder_2/pickles/indexes.pkl'
-            pickle_duration_cache = '../datasets/TUH_pickles/tuh_duration.pkl'
+            
+            dataset_root = r'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg\v2.0.0\edf\000'
+            cache_path = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/pickles/tuh_eeg.pkl'
+            save_dir = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/preprocessed/step_1'
+            save_dir_2 = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/preprocessed/step_2'
+            save_dir_indexes = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/preprocessed/split_indexes.pkl'
+            pickle_duration_cache = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/pickles/tuh_duration.pkl'
         else:
             dataset_root = 'D:/TUH/tuh_eeg'
             cache_path = 'D:/TUH/pickles/tuh_eeg.pkl'
@@ -41,6 +46,7 @@ if __name__ == "__main__":
             save_dir_2 = 'D:/TUH/tuh_pre_2'
             save_dir_indexes = 'D:/TUH/pickles/indexes.pkl'
             pickle_duration_cache = 'D:/TUH/pickles/tuh_eeg_duration.pkl'
+        
     if CACHE_WINDOWS == False:
         if READ_CACHED_DS:
             with open(cache_path, 'rb') as f:
@@ -48,26 +54,20 @@ if __name__ == "__main__":
                 dataset = pickle.load(f)
                 print('done loading pickled dataset')
         else:
-
             if SOURCE_DS == 'tuh_eeg_abnormal':
                 dataset = tuh.TUHAbnormal(dataset_root)
-
             else:
-                dataset = tuh.TUH(dataset_root, n_jobs=2)
-                print('done creating TUH dataset')
+                dataset = tuh.TUH(dataset_root, n_jobs=8)
             with open(cache_path, 'wb') as f:
                 pickle.dump(dataset, f)
-            print('done pickling')
 
-        print(dataset.description)
-        print('Start selecting duration')
-        dataset = select_duration(dataset, t_min=60, t_max=None)
+        print(f"Loaded {len(dataset.datasets)} files.")
+        print(f'Start selecting duration over {MIN_DURATION} sec')
+        dataset = select_duration(dataset, t_min=MIN_DURATION, t_max=None)
+        dataset = dataset.split(by=range(50))['0']
         with open(pickle_duration_cache, 'wb') as f:
-
             pickle.dump(dataset, f)
-        print(dataset.description)
-        dataset = dataset.split(by=range(512))['0']
-        print('done selecting duration')
+        print(f"Done. Kept {len(dataset.datasets)} files.")
         print(dataset.description)
         # dataset = get_unique_channel_names(dataset)
 
