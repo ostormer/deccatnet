@@ -229,7 +229,7 @@ def pre_train_model(dataset, batch_size, num_workers, save_freq, Shuffel, model_
     # TODO: get confirmation on where augmentations are applied
 
     # load dataset
-    train_set, val_set, test_set = dataset.get_dataset()  # TODO: implement splitting for dataset
+    train_set, val_set, test_set = dataset.get_splits()  # TODO: implement splitting for dataset
 
     # create data_loaders, here batch size is decided
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel,
