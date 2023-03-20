@@ -1,0 +1,8 @@
+first uninstall existing version of braindecode.
+Reinstall mne and braindecode using
+
+pip install -e git+https://github.com/ostormer/mne-python.git@main#egg=mne
+pip install -e git+https://github.com/ostormer/braindecode.git@master#egg=braindecode
+
+To edit our fork of braindecode edit that github repo, push your changes to master there, and reinstall braindecode using just the install command again.
+Or update the source in the repo created in the src folder in this repo, and pushing the changes in the mne/braindecode repo

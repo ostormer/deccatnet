@@ -24,4 +24,4 @@ dependencies:
   - torchaudio==0.13.1  
   - torchvision==0.14.1
   - mne
-  - braindecode
+  - git+https://github.com/ostormer/braindecode.git@master#egg=braindecode
