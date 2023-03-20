@@ -178,8 +178,26 @@ class ContrastiveLossGPT(nn.Module):
 
 
 # Next up: contrastive training framework
-def pre_train_model(batch_size, num_workers, save_freq, Shuffel, model_weights_dict, temperature, learning_rate,
-                    weight_decay, max_epochs, batch_print_condition, save_dir_model, model_file_name):
+def pre_train_model(dataset, batch_size, num_workers, save_freq, Shuffel, model_weights_path, temperature, learning_rate,
+                    weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params):
+    """
+
+    :param dataset: ContrastiveAugmentedDataset for pre_training
+    :param batch_size: batch size for pre_training
+    :param num_workers: number of workers/ cpu cores
+    :param save_freq: how often model is saved (epohs)
+    :param Shuffel: wether dataset should be shuffled or not
+    :param model_weights_path: string path for already trained model
+    :param temperature: temperature parameter in contrastiveloss_function, learnable
+    :param learning_rate:
+    :param weight_decay:
+    :param max_epochs:
+    :param batch_print_freq: how often batch progress is printed in one epoch
+    :param save_dir_model: save directory for all models # TODO: check if empty and create new if empty
+    :param model_file_name: file name for this trained model.
+    :param model_params: parameters in a dict for model to be trained
+    :return:
+    """
     """
     Needs:
     destination to load model, save model
@@ -211,7 +229,7 @@ def pre_train_model(batch_size, num_workers, save_freq, Shuffel, model_weights_d
     # TODO: get confirmation on where augmentations are applied
 
     # load dataset
-    train_set, val_set, test_set = ContrastiveDataset.get_dataset()  # TODO: how to get dataset and initalize Dataloaders
+    train_set, val_set, test_set = dataset.get_splits()  # TODO: implement splitting for dataset
 
     # create data_loaders, here batch size is decided
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel,
@@ -222,10 +240,10 @@ def pre_train_model(batch_size, num_workers, save_freq, Shuffel, model_weights_d
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model and check if weights already given
-    model = test_model()  # probably some hyperparams here
-    if model_weights_dict is not None:
-        model.load_state_dict(torch.load(model_weights_dict))  # loaded already trained-model
-
+    if model_weights_path is not None:
+        model = test_model.__init__from_dict(torch.load(model_weights_path))  # loaded already trained-model
+    else:
+        model = test_model(model_params)
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
@@ -261,7 +279,7 @@ def pre_train_model(batch_size, num_workers, save_freq, Shuffel, model_weights_d
             torch.cuda.empty_cache()
 
             # check counter and print one some codition
-            if counter % batch_print_condition == 0:
+            if counter % batch_print_freq == 0:
                 print("trained for: ", counter, " batches")
             counter += 1
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
@@ -288,8 +306,8 @@ def pre_train_model(batch_size, num_workers, save_freq, Shuffel, model_weights_d
     save_dir_model
     losses
     eval_losses  # TODO
-    batch_size, num_workers, save_freq, Shuffel, model_weights_dict, temperature, learning_rate,
-    weight_decay, max_epochs, batch_print_condition, save_dir_model, model_file_name
+    batch_size, num_workers, save_freq, Shuffel, model_weights_path, temperature, learning_rate,
+    weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name
 
     # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
 

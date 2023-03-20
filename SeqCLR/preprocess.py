@@ -3,12 +3,13 @@ import os
 import numpy as np
 import shutil
 import mne
+from copy import deepcopy
 import itertools
 
 from copy import deepcopy
 from tqdm import tqdm
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
-from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
+from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess, scale
 from braindecode.datautil.serialization import load_concat_dataset, _check_save_dir_empty
 from joblib import Parallel, delayed
 
@@ -144,12 +145,16 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
                      Preprocessor('pick_channels', ch_names=ch_name,
                                   ordered=True),  # keep wanted channels
                      # clip all data within a given border
+                     Preprocessor(scale,factor=1e6, apply_on_array=True),
                      Preprocessor(np.clip, a_min=crop_min,
                                   a_max=crop_max, apply_on_array=True),
                      Preprocessor('resample', sfreq=sfreq)]
+    # TODO: shouldn't we add a bandstopfilter? though many before us has used this
     # Could add normalization here also
+    
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+
     tuh_preproc = preprocess(
         concat_ds=concat_dataset,
         preprocessors=preprocessors,
