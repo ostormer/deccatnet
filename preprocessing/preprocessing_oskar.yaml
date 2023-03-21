@@ -1,0 +1,22 @@
+local_load: True  # Whether to load from local or disk paths
+
+directory:
+  local:
+    # Loaded if local_load: True
+    dataset_root: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/tuh_eeg/v2.0.0/edf/000'
+    cache_path: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/pickles/tuh_eeg.pkl'
+    save_dir: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed/step_1'
+    save_dir_2: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed/step_2'
+    save_dir_indexes: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed/split_indexes.pkl'
+    pickle_duration_cache: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/pickles/tuh_duration.pkl'
+  disk:
+    # Loaded if local_load: False
+    dataset_root: 'D:/TUH/tuh_eeg'
+    cache_path: 'D:/TUH/pickles/tuh_eeg.pkl'
+    save_dir: 'D:/TUH/tuh_pre'
+    save_dir_2: 'D:/TUH/tuh_pre_2'
+    save_dir_indexes: 'D:/TUH/pickles/indexes.pkl'
+    pickle_duration_cache: 'D:/TUH/pickles/tuh_eeg_duration.pkl'
+preprocess:
+  window_size: 60  # Window length in seconds
+  channel_select_function: 

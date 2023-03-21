@@ -3,10 +3,12 @@ import os
 import numpy as np
 import shutil
 import mne
+from copy import deepcopy
+import itertools
 
 from tqdm import tqdm
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
-from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
+from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess, scale
 from braindecode.datautil.serialization import load_concat_dataset, _check_save_dir_empty
 from joblib import Parallel, delayed
 
@@ -69,12 +71,10 @@ def select_duration(concat_ds: BaseConcatDataset, t_min=0, t_max=None):
     if t_max == None:
         t_max = np.Inf
     idx = []
-    test = []
     for i, ds in enumerate(concat_ds.datasets):
         len_session = ds.raw.tmax - ds.raw.tmin  # type: ignore
         duration = ds.raw.n_times / ds.raw.info['sfreq']  # type: ignore
         assert round(len_session) == round(duration)
-        test.append(len_session)
         if len_session > t_min and len_session < t_max:
             idx.append(i)
     good_recordings = [concat_ds.datasets[i] for i in idx]
@@ -142,16 +142,21 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
                      Preprocessor('pick_channels', ch_names=ch_name,
                                   ordered=True),  # keep wanted channels
                      # clip all data within a given border
+                     Preprocessor(scale,factor=1e6, apply_on_array=True),
                      Preprocessor(np.clip, a_min=crop_min,
                                   a_max=crop_max, apply_on_array=True),
                      Preprocessor('resample', sfreq=sfreq)]
+    # TODO: shouldn't we add a bandstopfilter? though many before us has used this
     # Could add normalization here also
-    OUT_PATH = save_dir  # please insert actual output directory here TODO: ADD save_dir
+    
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
     tuh_preproc = preprocess(
         concat_ds=concat_dataset,
         preprocessors=preprocessors,
         n_jobs=n_jobs,
-        save_dir=OUT_PATH,
+        save_dir=save_dir,
         overwrite=True,
     )
     return tuh_preproc
@@ -169,7 +174,7 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
     concat_ds.set_description(
         {"n_samples": [ds.raw.n_times for ds in concat_ds.datasets]})  # type: ignore
     keep = [n >= window_size_samples for n in concat_ds.description["n_samples"]]
-    keep_indexes = [i for i, k in enumerate(keep) if k == True]
+    keep_indexes = [i for i, k in enumerate(keep) if k is True]
     concat_ds = concat_ds.split(by=keep_indexes)["0"]
     print("WINDOWING DATASET")
     windows_ds = create_fixed_length_windows(
@@ -183,13 +188,11 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         drop_bad_windows=True,
         verbose='ERROR'
     )
-    # Prepare save dir
-    save_dir = os.path.abspath(save_dir)
-    if not overwrite:
-        _check_save_dir_empty(save_dir)
     # Create save_dir
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+    if not overwrite:
+        _check_save_dir_empty(save_dir)
     # Delete old contents of save_dir
     for files in os.listdir(save_dir):
         path = os.path.join(save_dir, files)
@@ -299,3 +302,12 @@ def _make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
     for i in range(len(ch_list) - 1):
         pairs.append([ch_list[i], ch_list[i+1]])
     return pairs
+
+
+channel_split_func = {
+    "single": _make_single_channels,
+    "unique_pairs": _make_unique_pair_combos,
+    "all_pairs": _make_all_pair_combos,
+    "adjacent_pairs": _make_adjacent_pairs,
+    "overlapping_adjacent_pairs": _make_overlapping_adjacent_pairs,
+}

@@ -12,7 +12,8 @@ if __name__ == "__main__":
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
     LOCAL_LOAD = False
     CACHE_WINDOWS = True
-
+    # Preproc
+    WINDOW_SIZE = 60
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
     set_log_level(verbose='WARNING')
@@ -28,12 +29,20 @@ if __name__ == "__main__":
 
     else:
         if LOCAL_LOAD:
-            dataset_root = '../datasets/TUH/tuh_eeg'
-            cache_path = '../datasets/TUH_pickles/tuh_Styrk.pkl'
-            save_dir = '../datasets/test_disk/folder_1'
-            save_dir_2 = '../datasets/test_disk/folder_2'
-            save_dir_indexes = '../datasets/test_disk/folder_2/pickles/indexes.pkl'
-            pickle_duration_cache = '../datasets/TUH_pickles/tuh_duration.pkl'
+            # Oskar
+            dataset_root = r'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg\v2.0.0\edf\000'
+            cache_path = r'/datasets/TUH/pickles/tuh_eeg.pkl'
+            save_dir = r'/datasets/TUH/preprocessed/step_1'
+            save_dir_2 = r'/datasets/TUH/preprocessed/step_2'
+            save_dir_indexes = r'/datasets/TUH/preprocessed/split_indexes.pkl'
+            pickle_duration_cache = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/pickles/tuh_duration.pkl'
+            # Styrk
+            # dataset_root = '../datasets/TUH/tuh_eeg'
+            # cache_path = '../datasets/TUH_pickles/tuh_Styrk.pkl'
+            # save_dir = '../datasets/test_disk/folder_1'
+            # save_dir_2 = '../datasets/test_disk/folder_2'
+            # save_dir_indexes = '../datasets/test_disk/folder_2/pickles/indexes.pkl'
+            # pickle_duration_cache = '../datasets/TUH_pickles/tuh_duration.pkl'
         else:
             dataset_root = 'D:/TUH/tuh_eeg'
             cache_path = 'D:/TUH/pickles/tuh_eeg.pkl'
@@ -58,11 +67,12 @@ if __name__ == "__main__":
             with open(cache_path, 'wb') as f:
                 pickle.dump(dataset, f)
             print('done pickling')
-
-        print(dataset.description)
-        print('Start selecting duration')
-        dataset = select_duration(dataset, t_min=60, t_max=None)
+        print(f"Loaded {len(dataset.datasets)} files.")
+        print(f'Start selecting duration over {WINDOW_SIZE} sec')
+        dataset = select_duration(dataset, t_min=WINDOW_SIZE, t_max=None)
+        # dataset = dataset.split(by=range(50))['0']
         with open(pickle_duration_cache, 'wb') as f:
+            pickle.dump(dataset, f)
 
             pickle.dump(dataset, f)
         print(dataset.description)
