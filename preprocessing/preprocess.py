@@ -163,9 +163,11 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
     return tuh_preproc
 
 
-def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=False,
+def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, cache_dir=None, overwrite=False,
                      window_size_samples=5000, n_jobs=1, channel_split_func=None,
                      save_dir_index=None) -> 'list[int]':
+    if cache_dir is None:
+        cache_dir = os.path.join(os.path.dirname(save_dir), 'caches')
     if channel_split_func is None:
         channel_split_func = _make_adjacent_pairs
     if save_dir_index is None:
@@ -202,7 +204,8 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         except OSError:
             os.remove(path)
     # Save pickle of windows_dataset
-    os.makedirs(os.path.join(save_dir, "pickles"))
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
     with open(os.path.join(save_dir, "pickles/windowed.pkl"), 'wb') as file:
         pickle.dump(windows_ds, file)
 

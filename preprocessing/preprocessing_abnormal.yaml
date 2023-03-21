@@ -1,4 +1,4 @@
-source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
+source_ds: 'tuh_eeg_abnormal'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
 read_cache:   # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'preproc', 'windows', 'split']
 
 
@@ -8,18 +8,16 @@ directory:
   local:
     # Loaded if local_load: True
     dataset_root: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/'
-    cache_dir: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/pickles/'
-    save_dir: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed/step_1'
-    save_dir_2: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed/step_2'
-    save_dir_indexes: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed/split_indexes.pkl'
-    pickle_duration_cache: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/pickles/tuh_duration.pkl'
+    cache_dir: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/pickles_abnormal/'
+    save_dir: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed_abnormal/step_1'
+    save_dir_2: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed_abnormal/step_2'
+    save_dir_indexes: 'C:/Users/oskar/repos/master-eeg-trans/datasets/TUH/preprocessed_abnormal/split_indexes.pkl'
   disk:
     dataset_root: 'D:/TUH/tuh_eeg_abnormal'
     cache_dir: 'D:/TUH/pickles/tuh_abnormal.pkl'
     save_dir: 'D:/TUH/tuh_eeg_abnormal_pre'
     save_dir_2: 'D:/TUH/tuh_eeg_abnormal_pre2'
     save_dir_indexes: 'D:/TUH/pickles/abnormal_split_indexes.pkl'
-    pickle_duration_cache: 'D:/TUH/pickles/tuh_duration.pkl'
 preprocess:
   window_size: 60  # Window length in seconds
   channel_select_function: 'adjacent_pairs'
