@@ -1,32 +1,51 @@
 import os
 import pickle
-from tqdm import tqdm
-import braindecode.datasets.tuh as tuh
-from mne import set_log_level
-from braindecode.datautil.serialization import load_concat_dataset
-from torch.utils.data import DataLoader
+import yaml
 
-from preprocess import window_and_split, select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
-from custom_dataset import ContrastiveAugmentedDataset
-from contrastive_framework import pre_train_model
+import braindecode.datasets.tuh as tuh
+import mne
+from braindecode.datautil.serialization import load_concat_dataset
+
+from preprocess import string_to_channel_split_func, window_and_split, select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
+
 
 if __name__ == "__main__":
-    READ_CACHED_DS = True  # Change to read cache or not
-    SOURCE_DS = 'tuh_eeg'  # Which dataset to load
-    LOCAL_LOAD = True
-    MIN_DURATION = 60
-    CACHE_WINDOWS = True
+    config_path = "preprocessing_oskar.yaml"
+    with open(config_path, "r") as stream:
+        try:
+            params = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
 
+    read_cache = params["read_cache"]
+    source_ds = params["source_ds"]
+    local_load = params["local_load"]
+    preproc_params = params["preprocess"]
 
-    assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
+    window_size = preproc_params["window_size"]
+    channel_select_function = preproc_params["channel_select_function"]
+
+    preproc_params = params["preprocess"]
+    if (read_cache is None) or read_cache in [False, 'None']:
+        read_cache = 'none'
+    assert read_cache in ['none', 'raw', 'preproc', 'windows', 'split'], \
+        f"{read_cache} is not a valid cache to read"
+    assert source_ds in ['tuh_eeg_abnormal', 'tuh_eeg'], \
+        f"{source_ds} is not a valid dataset option"
+    assert channel_select_function in string_to_channel_split_func.keys(), \
+        f"{channel_select_function} is not a valid channel selection function"
+
     # Disable most MNE logging output which slows execution
-    set_log_level(verbose='WARNING')
+    mne.set_log_level(verbose='ERROR')
 
-    dataset_root = None
-    cache_path = None
-    dataset = None
+    if local_load:
+        paths = params["directory"]["local"]
+    else:
+        paths = params["directory"]["disk"]
 
-    if SOURCE_DS == 'tuh_eeg_abnormal':
+
+
+    if source_ds == 'tuh_eeg_abnormal':
         dataset_root = 'D:/TUH/tuh_eeg_abnormal'
         cache_path = 'D:/TUH/pickles/tuh_abnormal.pkl'
         save_dir = 'D:/TUH/tuh_eeg_abnormal_pre'
@@ -35,7 +54,7 @@ if __name__ == "__main__":
         pickle_duration_cache = 'D:/TUH/pickles/tuh_duration.pkl'
 
     else:
-        if LOCAL_LOAD:
+        if local_load:
             dataset_root = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\tuh_eeg\v2.0.0\edf\000'
             cache_path = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH_pickles\Styrk-tuh_eeg.pkl'
             save_dir = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\preprocessed\step_1'
@@ -49,15 +68,16 @@ if __name__ == "__main__":
             save_dir_2 = 'D:/TUH/tuh_pre_2'
             save_dir_indexes = 'D:/TUH/pickles/indexes.pkl'
             pickle_duration_cache = 'D:/TUH/pickles/tuh_eeg_duration.pkl'
-        
+
+
     if CACHE_WINDOWS == False:
-        if READ_CACHED_DS:
+        if READ_CACHED_RAW_DS:
             with open(cache_path, 'rb') as f:
 
                 dataset = pickle.load(f)
                 print('done loading pickled dataset')
         else:
-            if SOURCE_DS == 'tuh_eeg_abnormal':
+            if source_ds == 'tuh_eeg_abnormal':
                 dataset = tuh.TUHAbnormal(dataset_root)
             else:
                 dataset = tuh.TUH(dataset_root, n_jobs=8)

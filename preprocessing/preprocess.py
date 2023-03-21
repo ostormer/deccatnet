@@ -305,7 +305,7 @@ def _make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
     return pairs
 
 
-channel_split_func = {
+string_to_channel_split_func = {
     "single": _make_single_channels,
     "unique_pairs": _make_unique_pair_combos,
     "all_pairs": _make_all_pair_combos,
