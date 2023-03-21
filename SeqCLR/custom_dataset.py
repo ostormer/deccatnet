@@ -77,7 +77,7 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
 
     def get_splits(self, split_precentages:list):
         """
-
+        derpreciated in the first version: Use dataset.split(by=range(len(self.datasets*percentage))
         :param split_precentages: list of percentages for each split
         :return: training, validation and test plits from dataset
         """

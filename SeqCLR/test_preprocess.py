@@ -11,7 +11,7 @@ from custom_dataset import ContrastiveAugmentedDataset
 from contrastive_framework import pre_train_model
 
 if __name__ == "__main__":
-    READ_CACHED_DS = False  # Change to read cache or not
+    READ_CACHED_DS = True  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
     LOCAL_LOAD = True
     MIN_DURATION = 60
@@ -36,13 +36,12 @@ if __name__ == "__main__":
 
     else:
         if LOCAL_LOAD:
-            
-            dataset_root = r'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg\v2.0.0\edf\000'
-            cache_path = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/pickles/tuh_eeg.pkl'
-            save_dir = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/preprocessed/step_1'
-            save_dir_2 = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/preprocessed/step_2'
-            save_dir_indexes = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/preprocessed/split_indexes.pkl'
-            pickle_duration_cache = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/pickles/tuh_duration.pkl'
+            dataset_root = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\tuh_eeg\v2.0.0\edf\000'
+            cache_path = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH_pickles\Styrk-tuh_eeg.pkl'
+            save_dir = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\preprocessed\step_1'
+            save_dir_2 = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\preprocessed\step_2'
+            save_dir_indexes = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\preprocessed/split_indexes.pkl'
+            pickle_duration_cache = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH_pickles/tuh_duration.pkl'
         else:
             dataset_root = 'D:/TUH/tuh_eeg'
             cache_path = 'D:/TUH/pickles/tuh_eeg.pkl'
@@ -68,7 +67,7 @@ if __name__ == "__main__":
         print(f"Loaded {len(dataset.datasets)} files.")
         print(f'Start selecting duration over {MIN_DURATION} sec')
         dataset = select_duration(dataset, t_min=MIN_DURATION, t_max=None)
-        dataset = dataset.split(by=range(50))['0']
+       # dataset = dataset.split(by=range(50))['0']
         with open(pickle_duration_cache, 'wb') as f:
             pickle.dump(dataset, f)
         print(f"Done. Kept {len(dataset.datasets)} files.")
@@ -138,8 +137,18 @@ if __name__ == "__main__":
     windowed_datasets = ContrastiveAugmentedDataset(load_concat_dataset(os.path.join(
         save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load).datasets) # TODO: think about if target transforms is necessary also add split to get several loaders
 
-    #splitted = windowed_datasets.get_splits([0.7,0.3])
-    #windowed_datasets = ContrastiveAugmentedDataset(splitted[0])
+    train_split = 0.7
+    split_dict = {'test':range(round(len(windowed_datasets.datasets)*(1-train_split))),
+                  'train':range(round(len(windowed_datasets.datasets)*(train_split)))}
+
+    splitted = windowed_datasets.split(by=split_dict)
+    print(splitted['test'].__len__(), splitted['train'].__len__())
+    print(splitted['test'].__len__() + splitted['train'].__len__(),  windowed_datasets.__len__())
+    splitted_1 = ContrastiveAugmentedDataset(splitted['0'].datasets)
+    print(splitted_1.__len__(), windowed_datasets.__len__())
+
+
+    print(splitted, windowed_datasets)
 
     #print(windowed_datasets)
     loader = DataLoader(windowed_datasets, batch_size=10)
