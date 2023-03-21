@@ -60,6 +60,7 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
         else:
             sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
         sample = self.datasets[dataset_idx][sample_idx][0]
+
         sample = torch.Tensor(sample).view(-1, sample.shape[0], sample.shape[1])
         augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
         # apply augmentations
@@ -75,16 +76,21 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
 
         return augmented_1,augmented_2, sample[0]
 
-    def get_splits(self, split_precentages:list):
+    def get_splits(self, TRAIN_SPLIT:float):
         """
-        derpreciated in the first version: Use dataset.split(by=range(len(self.datasets*percentage))
-        :param split_precentages: list of percentages for each split
-        :return: training, validation and test plits from dataset
+        :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
+        :return: train,test, train and test of instances ContrastiveAugmentedDataset
         """
+        split_dict = {'test': range(round(len(self.datasets) * (1 - TRAIN_SPLIT))),
+                      'train': range(round(len(self.datasets) * (1 - TRAIN_SPLIT)),
+                                     round(len(self.datasets)))}
+        splitted = self.split(by=split_dict)
+        assert splitted['test'].__len__() + splitted['train'].__len__() == self.__len__()
+        assert list(set(splitted['test'].datasets) & set(splitted['train'].datasets)) == []
+        train, test = ContrastiveAugmentedDataset(splitted['train'].datasets), ContrastiveAugmentedDataset(
+            splitted['test'].datasets)
 
-        splitted_dataset = torch.utils.data.random_split(self, split_precentages)
-        return splitted_dataset
-
+        return train,test
 
     def print_channels_and_diff(self, sample, augmented, augmentation_id,channel):
         diff = sample[0][channel].detach().numpy() - augmented[channel].detach().numpy()

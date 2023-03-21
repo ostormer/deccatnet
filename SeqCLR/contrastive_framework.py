@@ -5,7 +5,7 @@ import torch.nn.functional as fn
 import torch
 import numpy as np
 from data_loaders import ContrastiveDataset
-
+from ssl_baselines_zac.models import SQNet
 from modules import ConvolutionalEncoder, Projector, DownstreamClassifier
 from tqdm import tqdm
 import os
@@ -178,15 +178,17 @@ class ContrastiveLossGPT(nn.Module):
 
 
 # Next up: contrastive training framework
-def pre_train_model(dataset, batch_size, num_workers, save_freq, Shuffel, model_weights_path, temperature, learning_rate,
+def pre_train_model(dataset, batch_size, train_split, num_workers, save_freq, shuffle, model_weights_path, temperature,
+                    learning_rate,
                     weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params):
     """
 
     :param dataset: ContrastiveAugmentedDataset for pre_training
     :param batch_size: batch size for pre_training
+    :param train_split: percentage of dataset size which is training
     :param num_workers: number of workers/ cpu cores
     :param save_freq: how often model is saved (epohs)
-    :param Shuffel: wether dataset should be shuffled or not
+    :param shuffle: wether dataset should be shuffled or not
     :param model_weights_path: string path for already trained model
     :param temperature: temperature parameter in contrastiveloss_function, learnable
     :param learning_rate:
@@ -229,13 +231,12 @@ def pre_train_model(dataset, batch_size, num_workers, save_freq, Shuffel, model_
     # TODO: get confirmation on where augmentations are applied
 
     # load dataset
-    train_set, val_set, test_set = dataset.get_splits()  # TODO: implement splitting for dataset
+    train_set, val_set = dataset.get_splits(train_split)
 
     # create data_loaders, here batch size is decided
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffel=Shuffel,
-                                               num_workers=num_workers)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle)
     # maybe alos num_workers)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffel=Shuffel, num_workers=num_workers)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle)
     # check if cuda setup allowed:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -243,7 +244,11 @@ def pre_train_model(dataset, batch_size, num_workers, save_freq, Shuffel, model_
     if model_weights_path is not None:
         model = test_model.__init__from_dict(torch.load(model_weights_path))  # loaded already trained-model
     else:
-        model = test_model(model_params)
+        if model_params == 'test':
+            model = SQNet(encoder_type='convolutional', num_channels=2, temporal_len=10)
+        else:
+            model = SeqCLR(model_params)
+
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
@@ -257,9 +262,9 @@ def pre_train_model(dataset, batch_size, num_workers, save_freq, Shuffel, model_
         print('epoch number: ', epoch, 'of: ', max_epochs)
         counter = 0  # counter for batch print.
         # start traning by looping through batches
-        for x1, x2 in train_loader:
+        for aug_1, aug_2, sample in train_loader:
             # transfer to GPU or CUDA
-            x1, x2 = x1.to(device), x2.to(device)
+            x1, x2 = aug_1.to(device), aug_2.to(device)
             # zero out existing gradients
             optimizer.zero_grad()
             # send through model and projector, asssume not splitted for now
@@ -306,7 +311,7 @@ def pre_train_model(dataset, batch_size, num_workers, save_freq, Shuffel, model_
     save_dir_model
     losses
     eval_losses  # TODO
-    batch_size, num_workers, save_freq, Shuffel, model_weights_path, temperature, learning_rate,
+    batch_size, num_workers, save_freq, shuffle, model_weights_path, temperature, learning_rate,
     weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name
 
     # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
@@ -321,7 +326,7 @@ class test_model(nn.Module):
     """
 
     def __init__(self):
-        super(test_model, self)
+        super(test_model, self).__init__()
         self.encoder = test_encoder()
 
     def forward(self, x):
@@ -330,7 +335,7 @@ class test_model(nn.Module):
 
 class test_encoder(nn.Module):
     def __init__(self):
-        super(test_encoder, self)
+        super(test_encoder, self).__init__()
 
     def forward(self, x):
         return x
