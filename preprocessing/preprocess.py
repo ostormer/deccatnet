@@ -6,6 +6,7 @@ import mne
 from copy import deepcopy
 import itertools
 
+from copy import deepcopy
 from tqdm import tqdm
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess, scale

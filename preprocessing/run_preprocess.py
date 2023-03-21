@@ -4,16 +4,20 @@ from tqdm import tqdm
 import braindecode.datasets.tuh as tuh
 from mne import set_log_level
 from braindecode.datautil.serialization import load_concat_dataset
+from torch.utils.data import DataLoader
 
 from preprocess import window_and_split, select_duration, rename_channels, get_unique_channel_names, first_preprocess_step
+from custom_dataset import ContrastiveAugmentedDataset
+from contrastive_framework import pre_train_model
 
 if __name__ == "__main__":
     READ_CACHED_DS = True  # Change to read cache or not
     SOURCE_DS = 'tuh_eeg'  # Which dataset to load
-    LOCAL_LOAD = False
+    LOCAL_LOAD = True
+    MIN_DURATION = 60
     CACHE_WINDOWS = True
-    # Preproc
-    WINDOW_SIZE = 60
+
+
     assert SOURCE_DS in ['tuh_eeg_abnormal', 'tuh_eeg']
     # Disable most MNE logging output which slows execution
     set_log_level(verbose='WARNING')
@@ -23,26 +27,21 @@ if __name__ == "__main__":
     dataset = None
 
     if SOURCE_DS == 'tuh_eeg_abnormal':
-        dataset_root = 'datasets/tuh_test/tuh_eeg_abnormal'
-        cache_path = 'datasets/TUH_pickles/tuh_abnormal.pkl'
+        dataset_root = 'D:/TUH/tuh_eeg_abnormal'
+        cache_path = 'D:/TUH/pickles/tuh_abnormal.pkl'
         save_dir = 'D:/TUH/tuh_eeg_abnormal_pre'
+        save_dir_2 = 'D:/TUH/tuh_eeg_abnormal_pre2'
+        save_dir_indexes = 'D:/TUH/pickles/abnormal_split_indexes.pkl'
+        pickle_duration_cache = 'D:/TUH/pickles/tuh_duration.pkl'
 
     else:
         if LOCAL_LOAD:
-            # Oskar
-            dataset_root = r'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg\v2.0.0\edf\000'
-            cache_path = r'/datasets/TUH/pickles/tuh_eeg.pkl'
-            save_dir = r'/datasets/TUH/preprocessed/step_1'
-            save_dir_2 = r'/datasets/TUH/preprocessed/step_2'
-            save_dir_indexes = r'/datasets/TUH/preprocessed/split_indexes.pkl'
-            pickle_duration_cache = r'C:\Users\oskar\repos\master-eeg-trans\datasets/TUH/pickles/tuh_duration.pkl'
-            # Styrk
-            # dataset_root = '../datasets/TUH/tuh_eeg'
-            # cache_path = '../datasets/TUH_pickles/tuh_Styrk.pkl'
-            # save_dir = '../datasets/test_disk/folder_1'
-            # save_dir_2 = '../datasets/test_disk/folder_2'
-            # save_dir_indexes = '../datasets/test_disk/folder_2/pickles/indexes.pkl'
-            # pickle_duration_cache = '../datasets/TUH_pickles/tuh_duration.pkl'
+            dataset_root = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\tuh_eeg\v2.0.0\edf\000'
+            cache_path = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH_pickles\Styrk-tuh_eeg.pkl'
+            save_dir = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\preprocessed\step_1'
+            save_dir_2 = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\preprocessed\step_2'
+            save_dir_indexes = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\preprocessed/split_indexes.pkl'
+            pickle_duration_cache = r'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH_pickles/tuh_duration.pkl'
         else:
             dataset_root = 'D:/TUH/tuh_eeg'
             cache_path = 'D:/TUH/pickles/tuh_eeg.pkl'
@@ -50,6 +49,7 @@ if __name__ == "__main__":
             save_dir_2 = 'D:/TUH/tuh_pre_2'
             save_dir_indexes = 'D:/TUH/pickles/indexes.pkl'
             pickle_duration_cache = 'D:/TUH/pickles/tuh_eeg_duration.pkl'
+        
     if CACHE_WINDOWS == False:
         if READ_CACHED_DS:
             with open(cache_path, 'rb') as f:
@@ -57,27 +57,22 @@ if __name__ == "__main__":
                 dataset = pickle.load(f)
                 print('done loading pickled dataset')
         else:
-
             if SOURCE_DS == 'tuh_eeg_abnormal':
                 dataset = tuh.TUHAbnormal(dataset_root)
-
             else:
-                dataset = tuh.TUH(dataset_root, n_jobs=2)
-                print('done creating TUH dataset')
+                dataset = tuh.TUH(dataset_root, n_jobs=8)
             with open(cache_path, 'wb') as f:
                 pickle.dump(dataset, f)
-            print('done pickling')
+
         print(f"Loaded {len(dataset.datasets)} files.")
-        print(f'Start selecting duration over {WINDOW_SIZE} sec')
-        dataset = select_duration(dataset, t_min=WINDOW_SIZE, t_max=None)
-        # dataset = dataset.split(by=range(50))['0']
+        print(f'Start selecting duration over {MIN_DURATION} sec')
+        dataset = select_duration(dataset, t_min=MIN_DURATION, t_max=None)
+       # dataset = dataset.split(by=range(50))['0']
         with open(pickle_duration_cache, 'wb') as f:
             pickle.dump(dataset, f)
+        print(f"Done. Kept {len(dataset.datasets)} files.")
+        #dataset = dataset.split(by=range(512))['0']
 
-            pickle.dump(dataset, f)
-        print(dataset.description)
-        dataset = dataset.split(by=range(512))['0']
-        print('done selecting duration')
         print(dataset.description)
         # dataset = get_unique_channel_names(dataset)
 
@@ -131,7 +126,7 @@ if __name__ == "__main__":
         # print(common_naming, '\n', le_to_common, '\n', ar_to_common, '\n', ch_mapping)
 
         tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,
-                                            ch_name=common_naming, crop_min=0, crop_max=1, sfreq=250, save_dir=save_dir, n_jobs=8, )
+                                            ch_name=common_naming, crop_min=-800, crop_max=800, sfreq=250, save_dir=save_dir, n_jobs=2, )
 
         ids_to_load = window_and_split(tuh_preproc, save_dir=save_dir_2, overwrite=True,
                                        window_size_samples=15000, n_jobs=2, save_dir_index=save_dir_indexes)
@@ -139,6 +134,31 @@ if __name__ == "__main__":
         with open(save_dir_indexes, 'rb') as f:
             ids_to_load = pickle.load(f)
 
-    windowed_datasets = load_concat_dataset(os.path.join(
-        save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load)
-    print(windowed_datasets.description)
+    windowed_datasets = ContrastiveAugmentedDataset(load_concat_dataset(os.path.join(
+        save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load).datasets) # TODO: think about if target transforms is necessary also add split to get several loaders
+
+    train_split = 0.7
+    split_dict = {'test':range(round(len(windowed_datasets.datasets)*(1-train_split))),
+                  'train':range(round(len(windowed_datasets.datasets)*(train_split)))}
+
+    splitted = windowed_datasets.split(by=split_dict)
+    print(splitted['test'].__len__(), splitted['train'].__len__())
+    print(splitted['test'].__len__() + splitted['train'].__len__(),  windowed_datasets.__len__())
+    splitted_1 = ContrastiveAugmentedDataset(splitted['0'].datasets)
+    print(splitted_1.__len__(), windowed_datasets.__len__())
+
+
+    print(splitted, windowed_datasets)
+
+    #print(windowed_datasets)
+    loader = DataLoader(windowed_datasets, batch_size=10)
+    for augmented_1, augmented_2, sample in loader:
+        print(augmented_1.shape, augmented_2.shape, sample.shape)
+
+    # how it will look in the end:
+    #pre_train_model(windowed_datasets, batch_size=, num_workers=, save_freq=, Shuffel=, model_weights_path=, temperature=,
+    #                learning_rate=, weight_decay=, max_epochs=, batch_print_freq=, save_dir_model=, model_file_name=, model_params=)
+
+
+    # next up: implement some sort of dataloader, general idea for now, create a custom datasetclass, where __getitem__ is overwritten. Then use standard dataloader to iterate through the dtaset
+

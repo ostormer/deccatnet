@@ -343,9 +343,9 @@ if __name__=="__main__":
     print('batch_y:', batch_y)
     print('batch_ind:', batch_ind)
 
-    #pre_train_model(batch_size=100, num_workers=1,save_freq=10,Shuffel=False,save_dir_model='models',model_file_name='test',model_weights_dict=None,temperature= 2
+    #pre_train_model(batch_size=100, num_workers=1,save_freq=10,Shuffel=False,save_dir_model='models',model_file_name='test',model_weights_path=None,temperature= 2
     #               ,learning_rate= 0.01
-    #               , weight_decay= 0.01,max_epochs=20,batch_print_condition=5)
+    #               , weight_decay= 0.01,max_epochs=20,batch_print_freq=5)
 
 '''
 # I don't think SingleChannelDataset is necessary, it would be better to split into single channels

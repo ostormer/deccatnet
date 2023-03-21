@@ -7,7 +7,6 @@ import pickle as pkl
 import random
 from scipy.signal import iirnotch, lfilter
 
-
 class ContrastiveDataset(data.Dataset):
     def __init__(self, cached_ps_dataset, path=None, total_points=None, window_size=None, sfreq=250, bw=5,
                  randomized_augmentation=False, num_channels=1, temporal_len=2500,
