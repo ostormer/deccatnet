@@ -43,6 +43,8 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
         (probability=1, sfreq=180, max_delta_freq=2, random_state=random_state)
         """
 
+    #
+
     def __getitem__(self, idx):
         """
         goal is to create pairs of form [x_augment_1, x_augment_2], x_original
@@ -107,12 +109,13 @@ class PathDataset(Dataset):
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path,preload=True,random_state=None):
+    def __init__(self, ids_to_load, path,cum_windows, preload=True,random_state=None):
 
         self.ids_to_load = [str(i) for i in ids_to_load]
         self.path = path
         self.preload = preload
         self.is_raw = False
+        self.cum_windows = cum_windows
 
         if random_state == None:
             random_state = 100
@@ -140,9 +143,9 @@ class PathDataset(Dataset):
         :param idx: idx of the dataset we are interested in
         :return:
         """
-        idx = self.ids_to_load[idx]
-        window_dataset = _load_parallel(self.path,idx,self.preload,self.is_raw)
-        sample = window_dataset.__getitem__()
+        (id_to_load,window_n) = self.cum_windows[idx]
+        window_dataset = _load_parallel(self.path,id_to_load,self.preload,self.is_raw)
+        sample = window_dataset.__getitem__(item=window_n)
 
         sample = torch.Tensor(sample).view(-1, sample.shape[0], sample.shape[1])
         augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
@@ -158,6 +161,38 @@ class PathDataset(Dataset):
         # print(augmented_1.shape, augmented_2.shape, sample.shape)
 
         return augmented_1,augmented_2, sample[0]
+
+    def get_window_from_idx(self, path, i, preload, is_raw):
+        sub_dir = os.path.join(path, i)
+        file_name_patterns = ['{}-raw.fif', '{}-epo.fif']
+        if all([os.path.exists(os.path.join(sub_dir, p.format(i))) for p in file_name_patterns]):
+            raise FileExistsError('Found -raw.fif and -epo.fif in directory.')
+        fif_name_pattern = file_name_patterns[0] if is_raw else file_name_patterns[1]
+        fif_file_name = fif_name_pattern.format(i)
+        fif_file_path = os.path.join(sub_dir, fif_file_name)
+        signals = _load_signals(fif_file_path, preload, is_raw)
+        description_file_path = os.path.join(sub_dir, 'description.json')
+        description = pd.read_json(description_file_path, typ='series')
+        target_file_path = os.path.join(sub_dir, 'target_name.json')
+        target_name = None
+        if os.path.exists(target_file_path):
+            target_name = json.load(open(target_file_path, "r"))['target_name']
+
+        if is_raw:
+            dataset = BaseDataset(signals, description, target_name)
+        else:
+            window_kwargs = _load_kwargs_json('window_kwargs', sub_dir)
+            windows_ds_kwargs = [kwargs[1] for kwargs in window_kwargs if kwargs[0] == 'WindowsDataset']
+            windows_ds_kwargs = windows_ds_kwargs[0] if len(windows_ds_kwargs) == 1 else {}
+            dataset = WindowsDataset(signals, description,
+                                     targets_from=windows_ds_kwargs.get('targets_from', 'metadata'),
+                                     last_target_only=windows_ds_kwargs.get('last_target_only', True)
+                                     )
+            setattr(dataset, 'window_kwargs', window_kwargs)
+        for kwargs_name in ['raw_preproc_kwargs', 'window_preproc_kwargs']:
+            kwargs = _load_kwargs_json(kwargs_name, sub_dir)
+            setattr(dataset, kwargs_name, kwargs)
+        return dataset
 
     def get_splits(self, TRAIN_SPLIT:float):
         """
