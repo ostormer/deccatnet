@@ -6,49 +6,10 @@ import braindecode.datasets.tuh as tuh
 import mne
 from braindecode.datautil.serialization import load_concat_dataset
 
-from preprocess import string_to_channel_split_func, window_and_split, select_duration, rename_channels, \
-    get_unique_channel_names, first_preprocess_step
+from preprocess import string_to_channel_split_func, window_and_split, select_duration, \
+    first_preprocess_step, create_channel_mapping
 
-
-le_channels = sorted([
-    'EEG 20-LE', 'EEG 21-LE', 'EEG 22-LE', 'EEG 23-LE', 'EEG 24-LE', 'EEG 25-LE', 'EEG 26-LE',
-    'EEG 27-LE', 'EEG 28-LE', 'EEG 29-LE', 'EEG 30-LE', 'EEG 31-LE', 'EEG 32-LE', 'EEG A1-LE',
-    'EEG A2-LE', 'EEG C3-LE', 'EEG C4-LE', 'EEG CZ-LE', 'EEG F3-LE', 'EEG F4-LE', 'EEG F7-LE',
-    'EEG F8-LE',
-    'EEG FP1-LE', 'EEG FP2-LE', 'EEG FZ-LE', 'EEG LUC-LE', 'EEG O1-LE', 'EEG O2-LE', 'EEG OZ-LE',
-    'EEG P3-LE', 'EEG P4-LE', 'EEG PG1-LE', 'EEG PG2-LE', 'EEG PZ-LE', 'EEG RLC-LE', 'EEG SP1-LE',
-    'EEG SP2-LE', 'EEG T1-LE', 'EEG T2-LE', 'EEG T3-LE', 'EEG T4-LE', 'EEG T5-LE',
-    'EEG T6-LE'])
-ar_channels = sorted([
-    'EEG 100-REF', 'EEG 101-REF', 'EEG 102-REF', 'EEG 103-REF', 'EEG 104-REF', 'EEG 105-REF',
-    'EEG 106-REF', 'EEG 107-REF', 'EEG 108-REF', 'EEG 109-REF', 'EEG 110-REF', 'EEG 111-REF',
-    'EEG 112-REF', 'EEG 113-REF', 'EEG 114-REF', 'EEG 115-REF', 'EEG 116-REF', 'EEG 117-REF',
-    'EEG 118-REF', 'EEG 119-REF', 'EEG 120-REF', 'EEG 121-REF', 'EEG 122-REF', 'EEG 123-REF',
-    'EEG 124-REF', 'EEG 125-REF', 'EEG 126-REF', 'EEG 127-REF', 'EEG 128-REF', 'EEG 20-REF',
-    'EEG 21-REF', 'EEG 22-REF', 'EEG 23-REF', 'EEG 24-REF', 'EEG 25-REF', 'EEG 26-REF', 'EEG 27-REF',
-    'EEG 28-REF', 'EEG 29-REF', 'EEG 30-REF', 'EEG 31-REF', 'EEG 32-REF', 'EEG 33-REF', 'EEG 34-REF',
-    'EEG 35-REF', 'EEG 36-REF', 'EEG 37-REF', 'EEG 38-REF', 'EEG 39-REF', 'EEG 40-REF', 'EEG 41-REF',
-    'EEG 42-REF', 'EEG 43-REF', 'EEG 44-REF', 'EEG 45-REF', 'EEG 46-REF', 'EEG 47-REF', 'EEG 48-REF',
-    'EEG 49-REF', 'EEG 50-REF', 'EEG 51-REF', 'EEG 52-REF', 'EEG 53-REF', 'EEG 54-REF', 'EEG 55-REF',
-    'EEG 56-REF', 'EEG 57-REF', 'EEG 58-REF', 'EEG 59-REF', 'EEG 60-REF', 'EEG 61-REF', 'EEG 62-REF',
-    'EEG 63-REF', 'EEG 64-REF', 'EEG 65-REF', 'EEG 66-REF', 'EEG 67-REF', 'EEG 68-REF', 'EEG 69-REF',
-    'EEG 70-REF', 'EEG 71-REF', 'EEG 72-REF', 'EEG 73-REF', 'EEG 74-REF', 'EEG 75-REF', 'EEG 76-REF',
-    'EEG 77-REF', 'EEG 78-REF', 'EEG 79-REF', 'EEG 80-REF', 'EEG 81-REF', 'EEG 82-REF', 'EEG 83-REF',
-    'EEG 84-REF', 'EEG 85-REF', 'EEG 86-REF', 'EEG 87-REF', 'EEG 88-REF', 'EEG 89-REF', 'EEG 90-REF',
-    'EEG 91-REF', 'EEG 92-REF', 'EEG 93-REF', 'EEG 94-REF', 'EEG 95-REF', 'EEG 96-REF', 'EEG 97-REF',
-    'EEG 98-REF', 'EEG 99-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG CZ-REF',
-    'EEG F3-REF', 'EEG F4-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG FP1-REF', 'EEG FP2-REF',
-    'EEG FZ-REF',
-    'EEG LUC-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG OZ-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG PZ-REF',
-    'EEG RESP1-REF', 'EEG RESP2-REF', 'EEG RLC-REF', 'EEG SP1-REF', 'EEG SP2-REF', 'EEG T1-REF',
-    'EEG T2-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF'])
-excluded = sorted([
-    "EEG EKG-REF", "EEG ROC-REF", "EEG EKG1-REF", "EEG C3P-REF", "EEG C4P-REF", "EEG LOC-REF", 'EEG EKG-LE',
-    'PHOTIC PH', 'DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF',
-    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF'])
-
-if __name__ == "__main__":
-    config_path = "preprocessing_oskar.yaml"
+def run_preprocess(config_path):
     # ------------------------ Read values from config file ------------------------
     with open(config_path, "r") as stream:
         try:
@@ -83,96 +44,101 @@ if __name__ == "__main__":
     else:
         paths = params['directory']['disk']
     dataset_root = paths['dataset_root']
-    cache_path = paths['cache_path']
+    cache_dir = paths['cache_dir']
     save_dir = paths['save_dir']
     save_dir_2 = paths['save_dir_2']
-    save_dir_indexes = paths['save_dir_indexes']
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
 
     # -------------------------------- START PREPROC -------------------------------
     # Disable most MNE logging output which slows execution
     mne.set_log_level(verbose='ERROR')
 
-
-    def read_raw():
+    def _read_raw():
         if source_ds == 'tuh_eeg_abnormal':
-            dataset = tuh.TUHAbnormal(dataset_root, n_jobs=8)
+            dataset = tuh.TUHAbnormal(dataset_root, n_jobs=preproc_params['n_jobs'])
         elif source_ds == 'tuh_eeg':
-            dataset = tuh.TUH(dataset_root, n_jobs=8)
+            dataset = tuh.TUH(dataset_root, n_jobs=preproc_params['n_jobs'])
         else:
             raise ValueError
         print(f'Loaded {len(dataset.datasets)} files.')
         # Cache pickle
-        with open(os.path.join(cache_path, 'raw.pkl'), 'wb') as f:
+        with open(os.path.join(cache_dir, 'raw.pkl'), 'wb') as f:
             pickle.dump(dataset, f)
         # Next step:
-        first_preproc(dataset=dataset)
+        # dataset = dataset.split(by=range(50))['0']
+        return _preproc_first(dataset=dataset)
 
-
-    def first_preproc(dataset=None):
+    def _preproc_first(dataset=None):
         if dataset is None:
             print("Loading pickled raw dataset...")
-            with open(os.path.join(cache_path, 'raw.pkl')) as f:
+            with open(os.path.join(cache_dir, 'raw.pkl')) as f:
                 dataset = pickle.load(f)
                 print('Done loading pickled raw dataset.')
+
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
 
         # Select by duration
         print(f'Start selecting samples with duration over {window_size} sec')
         dataset = select_duration(dataset, t_min=window_size, t_max=None)
 
-        with open(os.path.join(cache_path, 'duration.pkl', 'wb') as f:
+        with open(os.path.join(cache_dir, 'duration.pkl'), 'wb') as f:
             pickle.dump(dataset, f)
 
         print(f"Done. Kept {len(dataset.datasets)} files.")
 
-        # create mapping from channel names to channel
-        ar_common_naming = sorted(
-            list(set([x.split('-')[0] for x in ar_channels])))
-        le_common_naming = sorted(
-            list(set([x.split('-')[0] for x in le_channels])))
-        common_naming = sorted(list(set(ar_common_naming + le_common_naming)))
-        # create dictionaries with key ar or le channel name and send to common name
-        ar_to_common = {ar_ref: common for ar_ref,
-        common in zip(ar_channels, ar_common_naming)}
-        le_to_common = {le_ref: common for le_ref,
-        common in zip(le_channels, le_common_naming)}
-        ch_mapping = {'ar': ar_to_common, 'le': le_to_common}
+        # Change channel names to common naming scheme
+        # For tuh_eeg
+        common_naming, ch_mapping = create_channel_mapping()
 
         # Apply preprocessing step
-        tuh_preproc = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,
-                                            ch_name=common_naming, crop_min=-800, crop_max=800, sfreq=250,
-                                            save_dir=save_dir, n_jobs=2)
-
+        dataset = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,
+                                        ch_naming=common_naming, crop_min=preproc_params['crop_min'],
+                                        crop_max=preproc_params['crop_max'], sfreq=preproc_params['s_freq'],
+                                        save_dir=save_dir, n_jobs=preproc_params['n_jobs'])
+        with open(os.path.join(cache_dir, 'preproc1.pkl'), 'wb') as f:
+            pickle.dump(dataset, f)
         # next step
+        return _preproc_window(dataset)
 
-        ids_to_load = window_and_split(tuh_preproc, save_dir=save_dir_2, overwrite=True,
-                                       window_size_samples=15000, n_jobs=2, save_dir_index=save_dir_indexes)
-        else:
-        with open(save_dir_indexes, 'rb') as f:
-            ids_to_load = pickle.load(f)
+    def _preproc_window(dataset=None):
+        if dataset is None:
+            print("Loading pickled raw dataset...")
+            with open(os.path.join(cache_dir, 'preproc1.pkl')) as f:
+                dataset = pickle.load(f)
+                print('Done loading pickled raw dataset.')
+        if not os.path.exists(save_dir_2):
+            os.makedirs(save_dir_2)
 
-        windowed_datasets = ContrastiveAugmentedDataset(load_concat_dataset(os.path.join(
-            save_dir_2, 'fif_ds'), preload=False,
-            ids_to_load=ids_to_load).datasets)  # TODO: think about if target transforms is necessary also add split to get several loaders
+        window_n_samples = preproc_params['window_size'] * preproc_params['s_freq']
+        print("Splitting dataset into windows:")
+        ids_to_load = window_and_split(dataset, save_dir=save_dir_2, overwrite=True,
+                                       window_size_samples=window_n_samples, n_jobs=preproc_params['n_jobs'])
 
-        train_split = 0.7
-        split_dict = {'test': range(round(len(windowed_datasets.datasets) * (1 - train_split))),
-                      'train': range(round(len(windowed_datasets.datasets) * (train_split)))}
+        with open(os.path.join(cache_dir, 'windowed_ids.pkl'), 'wb') as f:
+            pickle.dump(ids_to_load, f)
+        return _load_windowed(ids_to_load)
 
-        splitted = windowed_datasets.split(by=split_dict)
-        print(splitted['test'].__len__(), splitted['train'].__len__())
-        print(splitted['test'].__len__() + splitted['train'].__len__(), windowed_datasets.__len__())
-        splitted_1 = ContrastiveAugmentedDataset(splitted['0'].datasets)
-        print(splitted_1.__len__(), windowed_datasets.__len__())
+    def _load_windowed(ids_to_load=None):
 
-        print(splitted, windowed_datasets)
+        if ids_to_load is None:
+            with open(os.path.join(cache_dir, 'windowed_ids.pkl'), 'rb') as f:
+                ids_to_load = pickle.load(f)
 
-        # print(windowed_datasets)
-        loader = DataLoader(windowed_datasets, batch_size=10)
-        for augmented_1, augmented_2, sample in loader:
-            print(augmented_1.shape, augmented_2.shape, sample.shape)
+        dataset = load_concat_dataset(save_dir_2, preload=False, ids_to_load=ids_to_load)
 
-            # how it will look in the end:
-            # pre_train_model(windowed_datasets, batch_size=, num_workers=, save_freq=, Shuffel=, model_weights_path=, temperature=,
-            #                learning_rate=, weight_decay=, max_epochs=, batch_print_freq=, save_dir_model=, model_file_name=, model_params=)
+        return dataset
 
-            # next up: implement some sort of dataloader, general idea for now, create a custom datasetclass, where __getitem__ is overwritten. Then use standard dataloader to iterate through the dtaset
+    if read_cache == 'none':
+        dataset = _read_raw()
+    elif read_cache == 'raw':
+        dataset = _preproc_first()
+    elif read_cache == 'preproc':
+        dataset = _preproc_window()
+    elif read_cache == 'split':
+        dataset = _load_windowed()
+    else:
+        raise ValueError
+    print(dataset.description)
+
