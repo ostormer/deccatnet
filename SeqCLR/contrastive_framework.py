@@ -9,6 +9,7 @@ from ssl_baselines_zac.models import SQNet
 from modules import ConvolutionalEncoder, Projector, DownstreamClassifier
 from tqdm import tqdm
 import os
+from conformer import Conformer
 
 from models import TransPreTrain
 
@@ -244,7 +245,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
         model = test_model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
     else:
         if model_params == 'test':
-            model = SQNet(encoder_type='convolutional', num_channels=2, temporal_len=10)
+            model = Conformer()
         else:
             model = SeqCLR(model_params)
 

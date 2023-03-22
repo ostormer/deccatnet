@@ -6,7 +6,7 @@ import braindecode.datasets.tuh as tuh
 import mne
 from braindecode.datautil.serialization import load_concat_dataset
 
-from preprocess import string_to_channel_split_func, window_and_split, select_duration, \
+from .preprocess import string_to_channel_split_func, window_and_split, select_duration, \
     first_preprocess_step, create_channel_mapping
 
 def run_preprocess(config_path):
@@ -118,27 +118,18 @@ def run_preprocess(config_path):
 
         with open(os.path.join(cache_dir, 'windowed_ids.pkl'), 'wb') as f:
             pickle.dump(ids_to_load, f)
-        return _load_windowed(ids_to_load)
+        return ids_to_load
 
-    def _load_windowed(ids_to_load=None):
 
-        if ids_to_load is None:
-            with open(os.path.join(cache_dir, 'windowed_ids.pkl'), 'rb') as f:
-                ids_to_load = pickle.load(f)
-
-        dataset = load_concat_dataset(save_dir_2, preload=False, ids_to_load=ids_to_load)
-
-        return dataset
 
     if read_cache == 'none':
-        dataset = _read_raw()
+        ids_to_load = _read_raw()
     elif read_cache == 'raw':
-        dataset = _preproc_first()
+        ids_to_load = _preproc_first()
     elif read_cache == 'preproc':
-        dataset = _preproc_window()
-    elif read_cache == 'split':
-        dataset = _load_windowed()
-    else:
-        raise ValueError
-    print(dataset.description)
+        ids_to_load = _preproc_window()
+
+    return ids_to_load
+
+
 
