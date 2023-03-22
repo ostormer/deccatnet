@@ -129,7 +129,7 @@ def run_preprocess(config_path):
     elif read_cache == 'preproc':
         ids_to_load = _preproc_window()
 
-    return ids_to_load
+    return ids_to_load, n_windows
 
 
 

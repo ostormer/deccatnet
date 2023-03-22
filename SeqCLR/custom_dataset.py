@@ -14,7 +14,7 @@ from braindecode import augmentation
 from braindecode.datasets.base import BaseConcatDataset
 import matplotlib.pyplot as plt
 from braindecode.datautil.serialization import _load_parallel
-
+from braindecode.datautil.serialization import load_concat_dataset
 # Ignore warnings
 import warnings
 
@@ -58,8 +58,7 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
             sample_idx = idx
         else:
             sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
-        sample =
-
+        sample = self.datasets[dataset_idx][sample_idx]
         sample = torch.Tensor(sample).view(-1, sample.shape[0], sample.shape[1])
         augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
         # apply augmentations
@@ -110,9 +109,9 @@ class PathDataset(Dataset):
 
     def __init__(self, ids_to_load, path,preload=True,random_state=None):
 
-        self.ids_to_load = ids_to_load
+        self.ids_to_load = [str(i) for i in ids_to_load]
         self.path = path
-        self.preload = True
+        self.preload = preload
         self.is_raw = False
 
         if random_state == None:
@@ -132,6 +131,9 @@ class PathDataset(Dataset):
         (probability=1, sfreq=180, max_delta_freq=2, random_state=random_state)
         """
 
+    def __len__(self):
+        return len(self.ids_to_load)
+
     def __getitem__(self, idx):
         """
         goal is to create pairs of form [x_augment_1, x_augment_2], x_original
@@ -139,10 +141,8 @@ class PathDataset(Dataset):
         :return:
         """
         idx = self.ids_to_load[idx]
-
-        sample = _load
-
-        sample = 1
+        window_dataset = _load_parallel(self.path,idx,self.preload,self.is_raw)
+        sample = window_dataset.__getitem__()
 
         sample = torch.Tensor(sample).view(-1, sample.shape[0], sample.shape[1])
         augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
