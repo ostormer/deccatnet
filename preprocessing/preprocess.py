@@ -3,7 +3,6 @@ import os
 import numpy as np
 import shutil
 import mne
-from copy import deepcopy
 import itertools
 
 from copy import deepcopy
@@ -12,7 +11,6 @@ from braindecode.datasets import BaseConcatDataset, WindowsDataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess, scale
 from braindecode.datautil.serialization import load_concat_dataset, _check_save_dir_empty
 from joblib import Parallel, delayed
-
 
 """
 Plan and things which needs to be done:
@@ -29,36 +27,43 @@ After this:
 Two main approaches: use first 11 and remove first and then use 21 minutes, drop last window. 
 windows size = 60s
 """
-le_channels = ['EEG 28-LE', 'EEG T1-LE', 'EEG T3-LE', 'EEG O1-LE', 'EEG T6-LE', 'EEG F3-LE', 'EEG F4-LE', 'EEG F8-LE',
-               'EEG A1-LE', 'EEG PG1-LE', 'EEG SP2-LE', 'EEG T2-LE', 'EEG T5-LE', 'EEG A2-LE', 'EEG OZ-LE', 'EEG F7-LE',
-               'EEG FP1-LE', 'EEG P3-LE', 'EEG PG2-LE', 'EEG SP1-LE', 'EEG FZ-LE', 'EEG C3-LE', 'EEG T4-LE', 'EEG PZ-LE',
-               'EEG 29-LE', 'EEG EKG-LE', 'PHOTIC PH', 'EEG P4-LE', 'EEG CZ-LE', 'EEG O2-LE', 'EEG C4-LE', 'EEG FP2-LE',
-               'EEG 30-LE', 'EEG RLC-LE', 'EEG LUC-LE', 'EEG 31-LE', 'EEG 27-LE', 'EEG 26-LE', 'EEG 32-LE', 'EEG 21-LE',
-               'EEG 24-LE', 'EEG 22-LE', 'EEG 25-LE', 'EEG 20-LE', 'EEG 23-LE']
 
-ar_channels = ['EEG A1-REF', 'EEG T3-REF', 'EEG F7-REF', 'EEG F4-REF', 'EEG O1-REF',
-               'EEG FP1-REF', 'EEG PZ-REF', 'EEG T4-REF', 'EEG CZ-REF', 'EEG FP2-REF', 'EEG RESP2-REF', 'EEG A2-REF',
-               'EEG T2-REF', 'EEG SP1-REF', 'EEG RESP1-REF', 'EEG C3-REF', 'EEG F8-REF', 'EEG RLC-REF', 'EEG FZ-REF',
-               'EEG P4-REF', 'EEG EKG-REF', 'EEG C4-REF', 'EEG T1-REF', 'EEG SP2-REF', 'EEG 31-REF', 'EEG O2-REF', 'EEG T6-REF',
-               'EEG F3-REF', 'EEG LUC-REF', 'EEG P3-REF', 'EEG 32-REF', 'EEG T5-REF', 'EEG 81-REF', 'EEG 99-REF', 'EEG 27-REF',
-               'EEG 103-REF', 'EEG 22-REF', 'EEG 33-REF', 'EEG 43-REF', 'EEG 23-REF', 'EEG 78-REF', 'EEG 59-REF', 'EEG 121-REF',
-               'EEG 28-REF', 'EEG 104-REF', 'EEG 93-REF', 'EEG 84-REF', 'EEG 111-REF', 'EEG 71-REF', 'EEG 52-REF', 'EEG 115-REF',
-               'EEG 117-REF', 'EEG 114-REF', 'EEG 34-REF', 'EEG 123-REF', 'EEG 58-REF', 'EEG 76-REF', 'EEG 47-REF', 'EEG 69-REF',
-               'EEG 74-REF', 'EEG 95-REF', 'EEG 112-REF', 'EEG 70-REF', 'EEG 37-REF', 'EEG 64-REF', 'EEG 87-REF', 'EEG 122-REF',
-               'EEG 120-REF', 'EEG 124-REF', 'EEG 29-REF', 'EEG 44-REF', 'EEG 125-REF', 'EEG 73-REF', 'EEG 46-REF', 'EEG 82-REF',
-               'EEG 35-REF', 'EEG 30-REF', 'EEG 66-REF', 'EEG 118-REF', 'EEG 67-REF', 'EEG 79-REF', 'EEG 119-REF', 'EEG 108-REF',
-               'EEG 88-REF', 'EEG 63-REF', 'EEG 61-REF', 'EEG 127-REF', 'EEG 98-REF', 'EEG 54-REF', 'EEG 110-REF', 'EEG 25-REF',
-               'EEG 50-REF', 'EEG 56-REF', 'EEG 24-REF', 'EEG 97-REF', 'EEG 107-REF', 'EEG 65-REF', 'EEG 106-REF', 'EEG 51-REF',
-               'EEG 102-REF', 'EEG 109-REF', 'EEG 100-REF', 'EEG 21-REF', 'EEG 91-REF', 'EEG 89-REF', 'EEG 86-REF', 'EEG 20-REF',
-               'EEG 57-REF', 'EEG 49-REF', 'EEG 83-REF', 'EEG 96-REF', 'EEG 77-REF', 'EEG 40-REF', 'EEG 72-REF', 'EEG 94-REF',
-               'EEG 80-REF', 'EEG 41-REF', 'EEG 128-REF', 'EEG 75-REF', 'EEG 39-REF', 'EEG 92-REF', 'EEG 101-REF', 'EEG 48-REF',
-               'EEG 42-REF', 'EEG 45-REF', 'EEG 68-REF', 'EEG 126-REF', 'EEG 90-REF', 'EEG 85-REF', 'EEG 53-REF', 'EEG 62-REF',
-               'EEG 55-REF', 'EEG 38-REF', 'EEG 26-REF', 'EEG 36-REF', 'EEG 60-REF', 'EEG 113-REF', 'EEG 116-REF', 'EEG 105-REF',
-               'EEG ROC-REF', 'EEG EKG1-REF', 'EEG C3P-REF', 'EEG C4P-REF',
-               'EEG OZ-REF', 'EEG LOC-REF']
-
-not_interesting = ['DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC',
-                   'EMG-REF', 'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF']
+le_channels = sorted([
+    'EEG 20-LE', 'EEG 21-LE', 'EEG 22-LE', 'EEG 23-LE', 'EEG 24-LE', 'EEG 25-LE', 'EEG 26-LE',
+    'EEG 27-LE', 'EEG 28-LE', 'EEG 29-LE', 'EEG 30-LE', 'EEG 31-LE', 'EEG 32-LE', 'EEG A1-LE',
+    'EEG A2-LE', 'EEG C3-LE', 'EEG C4-LE', 'EEG CZ-LE', 'EEG F3-LE', 'EEG F4-LE', 'EEG F7-LE',
+    'EEG F8-LE',
+    'EEG FP1-LE', 'EEG FP2-LE', 'EEG FZ-LE', 'EEG LUC-LE', 'EEG O1-LE', 'EEG O2-LE', 'EEG OZ-LE',
+    'EEG P3-LE', 'EEG P4-LE', 'EEG PG1-LE', 'EEG PG2-LE', 'EEG PZ-LE', 'EEG RLC-LE', 'EEG SP1-LE',
+    'EEG SP2-LE', 'EEG T1-LE', 'EEG T2-LE', 'EEG T3-LE', 'EEG T4-LE', 'EEG T5-LE',
+    'EEG T6-LE'])
+ar_channels = sorted([
+    'EEG 100-REF', 'EEG 101-REF', 'EEG 102-REF', 'EEG 103-REF', 'EEG 104-REF', 'EEG 105-REF',
+    'EEG 106-REF', 'EEG 107-REF', 'EEG 108-REF', 'EEG 109-REF', 'EEG 110-REF', 'EEG 111-REF',
+    'EEG 112-REF', 'EEG 113-REF', 'EEG 114-REF', 'EEG 115-REF', 'EEG 116-REF', 'EEG 117-REF',
+    'EEG 118-REF', 'EEG 119-REF', 'EEG 120-REF', 'EEG 121-REF', 'EEG 122-REF', 'EEG 123-REF',
+    'EEG 124-REF', 'EEG 125-REF', 'EEG 126-REF', 'EEG 127-REF', 'EEG 128-REF', 'EEG 20-REF',
+    'EEG 21-REF', 'EEG 22-REF', 'EEG 23-REF', 'EEG 24-REF', 'EEG 25-REF', 'EEG 26-REF', 'EEG 27-REF',
+    'EEG 28-REF', 'EEG 29-REF', 'EEG 30-REF', 'EEG 31-REF', 'EEG 32-REF', 'EEG 33-REF', 'EEG 34-REF',
+    'EEG 35-REF', 'EEG 36-REF', 'EEG 37-REF', 'EEG 38-REF', 'EEG 39-REF', 'EEG 40-REF', 'EEG 41-REF',
+    'EEG 42-REF', 'EEG 43-REF', 'EEG 44-REF', 'EEG 45-REF', 'EEG 46-REF', 'EEG 47-REF', 'EEG 48-REF',
+    'EEG 49-REF', 'EEG 50-REF', 'EEG 51-REF', 'EEG 52-REF', 'EEG 53-REF', 'EEG 54-REF', 'EEG 55-REF',
+    'EEG 56-REF', 'EEG 57-REF', 'EEG 58-REF', 'EEG 59-REF', 'EEG 60-REF', 'EEG 61-REF', 'EEG 62-REF',
+    'EEG 63-REF', 'EEG 64-REF', 'EEG 65-REF', 'EEG 66-REF', 'EEG 67-REF', 'EEG 68-REF', 'EEG 69-REF',
+    'EEG 70-REF', 'EEG 71-REF', 'EEG 72-REF', 'EEG 73-REF', 'EEG 74-REF', 'EEG 75-REF', 'EEG 76-REF',
+    'EEG 77-REF', 'EEG 78-REF', 'EEG 79-REF', 'EEG 80-REF', 'EEG 81-REF', 'EEG 82-REF', 'EEG 83-REF',
+    'EEG 84-REF', 'EEG 85-REF', 'EEG 86-REF', 'EEG 87-REF', 'EEG 88-REF', 'EEG 89-REF', 'EEG 90-REF',
+    'EEG 91-REF', 'EEG 92-REF', 'EEG 93-REF', 'EEG 94-REF', 'EEG 95-REF', 'EEG 96-REF', 'EEG 97-REF',
+    'EEG 98-REF', 'EEG 99-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG CZ-REF',
+    'EEG F3-REF', 'EEG F4-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG FP1-REF', 'EEG FP2-REF',
+    'EEG FZ-REF',
+    'EEG LUC-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG OZ-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG PZ-REF',
+    'EEG RESP1-REF', 'EEG RESP2-REF', 'EEG RLC-REF', 'EEG SP1-REF', 'EEG SP2-REF', 'EEG T1-REF',
+    'EEG T2-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF'])
+excluded = sorted([
+    "EEG EKG-REF", "EEG ROC-REF", "EEG EKG1-REF", "EEG C3P-REF", "EEG C4P-REF", "EEG LOC-REF", 'EEG EKG-LE',
+    'PHOTIC PH', 'DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF',
+    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF'])
 
 
 def select_duration(concat_ds: BaseConcatDataset, t_min=0, t_max=None):
@@ -119,12 +124,26 @@ def get_unique_channel_names(concat_ds: BaseConcatDataset):
     print(unique_ch_names)
 
 
+def create_channel_mapping():
+    # create mapping from channel names to channel
+    ar_common_naming = sorted(list(set([x.split('-')[0] for x in ar_channels])))
+    le_common_naming = sorted(list(set([x.split('-')[0] for x in le_channels])))
+    common_naming = sorted(list(set(ar_common_naming + le_common_naming)))
+    # create dictionaries with key ar or le channel name and send to common name
+    ar_to_common = {ar_ref: common for ar_ref, common in zip(ar_channels, ar_common_naming)}
+    le_to_common = {le_ref: common for le_ref, common in zip(le_channels, le_common_naming)}
+    ch_mapping = {'ar': ar_to_common, 'le': le_to_common}
+
+    return common_naming, ch_mapping
+
+
 def custom_turn_off_log(raw, verbose='ERROR'):
     mne.set_log_level(verbose)
     return raw
 
 
-def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, crop_min, crop_max, sfreq, save_dir, n_jobs):
+def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming, crop_min, crop_max, sfreq, save_dir,
+                          n_jobs):
     """
     renames channels to common nameing, resamples all data to one frequency, sets common eeg_reference, applies
     bandpass filter and crops.
@@ -140,16 +159,16 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
                      # rename to common naming convention
                      Preprocessor(rename_channels, mapping=mapping,
                                   apply_on_array=False),
-                     Preprocessor('pick_channels', ch_names=ch_name,
+                     Preprocessor('pick_channels', ch_names=ch_naming,
                                   ordered=True),  # keep wanted channels
                      # clip all data within a given border
-                     Preprocessor(scale,factor=1e6, apply_on_array=True),
+                     Preprocessor(scale, factor=1e6, apply_on_array=True),
                      Preprocessor(np.clip, a_min=crop_min,
                                   a_max=crop_max, apply_on_array=True),
                      Preprocessor('resample', sfreq=sfreq)]
     # TODO: shouldn't we add a bandstopfilter? though many before us has used this
     # Could add normalization here also
-    
+
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -164,13 +183,10 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_name, c
 
 
 def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=False,
-                     window_size_samples=5000, n_jobs=1, channel_split_func=None,
-                     save_dir_index=None) -> 'list[int]':
+                     window_size_samples=5000, n_jobs=1, channel_split_func=None) -> 'list[int]':
     if channel_split_func is None:
         channel_split_func = _make_adjacent_pairs
-    if save_dir_index is None:
-        save_dir = os.path.join(os.path.split(
-            save_dir)[0], "split_indexes.pkl")
+
     # Drop too short samples
     concat_ds.set_description(
         {"n_samples": [ds.raw.n_times for ds in concat_ds.datasets]})  # type: ignore
@@ -201,24 +217,15 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
             shutil.rmtree(path)
         except OSError:
             os.remove(path)
-    # Save pickle of windows_dataset
-    os.makedirs(os.path.join(save_dir, "pickles"))
-    with open(os.path.join(save_dir, "pickles/windowed.pkl"), 'wb') as file:
-        pickle.dump(windows_ds, file)
 
     # Prepare for channel splitting
-    os.makedirs(os.path.join(save_dir, "fif_ds"))
-    channel_split_dir = os.path.join(save_dir, "fif_ds")
     print('Splitting recordings into separate channels')
     indexes = Parallel(n_jobs=n_jobs)(
-        delayed(_split_channels)(windows_ds, i,
-                                 channel_split_dir, channel_split_func)
+        delayed(_split_channels)(windows_ds, i, save_dir, channel_split_func)
         for i, windows_ds in tqdm(enumerate(windows_ds.datasets), total=len(windows_ds.datasets))
     )
     print('Reloading serialized dataset')
     indexes = list(itertools.chain.from_iterable(indexes))  # type: ignore
-    with open(save_dir_index, 'wb') as f:  # type: ignore
-        pickle.dump(indexes, f)
     return indexes  # type: ignore
 
 
@@ -259,9 +266,9 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
         windows_ds_list.append(ds)
 
     concat_ds = BaseConcatDataset(windows_ds_list)
-    concat_ds.save(save_dir, overwrite=True, offset=record_index*100)
+    concat_ds.save(save_dir, overwrite=True, offset=record_index * 100)
     indexes = list(
-        range(record_index*100, record_index*100+len(windows_ds_list)))
+        range(record_index * 100, record_index * 100 + len(windows_ds_list)))
     return indexes
 
 
@@ -273,7 +280,7 @@ def _make_unique_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
     pairs = []
     for i, channel_i in enumerate(ch_list):
-        for channel_j in ch_list[i+1:]:
+        for channel_j in ch_list[i + 1:]:
             pairs.append([channel_i, channel_j])
     return pairs
 
@@ -290,8 +297,8 @@ def _make_all_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
 def _make_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
     pairs = []
-    for i in range(len(ch_list)//2):
-        pairs.append([ch_list[2*i], ch_list[2*i + 1]])
+    for i in range(len(ch_list) // 2):
+        pairs.append([ch_list[2 * i], ch_list[2 * i + 1]])
     if len(ch_list) % 2 == 1:
         pairs.append([ch_list[-1], ch_list[-2]])
     return pairs
@@ -301,11 +308,11 @@ def _make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
     assert len(ch_list) > 1
     pairs = []
     for i in range(len(ch_list) - 1):
-        pairs.append([ch_list[i], ch_list[i+1]])
+        pairs.append([ch_list[i], ch_list[i + 1]])
     return pairs
 
 
-channel_split_func = {
+string_to_channel_split_func = {
     "single": _make_single_channels,
     "unique_pairs": _make_unique_pair_combos,
     "all_pairs": _make_all_pair_combos,
