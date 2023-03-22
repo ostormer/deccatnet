@@ -137,27 +137,10 @@ if __name__ == "__main__":
     windowed_datasets = ContrastiveAugmentedDataset(load_concat_dataset(os.path.join(
         save_dir_2, 'fif_ds'), preload=False, ids_to_load=ids_to_load).datasets) # TODO: think about if target transforms is necessary also add split to get several loaders
 
-    train_split = 0.7
-    split_dict = {'test':range(round(len(windowed_datasets.datasets)*(1-train_split))),
-                  'train':range(round(len(windowed_datasets.datasets)*(train_split)))}
-
-    splitted = windowed_datasets.split(by=split_dict)
-    print(splitted['test'].__len__(), splitted['train'].__len__())
-    print(splitted['test'].__len__() + splitted['train'].__len__(),  windowed_datasets.__len__())
-    splitted_1 = ContrastiveAugmentedDataset(splitted['0'].datasets)
-    print(splitted_1.__len__(), windowed_datasets.__len__())
-
-
-    print(splitted, windowed_datasets)
-
-    #print(windowed_datasets)
-    loader = DataLoader(windowed_datasets, batch_size=10)
-    for augmented_1, augmented_2, sample in loader:
-        print(augmented_1.shape, augmented_2.shape, sample.shape)
-
     # how it will look in the end:
-    #pre_train_model(windowed_datasets, batch_size=, num_workers=, save_freq=, Shuffel=, model_weights_path=, temperature=,
-    #                learning_rate=, weight_decay=, max_epochs=, batch_print_freq=, save_dir_model=, model_file_name=, model_params=)
+    pre_train_model(windowed_datasets, batch_size=10, save_freq=4, Shuffel=True, trained_model_path=None, temperature=1,
+                    learning_rate=0.01, weight_decay=0.01, max_epochs=20, batch_print_freq=5, save_dir_model='..\models', model_file_name='test', model_params='test')
+
 
 
     # next up: implement some sort of dataloader, general idea for now, create a custom datasetclass, where __getitem__ is overwritten. Then use standard dataloader to iterate through the dtaset

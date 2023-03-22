@@ -178,7 +178,7 @@ class ContrastiveLossGPT(nn.Module):
 
 
 # Next up: contrastive training framework
-def pre_train_model(dataset, batch_size, train_split, num_workers, save_freq, shuffle, model_weights_path, temperature,
+def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, trained_model_path, temperature,
                     learning_rate,
                     weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params):
     """
@@ -186,10 +186,9 @@ def pre_train_model(dataset, batch_size, train_split, num_workers, save_freq, sh
     :param dataset: ContrastiveAugmentedDataset for pre_training
     :param batch_size: batch size for pre_training
     :param train_split: percentage of dataset size which is training
-    :param num_workers: number of workers/ cpu cores
-    :param save_freq: how often model is saved (epohs)
+    :param save_freq: how often model is saved (in epohs)
     :param shuffle: wether dataset should be shuffled or not
-    :param model_weights_path: string path for already trained model
+    :param trained_model_path: string path for already trained model
     :param temperature: temperature parameter in contrastiveloss_function, learnable
     :param learning_rate:
     :param weight_decay:
@@ -241,8 +240,8 @@ def pre_train_model(dataset, batch_size, train_split, num_workers, save_freq, sh
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model and check if weights already given
-    if model_weights_path is not None:
-        model = test_model.__init__from_dict(torch.load(model_weights_path))  # loaded already trained-model
+    if trained_model_path is not None:
+        model = test_model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
     else:
         if model_params == 'test':
             model = SQNet(encoder_type='convolutional', num_channels=2, temporal_len=10)
@@ -264,6 +263,7 @@ def pre_train_model(dataset, batch_size, train_split, num_workers, save_freq, sh
         # start traning by looping through batches
         for aug_1, aug_2, sample in train_loader:
             # transfer to GPU or CUDA
+            print(aug_1.shape, aug_2.shape, sample.shape)
             x1, x2 = aug_1.to(device), aug_2.to(device)
             # zero out existing gradients
             optimizer.zero_grad()
@@ -311,7 +311,7 @@ def pre_train_model(dataset, batch_size, train_split, num_workers, save_freq, sh
     save_dir_model
     losses
     eval_losses  # TODO
-    batch_size, num_workers, save_freq, shuffle, model_weights_path, temperature, learning_rate,
+    batch_size, save_freq, shuffle, trained_model_path, temperature, learning_rate,
     weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name
 
     # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
