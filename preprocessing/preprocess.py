@@ -231,21 +231,15 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
     # Count cumulative number of windows in dataset
     idx_dict = {}
     idx_list = []
-    i = 0
     for pair in tqdm(idx_n_windows):
         # For all recordings in the dataset
         dir_names, n_windows = pair
         for d, w in zip(dir_names, n_windows):
             # For all windows_datasets originating from one recording
-            print(f'folder: {d}, windows: {w}')
             for window_index in range(w):
-                idx_dict[i] = (d, window_index)
                 idx_list.append((d, window_index))
-                i += 1
-    print(idx_list[:200])
 
-
-    return idx_list  # type: ignore
+    return idx_list
 
 
 def _split_channels(

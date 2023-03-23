@@ -122,25 +122,25 @@ def run_preprocess(config_path, start_idx=0, stop_idx=None):
 
         window_n_samples = preproc_params['window_size'] * preproc_params['s_freq']
         print("Splitting dataset into windows:")
-        idx_dict = window_and_split(dataset, save_dir=save_dir_2, overwrite=True,
+        idx_list = window_and_split(dataset, save_dir=save_dir_2, overwrite=True,
                                     window_size_samples=window_n_samples, n_jobs=preproc_params['n_jobs'])
 
         with open(os.path.join(cache_dir, 'windowed_ids.pkl'), 'wb') as f:
-            pickle.dump(idx_dict, f)
-        return idx_dict
+            pickle.dump(idx_list, f)
+        return idx_list
 
 
 
     if read_cache == 'none':
-        idx_dict = _read_raw(start_idx=start_idx, stop_idx=stop_idx)
+        idx_list = _read_raw(start_idx=start_idx, stop_idx=stop_idx)
     elif read_cache == 'raw':
-        idx_dict = _preproc_first(start_idx=start_idx, stop_idx=stop_idx)
+        idx_list = _preproc_first(start_idx=start_idx, stop_idx=stop_idx)
     elif read_cache == 'preproc':
-        idx_dict = _preproc_window(start_idx=start_idx, stop_idx=stop_idx)
+        idx_list = _preproc_window(start_idx=start_idx, stop_idx=stop_idx)
     else:
         raise ValueError
 
-    return idx_dict
+    return idx_list
 
 
 
