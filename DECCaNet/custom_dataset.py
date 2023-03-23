@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import typing
@@ -109,12 +110,13 @@ class PathDataset(Dataset):
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path, preload=False,random_state=None):
+    def __init__(self, ids_to_load, path, preload=False,random_state=None, SSL=True):
 
         self.ids_to_load = ids_to_load
         self.path = path
         self.preload = preload
         self.is_raw = False
+        self.SSL = SSL
 
         if random_state == None:
             self.random_state = 100
@@ -153,6 +155,11 @@ class PathDataset(Dataset):
         fif_name_pattern = file_name_patterns[0] if self.is_raw else file_name_patterns[1]
         fif_file_name = fif_name_pattern.format(path_i)
         fif_file_path = os.path.join(sub_dir, fif_file_name)
+
+        if not self.SSL:
+            #TODO: keep target when reading a non SSL dataset
+            target_file_path = os.path.join(sub_dir, 'target_name.json')
+            target = json.load(open(target_file_path, "r"))['pathological']
 
         signals = _load_signals(fif_file_path, self.preload, self.is_raw)
         sample = signals.get_data(item=window_n)
