@@ -1,4 +1,3 @@
-import pickle
 import os
 import numpy as np
 import shutil
@@ -35,8 +34,7 @@ le_channels = sorted([
     'EEG F8-LE',
     'EEG FP1-LE', 'EEG FP2-LE', 'EEG FZ-LE', 'EEG LUC-LE', 'EEG O1-LE', 'EEG O2-LE', 'EEG OZ-LE',
     'EEG P3-LE', 'EEG P4-LE', 'EEG PG1-LE', 'EEG PG2-LE', 'EEG PZ-LE', 'EEG RLC-LE', 'EEG SP1-LE',
-    'EEG SP2-LE', 'EEG T1-LE', 'EEG T2-LE', 'EEG T3-LE', 'EEG T4-LE', 'EEG T5-LE',
-    'EEG T6-LE'])
+    'EEG SP2-LE', 'EEG T1-LE', 'EEG T2-LE', 'EEG T3-LE', 'EEG T4-LE', 'EEG T5-LE', 'EEG T6-LE'])
 ar_channels = sorted([
     'EEG 100-REF', 'EEG 101-REF', 'EEG 102-REF', 'EEG 103-REF', 'EEG 104-REF', 'EEG 105-REF',
     'EEG 106-REF', 'EEG 107-REF', 'EEG 108-REF', 'EEG 109-REF', 'EEG 110-REF', 'EEG 111-REF',
@@ -205,7 +203,12 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         drop_bad_windows=True,
         verbose='ERROR'
     )
-    # Create save_dir
+    # store the number of windows required for loading later on
+    n_windows = [len(d) for d in windows_ds.datasets]
+    windows_ds.set_description({
+        "n_windows": n_windows})
+
+    # Create save_dir for channel split dataset
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if not overwrite:
@@ -218,18 +221,39 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         except OSError:
             os.remove(path)
 
-    # Prepare for channel splitting
+    # Channel splitting
     print('Splitting recordings into separate channels')
-    indexes = Parallel(n_jobs=n_jobs)(
+    idx_n_windows = Parallel(n_jobs=n_jobs)(
         delayed(_split_channels)(windows_ds, i, save_dir, channel_split_func)
         for i, windows_ds in tqdm(enumerate(windows_ds.datasets), total=len(windows_ds.datasets))
     )
-    print('Reloading serialized dataset')
-    indexes = list(itertools.chain.from_iterable(indexes))  # type: ignore
-    return indexes  # type: ignore
+    print('Creating idx list')
+    # Count cumulative number of windows in dataset
+    idx_dict = {}
+    idx_list = []
+    i = 0
+    for pair in tqdm(idx_n_windows):
+        # For all recordings in the dataset
+        dir_names, n_windows = pair
+        for d, w in zip(dir_names, n_windows):
+            # For all windows_datasets originating from one recording
+            print(f'folder: {d}, windows: {w}')
+            for window_index in range(w):
+                idx_dict[i] = (d, window_index)
+                idx_list.append((d, window_index))
+                i += 1
+    print(idx_list[:200])
 
 
-def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str, channel_split_func) -> 'list[int]':
+    return idx_list  # type: ignore
+
+
+def _split_channels(
+        windows_ds: WindowsDataset,
+        record_index: int,
+        save_dir: str,
+        channel_split_func
+) -> 'tuple[list[int], list[int]]':
     """Split single WindowsDataset into separate objects acording to channels picks
 
     Args:
@@ -247,6 +271,7 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
                       on_missing='ignore')  # type: ignore
     channel_selections = channel_split_func(raw.ch_names)
     windows_ds_list = []
+    channel_n_windows = []
     raw.load_data()
     for channels in channel_selections:
         new_epochs = mne.Epochs(
@@ -259,17 +284,18 @@ def _split_channels(windows_ds: WindowsDataset, record_index: int, save_dir: str
             metadata=windows_ds.windows.metadata
         )
         new_epochs.drop_bad()
+
         # Create new WindowsDataset objects, which we will save
         ds = WindowsDataset(new_epochs, windows_ds.description)
+        channel_n_windows.append(len(ds))
         ds.window_kwargs = deepcopy(windows_ds.window_kwargs)  # type: ignore
         ds.set_description({"channels": channels})
         windows_ds_list.append(ds)
-
     concat_ds = BaseConcatDataset(windows_ds_list)
     concat_ds.save(save_dir, overwrite=True, offset=record_index * 100)
     indexes = list(
         range(record_index * 100, record_index * 100 + len(windows_ds_list)))
-    return indexes
+    return indexes, channel_n_windows
 
 
 def _make_single_channels(ch_list: 'list[str]') -> 'list[list[str]]':

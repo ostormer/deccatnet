@@ -9,14 +9,13 @@ from braindecode.datautil.serialization import load_concat_dataset
 from .preprocess import string_to_channel_split_func, window_and_split, select_duration, \
     first_preprocess_step, create_channel_mapping
 
-def run_preprocess(config_path):
+def run_preprocess(config_path, start_idx=0, stop_idx=None):
     # ------------------------ Read values from config file ------------------------
     with open(config_path, "r") as stream:
         try:
             params = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
-
     read_cache = params["read_cache"]
     if (read_cache is None) or read_cache in [False, 'None']:
         read_cache = 'none'
@@ -54,7 +53,7 @@ def run_preprocess(config_path):
     # Disable most MNE logging output which slows execution
     mne.set_log_level(verbose='ERROR')
 
-    def _read_raw():
+    def _read_raw(start_idx=0, stop_idx=None):
         if source_ds == 'tuh_eeg_abnormal':
             dataset = tuh.TUHAbnormal(dataset_root, n_jobs=preproc_params['n_jobs'])
         elif source_ds == 'tuh_eeg':
@@ -62,23 +61,29 @@ def run_preprocess(config_path):
         else:
             raise ValueError
         print(f'Loaded {len(dataset.datasets)} files.')
+        if stop_idx is None:
+            stop_idx = len(dataset.datasets)
+        dataset = dataset.split(by=range(start_idx, stop_idx))['0']
         # Cache pickle
         with open(os.path.join(cache_dir, 'raw.pkl'), 'wb') as f:
             pickle.dump(dataset, f)
         # Next step:
-        # dataset = dataset.split(by=range(50))['0']
         return _preproc_first(dataset=dataset)
 
-    def _preproc_first(dataset=None):
+    def _preproc_first(dataset=None, start_idx=0, stop_idx=None):
         if dataset is None:
             print("Loading pickled raw dataset...")
-            with open(os.path.join(cache_dir, 'raw.pkl')) as f:
+            with open(os.path.join(cache_dir, 'raw.pkl'), 'rb') as f:
                 dataset = pickle.load(f)
+                if stop_idx is None:
+                    stop_idx = len(dataset.datasets)
+                dataset = dataset.split(by=range(start_idx, stop_idx))['0']
                 print('Done loading pickled raw dataset.')
-
+        if stop_idx is None:
+            stop_idx = len(dataset.datasets)
+        # Create save_dir
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-
         # Select by duration
         print(f'Start selecting samples with duration over {window_size} sec')
         dataset = select_duration(dataset, t_min=window_size, t_max=None)
@@ -100,36 +105,42 @@ def run_preprocess(config_path):
         with open(os.path.join(cache_dir, 'preproc1.pkl'), 'wb') as f:
             pickle.dump(dataset, f)
         # next step
-        return _preproc_window(dataset)
+        return _preproc_window(dataset, start_idx=start_idx, stop_idx=stop_idx)
 
-    def _preproc_window(dataset=None):
+    def _preproc_window(dataset=None, start_idx=0, stop_idx=None):
         if dataset is None:
             print("Loading pickled raw dataset...")
-            with open(os.path.join(cache_dir, 'preproc1.pkl')) as f:
+            with open(os.path.join(cache_dir, 'preproc1.pkl'), 'rb') as f:
                 dataset = pickle.load(f)
+                if stop_idx is None:
+                    stop_idx = len(dataset.datasets)
+                dataset = dataset.split(by=range(start_idx, stop_idx))['0']
                 print('Done loading pickled raw dataset.')
+
         if not os.path.exists(save_dir_2):
             os.makedirs(save_dir_2)
 
         window_n_samples = preproc_params['window_size'] * preproc_params['s_freq']
         print("Splitting dataset into windows:")
-        ids_to_load = window_and_split(dataset, save_dir=save_dir_2, overwrite=True,
-                                       window_size_samples=window_n_samples, n_jobs=preproc_params['n_jobs'])
+        idx_dict = window_and_split(dataset, save_dir=save_dir_2, overwrite=True,
+                                    window_size_samples=window_n_samples, n_jobs=preproc_params['n_jobs'])
 
         with open(os.path.join(cache_dir, 'windowed_ids.pkl'), 'wb') as f:
-            pickle.dump(ids_to_load, f)
-        return ids_to_load
+            pickle.dump(idx_dict, f)
+        return idx_dict
 
 
 
     if read_cache == 'none':
-        ids_to_load = _read_raw()
+        idx_dict = _read_raw(start_idx=start_idx, stop_idx=stop_idx)
     elif read_cache == 'raw':
-        ids_to_load = _preproc_first()
+        idx_dict = _preproc_first(start_idx=start_idx, stop_idx=stop_idx)
     elif read_cache == 'preproc':
-        ids_to_load = _preproc_window()
+        idx_dict = _preproc_window(start_idx=start_idx, stop_idx=stop_idx)
+    else:
+        raise ValueError
 
-    return ids_to_load, n_windows
+    return idx_dict
 
 
 
