@@ -1,4 +1,5 @@
-from SeqCLR.custom_dataset import PathDataset
+from DECCaNet.contrastive_framework import pre_train_model
+from DECCaNet.custom_dataset import PathDataset
 #from SeqCLR.contrastive_framework import pre_train_model
 import pickle
 if __name__ == '__main__':
@@ -7,5 +8,5 @@ if __name__ == '__main__':
 
     path = 'datasets/TUH/preprocessed/step_2'
     dataset = PathDataset(ids_to_load=ids_to_load,path=path, preload=False)
-    train,test = dataset.get_splits(0.7)
 
+    pre_train_model()

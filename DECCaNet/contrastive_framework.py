@@ -4,13 +4,10 @@ import torch.nn as nn
 import torch.nn.functional as fn
 import torch
 import numpy as np
-from ssl_baselines_zac.models import SQNet
-from modules import ConvolutionalEncoder, Projector, DownstreamClassifier
+
 from tqdm import tqdm
 import os
 from conformer import Conformer
-
-from models import TransPreTrain
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -318,42 +315,3 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
 
     print('Traning Done!!')
-
-
-class test_model(nn.Module):
-    """
-    A trainable model for the framework moust have an encoder-projector strucutre. The encoder is what our goal is to pre-train
-        Bacause of this, as the model is saved, the encoder is also saved.
-    """
-
-    def __init__(self):
-        super(test_model, self).__init__()
-        self.encoder = test_encoder()
-
-    def forward(self, x):
-        return self.encoder.forward(x)
-
-
-class test_encoder(nn.Module):
-    def __init__(self):
-        super(test_encoder, self).__init__()
-
-    def forward(self, x):
-        return x
-
-
-class SeqCLR(nn.Module):
-    def __init__(self):
-        self.encoder = ConvolutionalEncoder()
-        self.projector = Projector()
-        self.classifier = DownstreamClassifier()
-
-    def forward(self, x1, x2):
-        # May be faster to parallelize this by keeping an exact copy of the encoder
-        x1 = self.encoder(x1)
-        x1 = self.projector(x1)
-
-        x2 = self.encoder(x2)
-        x2 = self.projector(x2)
-
-        return x1, x2
