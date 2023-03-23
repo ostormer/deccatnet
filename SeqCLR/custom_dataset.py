@@ -13,7 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 from braindecode import augmentation
 from braindecode.datasets.base import BaseConcatDataset
 import matplotlib.pyplot as plt
-from braindecode.datautil.serialization import _load_parallel
+from braindecode.datautil.serialization import _load_parallel, _load_signals
 from braindecode.datautil.serialization import load_concat_dataset
 # Ignore warnings
 import warnings
@@ -143,24 +143,31 @@ class PathDataset(Dataset):
         :param idx: idx of the dataset we are interested in
         :return:
         """
-        (id_to_load,window_n) = self.cum_windows[idx]
-        window_dataset = _load_parallel(self.path,id_to_load,self.preload,self.is_raw)
-        sample = window_dataset.__getitem__(item=window_n)
+        # form of self.
+        mne.set_log_level('ERROR')
+        path_i, window_n = self.ids_to_load[idx]
+        print(path_i, window_n)
 
-        sample = torch.Tensor(sample).view(-1, sample.shape[0], sample.shape[1])
-        augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
+        sub_dir = os.path.join(self.path, path_i)
+        file_name_patterns = ['{}-raw.fif', '{}-epo.fif']
+        fif_name_pattern = file_name_patterns[0] if self.is_raw else file_name_patterns[1]
+        fif_file_name = fif_name_pattern.format(path_i)
+        fif_file_path = os.path.join(sub_dir, fif_file_name)
+
+        signals = _load_signals(fif_file_path, self.preload, self.is_raw)
+        sample = signals.get_data(item=window_n)
+        sample = torch.Tensor(sample)
+
         # apply augmentations
-
+        augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
         aug_1, aug_2 = self.augmentations[augmentation_id[0]], self.augmentations[augmentation_id[1]]
         param_1, param_2 = self.augment_params[augmentation_id[0]], self.augment_params[augmentation_id[1]]
 
         augmented_1 = aug_1.operation(sample, y=None, **param_1)[0][0]
         augmented_2 = aug_2.operation(sample, y=None, **param_2)[0][0]
 
-        #self.print_channels_and_diff(sample,augmented_1, augmentation_id[0], 0)
-        # print(augmented_1.shape, augmented_2.shape, sample.shape)
-
         return augmented_1,augmented_2, sample[0]
+
 
     def get_window_from_idx(self, path, i, preload, is_raw):
         sub_dir = os.path.join(path, i)
