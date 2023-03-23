@@ -2,7 +2,7 @@ import os
 import random
 import typing
 import bisect
-
+from random import sample
 import mne
 import torch
 import pandas as pd
@@ -109,16 +109,17 @@ class PathDataset(Dataset):
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path,cum_windows, preload=True,random_state=None):
+    def __init__(self, ids_to_load, path, preload=False,random_state=None):
 
-        self.ids_to_load = [str(i) for i in ids_to_load]
+        self.ids_to_load = ids_to_load
         self.path = path
         self.preload = preload
         self.is_raw = False
-        self.cum_windows = cum_windows
 
         if random_state == None:
-            random_state = 100
+            self.random_state = 100
+        else:
+            self.random_state = random_state
         # TODO: select correct augmentations and parameters
         self.augmentation_names = ['dropout', 'additive_noise', 'freq_shift']
         self.augmentations = [augmentation.ChannelsDropout,
@@ -146,9 +147,8 @@ class PathDataset(Dataset):
         # form of self.
         mne.set_log_level('ERROR')
         path_i, window_n = self.ids_to_load[idx]
-        print(path_i, window_n)
 
-        sub_dir = os.path.join(self.path, path_i)
+        sub_dir = os.path.join(self.path, str(path_i))
         file_name_patterns = ['{}-raw.fif', '{}-epo.fif']
         fif_name_pattern = file_name_patterns[0] if self.is_raw else file_name_patterns[1]
         fif_file_name = fif_name_pattern.format(path_i)
@@ -168,54 +168,16 @@ class PathDataset(Dataset):
 
         return augmented_1,augmented_2, sample[0]
 
-
-    def get_window_from_idx(self, path, i, preload, is_raw):
-        sub_dir = os.path.join(path, i)
-        file_name_patterns = ['{}-raw.fif', '{}-epo.fif']
-        if all([os.path.exists(os.path.join(sub_dir, p.format(i))) for p in file_name_patterns]):
-            raise FileExistsError('Found -raw.fif and -epo.fif in directory.')
-        fif_name_pattern = file_name_patterns[0] if is_raw else file_name_patterns[1]
-        fif_file_name = fif_name_pattern.format(i)
-        fif_file_path = os.path.join(sub_dir, fif_file_name)
-        signals = _load_signals(fif_file_path, preload, is_raw)
-        description_file_path = os.path.join(sub_dir, 'description.json')
-        description = pd.read_json(description_file_path, typ='series')
-        target_file_path = os.path.join(sub_dir, 'target_name.json')
-        target_name = None
-        if os.path.exists(target_file_path):
-            target_name = json.load(open(target_file_path, "r"))['target_name']
-
-        if is_raw:
-            dataset = BaseDataset(signals, description, target_name)
-        else:
-            window_kwargs = _load_kwargs_json('window_kwargs', sub_dir)
-            windows_ds_kwargs = [kwargs[1] for kwargs in window_kwargs if kwargs[0] == 'WindowsDataset']
-            windows_ds_kwargs = windows_ds_kwargs[0] if len(windows_ds_kwargs) == 1 else {}
-            dataset = WindowsDataset(signals, description,
-                                     targets_from=windows_ds_kwargs.get('targets_from', 'metadata'),
-                                     last_target_only=windows_ds_kwargs.get('last_target_only', True)
-                                     )
-            setattr(dataset, 'window_kwargs', window_kwargs)
-        for kwargs_name in ['raw_preproc_kwargs', 'window_preproc_kwargs']:
-            kwargs = _load_kwargs_json(kwargs_name, sub_dir)
-            setattr(dataset, kwargs_name, kwargs)
-        return dataset
-
     def get_splits(self, TRAIN_SPLIT:float):
         """
         :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
-        :return: train,test, train and test of instances ContrastiveAugmentedDataset
+        :return: train,test, train and test of instances PathDataset
         """
-        split_dict = {'test': range(round(len(self.datasets) * (1 - TRAIN_SPLIT))),
-                      'train': range(round(len(self.datasets) * (1 - TRAIN_SPLIT)),
-                                     round(len(self.datasets)))}
-        splitted = self.split(by=split_dict)
-        assert splitted['test'].__len__() + splitted['train'].__len__() == self.__len__()
-        assert list(set(splitted['test'].datasets) & set(splitted['train'].datasets)) == []
-        train, test = ContrastiveAugmentedDataset(splitted['train'].datasets), ContrastiveAugmentedDataset(
-            splitted['test'].datasets)
-
-        return train,test
+        train_ids = sample(self.ids_to_load, round(len(self.ids_to_load)*TRAIN_SPLIT))
+        test_ids = list(set(self.ids_to_load)-set(train_ids))
+        assert len(train_ids) + len(test_ids) == len(self.ids_to_load)
+        return PathDataset(train_ids,path=self.path,preload=self.preload, random_state=self.random_state),\
+               PathDataset(test_ids,path=self.path,preload=self.preload, random_state=self.random_state)
 
     def print_channels_and_diff(self, sample, augmented, augmentation_id,channel):
         # TODO: Visualize how the different augmentations work

@@ -4,7 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as fn
 import torch
 import numpy as np
-from data_loaders import ContrastiveDataset
 from ssl_baselines_zac.models import SQNet
 from modules import ConvolutionalEncoder, Projector, DownstreamClassifier
 from tqdm import tqdm
@@ -180,7 +179,7 @@ class ContrastiveLossGPT(nn.Module):
 
 # Next up: contrastive training framework
 def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, trained_model_path, temperature,
-                    learning_rate,
+                    learning_rate, num_workers,
                     weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params):
     """
 
@@ -192,6 +191,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     :param trained_model_path: string path for already trained model
     :param temperature: temperature parameter in contrastiveloss_function, learnable
     :param learning_rate:
+    :param num_workers: number of workers
     :param weight_decay:
     :param max_epochs:
     :param batch_print_freq: how often batch progress is printed in one epoch
@@ -234,9 +234,9 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     train_set, val_set = dataset.get_splits(train_split)
 
     # create data_loaders, here batch size is decided
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # maybe alos num_workers)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # check if cuda setup allowed:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

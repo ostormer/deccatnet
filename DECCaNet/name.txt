@@ -1,0 +1,1 @@
+dual eeg Contrastive CNN and transformer (deccatNet)
