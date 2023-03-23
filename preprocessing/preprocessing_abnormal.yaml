@@ -2,7 +2,7 @@
 # Config file for preprocessing
 
 source_ds: 'tuh_eeg_abnormal'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
-read_cache:   # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'preproc', 'windows', 'split']
+read_cache: 'none'  # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'preproc', 'windows', 'split']
 
 local_load: True  # Whether to load from local or disk paths
 directory:

@@ -2,7 +2,6 @@ import os
 import numpy as np
 import shutil
 import mne
-import itertools
 
 from copy import deepcopy
 from tqdm import tqdm
@@ -228,8 +227,8 @@ def window_and_split(concat_ds: BaseConcatDataset, save_dir: str, overwrite=Fals
         for i, windows_ds in tqdm(enumerate(windows_ds.datasets), total=len(windows_ds.datasets))
     )
     print('Creating idx list')
-    # Count cumulative number of windows in dataset
-    idx_dict = {}
+    # make list with an element for each window in the entire dataset,
+    # pointing at file and window number.
     idx_list = []
     for pair in tqdm(idx_n_windows):
         # For all recordings in the dataset
