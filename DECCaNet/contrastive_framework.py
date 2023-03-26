@@ -7,7 +7,7 @@ import numpy as np
 
 from tqdm import tqdm
 import os
-from conformer import Conformer
+import DECCaNet.DECCaNet_model as DECCaNet
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -61,7 +61,7 @@ class ContrastiveLoss(nn.Module):
         Initiializes the Contrastive loss module
         :param temperature: Learnable temperature parameter
         """
-        super(ContrastiveLoss, self).__init__()  # call super to access and overwrite nn.Module methods
+        super().__init__()  # call super to access and overwrite nn.Module methods
         self.tau = temperature
         self.BATCH_DIM = 0  # the dimension in z.size which has the batch size
         self.cos_sim = nn.CosineSimilarity(0)  # use cosine similiarity as similairity measurement
@@ -87,7 +87,7 @@ class ContrastiveLoss(nn.Module):
         z1 = z1.view(batch_size, -1)
         z2 = z2.view(batch_size, -1)
 
-        for i in range(batch_size):
+        for i in tqdm(range(batch_size)):
             # iterate over the entire batch, calculate loss with regard to one and one sample
 
             # calculte loss contirbutions from set z1 on z2
@@ -131,7 +131,7 @@ class ContrastiveLossGPT(nn.Module):
         Initiializes the Contrastive loss module
         :param temperature: Learnable temperature parameter
         """
-        super(ContrastiveLoss, self).__init__()
+        super(ContrastiveLossGPT, self).__init__()
         self.tau = temperature
         self.BATCH_DIM = 0  # the dimension in z.size which has the batch size
         self.cos_sim = nn.CosineSimilarity(0)  # use cosine similarity as similarity measurement
@@ -146,7 +146,7 @@ class ContrastiveLossGPT(nn.Module):
             negative pairs
         """
         batch_size = z1.size(self.BATCH_DIM)  # get batch size from input
-
+        print(z1.shape)
         z1 = fn.normalize(z1, dim=1)
         z2 = fn.normalize(z2, dim=1)
 
@@ -176,8 +176,8 @@ class ContrastiveLossGPT(nn.Module):
 
 # Next up: contrastive training framework
 def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, trained_model_path, temperature,
-                    learning_rate, num_workers,
-                    weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params):
+                    learning_rate, weight_decay,
+                    num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params):
     """
 
     :param dataset: ContrastiveAugmentedDataset for pre_training
@@ -241,10 +241,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     if trained_model_path is not None:
         model = test_model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
     else:
-        if model_params == 'test':
-            model = Conformer()
-        else:
-            model = SeqCLR(model_params)
+        model = DECCaNet.DECCaNet()
 
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature)
@@ -261,7 +258,6 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
         # start traning by looping through batches
         for aug_1, aug_2, sample in train_loader:
             # transfer to GPU or CUDA
-            print(aug_1.shape, aug_2.shape, sample.shape)
             x1, x2 = aug_1.to(device), aug_2.to(device)
             # zero out existing gradients
             optimizer.zero_grad()

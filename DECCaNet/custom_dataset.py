@@ -69,13 +69,13 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
         aug_1, aug_2 = self.augmentations[augmentation_id[0]], self.augmentations[augmentation_id[1]]
         param_1, param_2 = self.augment_params[augmentation_id[0]], self.augment_params[augmentation_id[1]]
 
-        augmented_1 = aug_1.operation(sample, y=None, **param_1)[0][0]
-        augmented_2 = aug_2.operation(sample, y=None, **param_2)[0][0]
+        augmented_1 = aug_1.operation(sample, y=None, **param_1)[0]
+        augmented_2 = aug_2.operation(sample, y=None, **param_2)[0]
 
         #self.print_channels_and_diff(sample,augmented_1, augmentation_id[0], 0)
         # print(augmented_1.shape, augmented_2.shape, sample.shape)
 
-        return augmented_1,augmented_2, sample[0]
+        return augmented_1,augmented_2, sample
 
     def get_splits(self, TRAIN_SPLIT:float):
         """
@@ -170,10 +170,10 @@ class PathDataset(Dataset):
         aug_1, aug_2 = self.augmentations[augmentation_id[0]], self.augmentations[augmentation_id[1]]
         param_1, param_2 = self.augment_params[augmentation_id[0]], self.augment_params[augmentation_id[1]]
 
-        augmented_1 = aug_1.operation(sample, y=None, **param_1)[0][0]
-        augmented_2 = aug_2.operation(sample, y=None, **param_2)[0][0]
+        augmented_1 = aug_1.operation(sample, y=None, **param_1)[0]
+        augmented_2 = aug_2.operation(sample, y=None, **param_2)[0]
 
-        return augmented_1,augmented_2, sample[0]
+        return augmented_1,augmented_2, sample
 
     def get_splits(self, TRAIN_SPLIT:float):
         """
