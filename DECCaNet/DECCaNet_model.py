@@ -15,10 +15,11 @@ class Encoder(nn.Module):
     def __init__(self):
         super().__init__()
         self.ConvEmbedding = Convolution()
-        # self.TransEncoder = TransEncoder()
+        self.TransEncoder = TransEncoder()
 
     def forward(self, x):
-        return self.ConvEmbedding(x)
+        x = self.ConvEmbedding(x)
+        return self.TransEncoder(x)
 
 
 class Convolution(nn.Module):
@@ -61,12 +62,14 @@ class Convolution(nn.Module):
         x = self.pooling(x)
         x = self.dropout(x)
         x = self.projector(x)
+        # has shape: [Batch,embedding_size,1,62] little bit weird, but ok
         return x
 
 
 class TransEncoder(nn.Module):
     def __init__(self):
         super().__init__()
+
 
     def forward(self, X):
         pass
