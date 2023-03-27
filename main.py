@@ -11,5 +11,8 @@ if __name__ == '__main__':
     path = 'datasets/TUH/preprocessed/step_2'
     dataset = PathDataset(ids_to_load=ids_to_load,path=path, preload=False)
 
-    cf.pre_train_model(dataset, 10,0.7, 10,True,None, 1,0.01,0.01,2,10,5,'models', 'test', None)
+    cf.pre_train_model(dataset=dataset, batch_size=128,train_split=0.7,save_freq=10,shuffle=True,
+                       trained_model_path=None,temperature=1,learning_rate=0.01,weight_decay=0.01,
+                       num_workers=2,max_epochs=10,batch_print_freq=5,save_dir_model='models', model_file_name='test',
+                       model_params=None)
 

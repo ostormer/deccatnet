@@ -287,7 +287,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
         print('epoch number: ', epoch, 'of: ', max_epochs)
         counter = 0  # counter for batch print.
         # start traning by looping through batches
-        for aug_1, aug_2, sample in train_loader:
+        for aug_1, aug_2, sample in tqdm(train_loader, position=0, leave=True):
             # transfer to GPU or CUDA
             x1, x2 = aug_1.to(device), aug_2.to(device)
             # zero out existing gradients
@@ -309,7 +309,8 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
             # check counter and print one some codition
             if counter % batch_print_freq == 0:
-                print("trained for: ", counter, " batches")
+                #print("trained for: ", counter, " batches")
+                pass
             counter += 1
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.

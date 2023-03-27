@@ -148,7 +148,7 @@ class PatchEmbedding(nn.Module):
             nn.Conv2d(1, 40, (1, 25), (1, 1)),
             nn.Conv2d(40, 40, (22, 1), (1, 1)),
             nn.BatchNorm2d(40),
-            nn.ELU(),
+            nn.ELU(),pr
             nn.AvgPool2d((1, 75), (1, 15)),
             # pooling acts as slicing to obtain 'patch' along the time dimension as in ViT
             nn.Dropout(0.5),
