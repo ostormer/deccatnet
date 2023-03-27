@@ -3,11 +3,10 @@ import torch.nn as nn
 
 
 class DECCaNet(nn.Module):
-    def __init__(self):
+    def __init__(self, batch_size):
         super().__init__()
         emb_size = 32
         latent_space_size = 64
-        batch_size = 128
         self.encoder = Encoder(emb_size, batch_size)
         self.projector = Projector(emb_size,latent_space_size)
 
