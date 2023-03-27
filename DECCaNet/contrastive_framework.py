@@ -66,6 +66,37 @@ class ContrastiveLoss(nn.Module):
         self.BATCH_DIM = 0  # the dimension in z.size which has the batch size
         self.cos_sim = nn.CosineSimilarity(0)  # use cosine similiarity as similairity measurement
 
+    def forward2(self, z1: torch.Tensor, z2: torch.Tensor):
+        """
+        Called whenever ContrastiveLoss class is called after initialization
+        In original paper, only z2 is assumed to be augmented, we augment both input signals
+        :param z1,z2: Latent space representations of pairwise positive pairs as numpy arrays, same indexes should
+            be positive pairs
+        :return: ContrastiveLoss maximizing agreement between pairs and minimizing agreement with
+            negative pairs
+        """
+        contrastive_loss = 0.  # set loss
+        batch_size = z1.size(0)  # get batch size from input
+
+        # normalize data in batch as is has increased performance, however may be double
+        # TODO: check if double normalization
+        z1 = fn.normalize(z1, dim=1)
+        z2 = fn.normalize(z2, dim=1)
+
+        # compute cosine similarity between all pairs in the batch
+        similarities = torch.matmul(z1, z2.t())
+
+        # construct mask to exclude comparisons between identical samples
+        mask = torch.eye(batch_size, dtype=torch.bool)
+
+        # compute numerator and denominator of the contrastive loss for each sample in the batch
+        numerator = torch.exp(similarities / self.tau)
+        denominator = torch.sum(torch.exp(similarities / self.tau), dim=1) - torch.exp(torch.masked_select(similarities, mask)).sum()
+
+        # compute the contrastive loss as the mean of the logarithm of the ratio of the numerator and denominator
+        contrastive_loss = -torch.mean(torch.log(torch.masked_select(numerator, ~mask) / denominator))
+
+        return contrastive_loss
     def forward(self, z1: torch.Tensor, z2: torch.Tensor):
         """
         Called whenever ContrastiveLoss class is called after initialization
@@ -87,7 +118,7 @@ class ContrastiveLoss(nn.Module):
         z1 = z1.view(batch_size, -1)
         z2 = z2.view(batch_size, -1)
 
-        for i in tqdm(range(batch_size)):
+        for i in range(batch_size):
             # iterate over the entire batch, calculate loss with regard to one and one sample
 
             # calculte loss contirbutions from set z1 on z2
@@ -263,7 +294,6 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             optimizer.zero_grad()
             # send through model and projector, asssume not splitted for now
             x1_encoded, x2_encoded = model(x1), model(x2)
-
             # get loss, update weights and perform step
             loss = loss_func(x1_encoded, x2_encoded)
             loss.backward()
@@ -284,12 +314,14 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
-        if epoch != save_freq == 0 and epoch != 0:
+        if epoch % save_freq == 0 and epoch != 0:
+            print('epoch number: ', epoch, 'saving model  ')
             temp_save_path_model = os.path.join(save_dir_model, "temp_" + str(epoch) + "_" + model_file_name)
             torch.save(model.state_dict(), temp_save_path_model)
             # here is the solution, have the model as several modules; then different modules can be saved seperately
             temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
+
         losses.append(loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
