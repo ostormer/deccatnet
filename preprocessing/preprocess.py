@@ -347,23 +347,26 @@ string_to_channel_split_func = {
 }
 
 
-def run_preprocess(config_path, start_idx=0, stop_idx=None, is_downstream_dataset=False):
+def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
     # ------------------------ Read values from config file ------------------------
     with open(config_path, "r") as stream:
         try:
             params = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
+
+    source_ds = params["source_ds"]
+
+    start_idx=params["start_idx"]
+    stop_idx=params["stop_idx"]
+
+    assert source_ds in ['tuh_eeg_abnormal', 'tuh_eeg'], \
+        f"{source_ds} is not a valid dataset option"
     read_cache = params["read_cache"]
     if (read_cache is None) or read_cache in [False, 'None']:
         read_cache = 'none'
-
-    assert read_cache in ['none', 'raw', 'preproc', 'windows', 'split'], \
+    assert read_cache in ['none', 'raw', 'preproc', 'windows'], \
         f"{read_cache} is not a valid cache to read"
-
-    source_ds = params["source_ds"]
-    assert source_ds in ['tuh_eeg_abnormal', 'tuh_eeg'], \
-        f"{source_ds} is not a valid dataset option"
 
     local_load = params["local_load"]
     preproc_params = params["preprocess"]
@@ -468,7 +471,7 @@ def run_preprocess(config_path, start_idx=0, stop_idx=None, is_downstream_datase
     def _preproc_split(dataset=None, start_idx=0, stop_idx=None):
         if dataset is None:
             print("Creating fixed length windows from concat dataset")
-            with open(os.path.join(cache_dir, 'windowed.pkl'), 'rb') as f:
+            with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'rb') as f:
                 dataset = pickle.load(f)
                 print('Done loading pickled windowed dataset.')
         if stop_idx is None:
@@ -477,7 +480,7 @@ def run_preprocess(config_path, start_idx=0, stop_idx=None, is_downstream_datase
 
         idx_list = split_by_channels(dataset, save_dir=save_dir_2, n_jobs=preproc_params['n_jobs'],
                                      channel_split_func=_make_adjacent_pairs, overwrite=True)
-        with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
+        with open(os.path.join(cache_dir, 'split_idx_list.pkl'), 'wb') as f:
             pickle.dump(idx_list, f)
         return idx_list
 
@@ -487,7 +490,7 @@ def run_preprocess(config_path, start_idx=0, stop_idx=None, is_downstream_datase
         idx_list = _preproc_first(start_idx=start_idx, stop_idx=stop_idx)
     elif read_cache == 'preproc':
         idx_list = _preproc_window(start_idx=start_idx, stop_idx=stop_idx)
-    elif read_cache == 'window':
+    elif read_cache == 'windows':
         idx_list = _preproc_split(start_idx=start_idx, stop_idx=stop_idx)
     else:
         raise ValueError

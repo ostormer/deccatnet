@@ -1,17 +1,23 @@
 from preprocessing.preprocess import run_preprocess
-# from SeqCLR.custom_dataset import PathDataset
+import DECCaTNet.contrastive_framework as cf
+from DECCaTNet.custom_dataset import PathDataset
 import pickle
-import torch
 if __name__ == '__main__':
 
-    idx_list = run_preprocess('preprocessing/preprocessing_oskar.yaml', stop_idx=50)
-    print(idx_list[:50])
+    # idx_list = run_preprocess('preprocessing/preprocessing_oskar.yaml')
+    # print(idx_list[:100])
 
-    # ds = run_preprocess('preprocessing/preprocessing_abnormal.yaml', is_downstream_ds=True)
-    # with open('datasets/TUH/pickles_abnormal/preproc1.pkl', 'rb') as fid:
-    #     ds = pickle.load(fid)
-    # print(ds.description)
-    # print(list(ds.description.columns.values))
+    with open('datasets/TUH/pickles/split_idx_list.pkl','rb') as f:
+        ids_to_load = pickle.load(f)
+
+    path = 'datasets/TUH/preprocessed/step_2'
+    dataset = PathDataset(ids_to_load=ids_to_load,path=path, preload=False)
+
+    cf.pre_train_model(dataset=dataset, batch_size=16,train_split=0.7,save_freq=1,shuffle=True,
+                       trained_model_path=None,temperature=1,learning_rate=0.01,weight_decay=0.01,
+                       num_workers=8,max_epochs=4,batch_print_freq=5,save_dir_model='models', model_file_name='test',
+                       model_params=None, time_process=True)
+
 
     # tuh_eeg description columns: ['year', 'month', 'day', 'path', 'version', 'subject', 'session', 'segment', 'age', 'gender']
     # tuh_eeg description columns: ['year', 'month', 'day', 'path', 'version', 'subject', 'session', 'segment', 'age', 'gender', 'train', 'pathological']

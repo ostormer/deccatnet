@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
+
 from .DECCaTNet_model import Encoder
+
 
 class EncodingClassifier(nn.Module):
     def __init__(self):
@@ -8,6 +10,7 @@ class EncodingClassifier(nn.Module):
 
     def forward(self, X):
         return X
+
 
 class DownstreamNet(nn.Module):
     def __init__(self, params):
@@ -55,3 +58,7 @@ class DownstreamNet(nn.Module):
         combined_encodings = torch.flatten(torch.concat(encoder_out, dim=0))
         x = self.classifier_net(combined_encodings)
         return x
+
+
+def run_downstream_task(dataset, batch_size, train_split, pretrained_encoder_path, temperature, learning_rate,
+                        weight_decay, num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name):

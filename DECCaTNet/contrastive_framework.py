@@ -282,6 +282,10 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     if torch.cuda.is_available():
         model.cuda()
 
+    # Prepare save dir for model checkpoints
+    if not os.path.exists(save_dir_model):
+        os.makedirs(save_dir_model)
+
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
@@ -337,21 +341,21 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
                     print('\n')
                     for x, y in zip(time_names, time_values):
                         average = y / ((counter + 1)*batch_size)
-                        print('Average time used on', x, ':', round(average,1))
+                        print(f'Average time used on {x} :  {average:.6f}')
             counter += 1
             start_time = time.thread_time()
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
         if epoch % save_freq == 0 and epoch != 0:
-            print('epoch number: ', epoch, 'saving model  ')
+            print('epoch number: ', epoch, ' saving model  ')
             temp_save_path_model = os.path.join(save_dir_model, "temp_" + str(epoch) + "_" + model_file_name)
             torch.save(model.state_dict(), temp_save_path_model)
             # here is the solution, have the model as several modules; then different modules can be saved seperately
             temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
 
-        losses.append(loss)
+        # losses.append(loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)
