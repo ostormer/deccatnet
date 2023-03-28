@@ -11,32 +11,47 @@ if __name__ == '__main__':
     path = 'datasets/TUH/preprocessed/step_2'
     dataset = PathDataset(ids_to_load=ids_to_load,path=path, preload=False)
 
-    cf.pre_train_model(dataset=dataset, batch_size=8,train_split=0.7,save_freq=10,shuffle=True,
+    cf.pre_train_model(dataset=dataset, batch_size=256,train_split=0.7,save_freq=10,shuffle=True,
                        trained_model_path=None,temperature=1,learning_rate=0.01,weight_decay=0.01,
-                       num_workers=2,max_epochs=10,batch_print_freq=5,save_dir_model='models', model_file_name='test',
+                       num_workers=2,max_epochs=10,batch_print_freq=2,save_dir_model='models', model_file_name='test',
                        model_params=None, time_process=True)
 
-"""With batch_size = 8 on Styrks computer over an entire epoch: 
-Average time used on batch : 0.0002845612582781457
-Average time used on to_device : 0.0
-Average time used on encoding : 0.06299151490066225
-Average time used on loss_calculation : 0.010257139900662252
-Average time used on loss_update : 0.1312991514900662
-Average time used on delete : 0.0006984685430463576
+"""
+batch_size = 2
+Average time used on batch : 0.0008
+Average time used on encoding : 0.0732
+Average time used on loss_calculation : 0.0026
+Average time used on backward : 0.1165
+Average time used on loss_update : 0.0366
+Average time used on delete : 0.0007
+
+batch_size = 8
+Average time used on batch : 0.0002
+Average time used on encoding : 0.0605
+Average time used on loss_calculation : 0.0096
+Average time used on backward : 0.1196
+Average time used on loss_update : 0.0091
+Average time used on delete : 0.0008
+
 
 batch_size = 32
-Average time used on batch : 0.007056451612903226
-Average time used on to_device : 0.0
-Average time used on encoding : 2.004032258064516
-Average time used on loss_calculation : 1.387600806451613
-Average time used on loss_update : 5.786290322580645
-Average time used on delete : 0.08770161290322581
+Average time used on batch : 0.0005
+Average time used on encoding : 0.0624
+Average time used on loss_calculation : 0.0425
+Average time used on backward : 0.1767
+Average time used on loss_update : 0.003
+Average time used on delete : 0.0026
 
 batch_size = 128
+Average time used on batch : 0.0001
+Average time used on to_device : 0.0
+Average time used on encoding : 0.1012
+Average time used on loss_calculation : 0.131
+Average time used on loss_update : 0.4354
+Average time used on delete : 0.0207
 
 
 found out:
-    - data is laoded once it is sent to device,not before that
-    - The average time used on different processes increases through the entire epoch """
+    - """
 
 
