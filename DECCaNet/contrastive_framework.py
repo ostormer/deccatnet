@@ -272,7 +272,10 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     if trained_model_path is not None:
         model = test_model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
     else:
-        model = DECCaNet.DECCaNet(batch_size)
+        model = DECCaNet.DECCaNet(batch_size=batch_size)
+
+    if torch.cuda.is_available():
+        model.cuda()
 
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature)

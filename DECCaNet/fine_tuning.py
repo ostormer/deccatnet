@@ -25,6 +25,7 @@ class DownstreamNet(nn.Module):
 
         self.encoder = Encoder()
         self.encoder.load_state_dict(self.encoder_path)
+        self.encoder.requires_grad_(False)
 
         # trans_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=8)
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
