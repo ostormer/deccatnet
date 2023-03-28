@@ -1,0 +1,32 @@
+
+# Config file for preprocessing
+
+source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
+start_idx: 0
+stop_idx: 0
+read_cache: 'none'  # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'preproc', 'windows', 'split']
+
+local_load: True  # Whether to load from local or disk paths
+directory:
+  local:
+    # Loaded if local_load: True
+    dataset_root: 'datasets/TUH/tuh_eeg'
+    cache_dir: 'datasets/TUH/pickles'
+    save_dir: 'datasets/TUH/preprocessed/step_1'
+    save_dir_2: 'datasets/TUH/preprocessed/step_2'
+  disk:
+    # Loaded if local_load: False
+    dataset_root: 'D:/TUH/tuh_eeg'
+    cache_dir: 'D:/TUH/pickles/tuh_eeg.pkl'
+    save_dir: 'D:/TUH/tuh_pre'
+    save_dir_2: 'D:/TUH/tuh_pre_2'
+
+preprocess:
+  n_jobs: 14
+  window_size: 60  # Window length in seconds
+  channel_select_function: 'adjacent_pairs'  # How to select pairs of channels to keep
+  crop_min: -800
+  crop_max: 800
+  s_freq: 250
+
+

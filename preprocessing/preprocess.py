@@ -359,6 +359,8 @@ def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
 
     start_idx=params["start_idx"]
     stop_idx=params["stop_idx"]
+    if stop_idx <= 0:
+        stop_idx = None
 
     assert source_ds in ['tuh_eeg_abnormal', 'tuh_eeg'], \
         f"{source_ds} is not a valid dataset option"
@@ -419,7 +421,8 @@ def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
                 print('Done loading pickled raw dataset.')
         if stop_idx is None:
             stop_idx = len(dataset.datasets)
-        dataset = dataset.split(by=range(start_idx, stop_idx))['0']
+        if len(dataset.datasets) > stop_idx - start_idx:
+            dataset = dataset.split(by=range(start_idx, stop_idx))['0']
         # Create save_dir
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -452,7 +455,8 @@ def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
                 print('Done loading pickled preprocessed dataset.')
             if stop_idx is None:
                 stop_idx = len(dataset.datasets)
-            dataset = dataset.split(by=range(start_idx, stop_idx))['0']
+            if len(dataset.datasets) > stop_idx - start_idx:
+                dataset = dataset.split(by=range(start_idx, stop_idx))['0']
 
         if not os.path.exists(save_dir_2):
             os.makedirs(save_dir_2)
@@ -476,7 +480,8 @@ def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
                 print('Done loading pickled windowed dataset.')
         if stop_idx is None:
             stop_idx = len(dataset.datasets)
-        dataset = dataset.split(by=range(start_idx, stop_idx))['0']
+        if len(dataset.datasets) > stop_idx - start_idx:
+            dataset = dataset.split(by=range(start_idx, stop_idx))['0']
 
         idx_list = split_by_channels(dataset, save_dir=save_dir_2, n_jobs=preproc_params['n_jobs'],
                                      channel_split_func=_make_adjacent_pairs, overwrite=True)

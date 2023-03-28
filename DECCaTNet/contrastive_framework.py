@@ -271,6 +271,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     # maybe alos num_workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # check if cuda setup allowed:
+    # device = torch.device("cpu")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model and check if weights already given
@@ -281,6 +282,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
     if torch.cuda.is_available():
         model.cuda()
+        print("Moved model to CUDA")
 
     # get loss function and optimizer
     loss_func = ContrastiveLoss(temperature=temperature)
@@ -337,7 +339,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
                     print('\n')
                     for x, y in zip(time_names, time_values):
                         average = y / ((counter + 1)*batch_size)
-                        print('Average time used on', x, ':', round(average,1))
+                        print(f'Average time used on {x} :  {average:.6f}')
             counter += 1
             start_time = time.thread_time()
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
