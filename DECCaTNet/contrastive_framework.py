@@ -67,40 +67,59 @@ class ContrastiveLoss(nn.Module):
         self.BATCH_DIM = 0  # the dimension in z.size which has the batch size
         self.cos_sim = nn.CosineSimilarity(0)  # use cosine similiarity as similairity measurement
 
-    def forward2(self, z1: torch.Tensor, z2: torch.Tensor):
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor, method='matrix'):
+        if method == 'matrix':
+            return self.forward_matrix(x1, x2)
+        return self.forward_nested(x1, x2)
+
+    def forward_matrix(self, x1: torch.Tensor, x2: torch.Tensor):
         """
-        Called whenever ContrastiveLoss class is called after initialization
-        In original paper, only z2 is assumed to be augmented, we augment both input signals
-        :param z1,z2: Latent space representations of pairwise positive pairs as numpy arrays, same indexes should
-            be positive pairs
-        :return: ContrastiveLoss maximizing agreement between pairs and minimizing agreement with
+        Attempt at faster implementation by using torch built in function sfor matrixes multiplication
+        :param x1, x2: Latent space representations of all samples in batch. Positive pairs will have the same index in
+            the two sets. All other indexes are considered as negative pairs
+        :return: A loss over the entire batch wich maximizes agreement between positive paris and minimize agreement with
             negative pairs
+            Inspiration: https://theaisummer.com/simclr/
         """
-        contrastive_loss = 0.  # set loss
-        batch_size = z1.size(0)  # get batch size from input
+        batch_size = x1.size(self.BATCH_DIM)  # get the batch size in input
 
-        # normalize data in batch as is has increased performance, however may be double
-        # TODO: check if double normalization
-        z1 = fn.normalize(z1, dim=1)
-        z2 = fn.normalize(z2, dim=1)
+        # normalize
+        x1 = fn.normalize(x1, p=2, dim=1)
+        x2 = fn.normalize(x2, p=2, dim=1)
 
-        # compute cosine similarity between all pairs in the batch
-        similarities = torch.matmul(z1, z2.t())
+        # concatenate tensors to one matrix to enable matrix operations
+        x1_x2 = torch.cat([x1, x2], dim=0)  # now shape is [2xbatch, output_encoder_shape]
 
-        # construct mask to exclude comparisons between identical samples
-        mask = torch.eye(batch_size, dtype=torch.bool)
+        # calculate cosine similarity of all pairs, also negative pairs
+        similarity_matrix = fn.cosine_similarity(x1_x2.unsqueeze(1), x1_x2.unsqueeze(0), dim=2)
 
-        # compute numerator and denominator of the contrastive loss for each sample in the batch
-        numerator = torch.exp(similarities / self.tau)
-        denominator = torch.sum(torch.exp(similarities / self.tau), dim=1) - torch.exp(
-            torch.masked_select(similarities, mask)).sum()
+        # Now we need to extract the positive and negative pairs in the batch, utilize that positive pairs are
+        # shifted from the main diagonal with batch_size, first get only positive pairs for nominator
+        sim_x1x2 = torch.diag(similarity_matrix, batch_size)
+        sim_x2x1 = torch.diag(similarity_matrix, batch_size)
 
-        # compute the contrastive loss as the mean of the logarithm of the ratio of the numerator and denominator
-        contrastive_loss = -torch.mean(torch.log(torch.masked_select(numerator, ~mask) / denominator))
+        pos_pairs = torch.cat([sim_x1x2, sim_x2x1], dim=0)
 
-        return contrastive_loss
+        # calculate nominator
+        nominator = torch.exp(pos_pairs / self.tau)
 
-    def forward(self, z1: torch.Tensor, z2: torch.Tensor):
+        # get all negative and positive paris for denominator, exclude pairs with same samples (k=i)
+        mask = (~torch.eye(batch_size * 2, batch_size * 2, dtype=bool)).float()
+
+        # use mask to get all pairs
+        pairs = mask * similarity_matrix
+
+        # calculate denominator
+        denominator = torch.sum(torch.exp(pairs / self.tau), dim=1)
+
+        # calculate losses for all samples in batch
+        batch_loss = -torch.log(nominator / denominator)
+
+        # average losses over all samples
+        average_loss = torch.sum(batch_loss) / (2 * batch_size)
+        return average_loss
+
+    def forward_nested(self, z1: torch.Tensor, z2: torch.Tensor):
         """
         Called whenever ContrastiveLoss class is called after initialization
         In original paper, only z2 is assumed to be augmented, we augment both input signals
@@ -291,7 +310,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
     # track losses
     losses = []
-    time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'loss_update', 'delete']
+    time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'backward', 'loss_update', 'delete']
     # iterative traning loop
     for epoch in tqdm(range(max_epochs)):
         print('epoch number: ', epoch, 'of: ', max_epochs)
@@ -309,9 +328,10 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             x1_encoded, x2_encoded = model(x1), model(x2)
             encoding_time = time.thread_time()
             # get loss, update weights and perform step
-            loss = loss_func(x1_encoded, x2_encoded)
+            loss = loss_func(x1_encoded, x2_encoded, method='matrix')
             loss_calculation_time = time.thread_time()
             loss.backward()
+            backward_time = time.thread_time()
             optimizer.step()
             loss_update_time = time.thread_time()
             # free cuda memory
@@ -324,15 +344,17 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             delete_time = time.thread_time()
             if time_process:
                 if counter == 0:
-                    time_values = [batch_time-start_time, to_device_time- batch_time, encoding_time - to_device_time,
-                                   loss_calculation_time-encoding_time, loss_update_time - loss_calculation_time,
-                                   delete_time-loss_update_time]
+                    time_values = [batch_time - start_time, to_device_time - batch_time, encoding_time - to_device_time,
+                                   loss_calculation_time - encoding_time, backward_time - loss_calculation_time,
+                                   loss_update_time - backward_time,
+                                   delete_time - loss_update_time]
                 else:
                     time_values = [x + y for x, y in zip(time_values,
                                                          [batch_time - start_time, to_device_time - batch_time,
                                                           encoding_time - to_device_time,
                                                           loss_calculation_time - encoding_time,
-                                                          loss_update_time - loss_calculation_time,
+                                                          backward_time - loss_calculation_time,
+                                                          loss_update_time - backward_time,
                                                           delete_time - loss_update_time])]
                 # check counter and print one some codition
                 if counter % batch_print_freq == 0:
