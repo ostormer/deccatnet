@@ -3,11 +3,11 @@ import torch.nn as nn
 
 
 class DECCaNet(nn.Module):
-    def __init__(self, batch_size):
+    def __init__(self):
         super().__init__()
         emb_size = 32
         latent_space_size = 64
-        self.encoder = Encoder(emb_size, batch_size)
+        self.encoder = Encoder(emb_size)
         self.projector = Projector(emb_size,latent_space_size)
 
     def forward(self, x):
@@ -17,9 +17,9 @@ class DECCaNet(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self,emb_size,batch_size):
+    def __init__(self,emb_size):
         super().__init__()
-        self.ConvEmbedding = Convolution(emb_size,batch_size)
+        self.ConvEmbedding = Convolution(emb_size)
         self.TransEncoder = TransEncoder(emb_size)
 
     def forward(self, x):
@@ -34,7 +34,7 @@ class Convolution(nn.Module):
     in litterature in combining CNN's and transformers for EEG classification
     """
 
-    def __init__(self, emb_size, batch_size):
+    def __init__(self, emb_size):
         super().__init__()
         temporal = 40
         spatial = 40
@@ -42,7 +42,6 @@ class Convolution(nn.Module):
         self.emb_size = emb_size
         self.n_channels = 1
         self.n_samples = 15000
-        self.batch_size = batch_size
         self.temporal = nn.Sequential(nn.Conv2d(self.n_channels, temporal, kernel_size=(1, 25), stride=(1, 1))
                                       )
         self.spatial = nn.Sequential(nn.Conv2d(temporal, spatial, kernel_size=(2, 1), stride=(1, 15)))
@@ -67,8 +66,9 @@ class Convolution(nn.Module):
         x = self.pooling(x)
         x = self.dropout(x)
         x = self.projector(x)
-        # has shape: [Batch,embedding_size,1,62] little bit weird, but ok
-        x = x.view(self.batch_size,-1, self.emb_size)
+        # has shape: [Batch,embedding_size,1,62(depends on net params)] little bit weird, but ok
+        x = x.view((x.shape[0], x.shape[3], x.shape[1]))
+        # new shape: (batch_size, embedding_size, 62)
         return x
 
 
