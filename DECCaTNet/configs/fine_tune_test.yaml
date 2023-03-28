@@ -1,0 +1,7 @@
+encoder:
+  path: "DECCaTNet/configs/fine_tune_test.yaml"
+  channel_group_size: 2
+
+dataset:
+  path: "datasets/TUH/preprocessed_abnormal/step_1"
+  windowed_pickle_path: ""

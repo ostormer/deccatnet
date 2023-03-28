@@ -3,7 +3,9 @@
 
 source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
 start_idx: 0
-stop_idx: 20
+stop_idx: -1
+is_fine_tuning_ds: False
+
 read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'preproc', 'windows', 'split']
 
 local_load: True  # Whether to load from local or disk paths

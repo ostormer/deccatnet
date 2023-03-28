@@ -347,7 +347,7 @@ string_to_channel_split_func = {
 }
 
 
-def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
+def run_preprocess(config_path, to_numpy=False):
     # ------------------------ Read values from config file ------------------------
     with open(config_path, "r") as stream:
         try:
@@ -357,8 +357,9 @@ def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
 
     source_ds = params["source_ds"]
 
-    start_idx=params["start_idx"]
-    stop_idx=params["stop_idx"]
+    start_idx = params["start_idx"]
+    stop_idx = params["stop_idx"]
+    is_fine_tuning_ds = params["is_fine_tuning_ds"]
     if stop_idx <= 0:
         stop_idx = None
 
@@ -447,7 +448,7 @@ def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
         # next step
         return _preproc_window(dataset, start_idx=start_idx, stop_idx=stop_idx)
 
-    def _preproc_window(dataset=None, start_idx=0, stop_idx=None, is_downstream_ds=False):
+    def _preproc_window(dataset=None, start_idx=0, stop_idx=None):
         if dataset is None:
             print("Creating fixed length windows from concat dataset")
             with open(os.path.join(cache_dir, 'preproc1_ds.pkl'), 'rb') as f:
@@ -467,7 +468,7 @@ def run_preprocess(config_path, is_downstream_dataset=False, to_numpy=False):
 
         with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
             pickle.dump(windowed_ds, f)
-        if is_downstream_ds:
+        if is_fine_tuning_ds:
             return windowed_ds
         else:
             return _preproc_split(dataset=windowed_ds, start_idx=start_idx, stop_idx=stop_idx)
