@@ -336,8 +336,8 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
                 if counter % batch_print_freq == 0:
                     print('\n')
                     for x, y in zip(time_names, time_values):
-                        average = y / ((counter + 1))
-                        print('Average time used on', x, ':', average)
+                        average = y / ((counter + 1)*batch_size)
+                        print('Average time used on', x, ':', round(average)
             counter += 1
             start_time = time.thread_time()
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
