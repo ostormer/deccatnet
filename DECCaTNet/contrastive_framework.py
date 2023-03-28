@@ -7,7 +7,7 @@ import numpy as np
 
 from tqdm import tqdm
 import os
-import DECCaNet.DECCaNet_model as DECCaNet
+import DECCaTNet.DECCaTNet_model as DECCaTNet
 import time
 
 """
@@ -277,7 +277,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     if trained_model_path is not None:
         model = test_model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
     else:
-        model = DECCaNet.DECCaNet(batch_size=batch_size)
+        model = DECCaTNet.DECCaTNet()
 
     if torch.cuda.is_available():
         model.cuda()
@@ -337,7 +337,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
                     print('\n')
                     for x, y in zip(time_names, time_values):
                         average = y / ((counter + 1)*batch_size)
-                        print('Average time used on', x, ':', round(average)
+                        print('Average time used on', x, ':', round(average,1))
             counter += 1
             start_time = time.thread_time()
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented

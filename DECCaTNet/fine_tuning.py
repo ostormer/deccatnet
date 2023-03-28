@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .DECCaNet_model import Encoder
+from .DECCaTNet_model import Encoder
 
 class EncodingClassifier(nn.Module):
     def __init__(self):
