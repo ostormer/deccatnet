@@ -8,6 +8,7 @@ import numpy as np
 from tqdm import tqdm
 import os
 import DECCaNet.DECCaNet_model as DECCaNet
+import time
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -91,12 +92,14 @@ class ContrastiveLoss(nn.Module):
 
         # compute numerator and denominator of the contrastive loss for each sample in the batch
         numerator = torch.exp(similarities / self.tau)
-        denominator = torch.sum(torch.exp(similarities / self.tau), dim=1) - torch.exp(torch.masked_select(similarities, mask)).sum()
+        denominator = torch.sum(torch.exp(similarities / self.tau), dim=1) - torch.exp(
+            torch.masked_select(similarities, mask)).sum()
 
         # compute the contrastive loss as the mean of the logarithm of the ratio of the numerator and denominator
         contrastive_loss = -torch.mean(torch.log(torch.masked_select(numerator, ~mask) / denominator))
 
         return contrastive_loss
+
     def forward(self, z1: torch.Tensor, z2: torch.Tensor):
         """
         Called whenever ContrastiveLoss class is called after initialization
@@ -208,7 +211,7 @@ class ContrastiveLossGPT(nn.Module):
 # Next up: contrastive training framework
 def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, trained_model_path, temperature,
                     learning_rate, weight_decay,
-                    num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params):
+                    num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params, time_process):
     """
 
     :param dataset: ContrastiveAugmentedDataset for pre_training
@@ -226,6 +229,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     :param save_dir_model: save directory for all models # TODO: check if empty and create new if empty
     :param model_file_name: file name for this trained model.
     :param model_params: parameters in a dict for model to be trained
+    :param time_process: If the different processes should be timed and printed / boolean
     :return:
     """
     """
@@ -262,7 +266,8 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     train_set, val_set = dataset.get_splits(train_split)
 
     # create data_loaders, here batch size is decided
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle,
+                                               num_workers=num_workers)
     # maybe alos num_workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # check if cuda setup allowed:
@@ -284,24 +289,29 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
     # track losses
     losses = []
-
+    time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'loss_update', 'delete']
     # iterative traning loop
     for epoch in tqdm(range(max_epochs)):
         print('epoch number: ', epoch, 'of: ', max_epochs)
         counter = 0  # counter for batch print.
         # start traning by looping through batches
+        start_time = time.thread_time()
         for aug_1, aug_2, sample in tqdm(train_loader, position=0, leave=True):
+            batch_time = time.thread_time()
             # transfer to GPU or CUDA
             x1, x2 = aug_1.to(device), aug_2.to(device)
+            to_device_time = time.thread_time()
             # zero out existing gradients
             optimizer.zero_grad()
             # send through model and projector, asssume not splitted for now
             x1_encoded, x2_encoded = model(x1), model(x2)
+            encoding_time = time.thread_time()
             # get loss, update weights and perform step
             loss = loss_func(x1_encoded, x2_encoded)
+            loss_calculation_time = time.thread_time()
             loss.backward()
             optimizer.step()
-
+            loss_update_time = time.thread_time()
             # free cuda memory
             del x1
             del x2
@@ -309,12 +319,27 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             del x1_encoded
             del loss
             torch.cuda.empty_cache()
-
-            # check counter and print one some codition
-            if counter % batch_print_freq == 0:
-                #print("trained for: ", counter, " batches")
-                pass
+            delete_time = time.thread_time()
+            if time_process:
+                if counter == 0:
+                    time_values = [batch_time-start_time, to_device_time- batch_time, encoding_time - to_device_time,
+                                   loss_calculation_time-encoding_time, loss_update_time - loss_calculation_time,
+                                   delete_time-loss_update_time]
+                else:
+                    time_values = [x + y for x, y in zip(time_values,
+                                                         [batch_time - start_time, to_device_time - batch_time,
+                                                          encoding_time - to_device_time,
+                                                          loss_calculation_time - encoding_time,
+                                                          loss_update_time - loss_calculation_time,
+                                                          delete_time - loss_update_time])]
+                # check counter and print one some codition
+                if counter % batch_print_freq == 0:
+                    print('\n')
+                    for x, y in zip(time_names, time_values):
+                        average = y / ((counter + 1))
+                        print('Average time used on', x, ':', average)
             counter += 1
+            start_time = time.thread_time()
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
