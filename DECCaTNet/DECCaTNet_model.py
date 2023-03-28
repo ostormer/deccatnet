@@ -17,7 +17,7 @@ class DECCaTNet(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self,emb_size):
+    def __init__(self, emb_size):
         super().__init__()
         self.ConvEmbedding = Convolution(emb_size)
         self.TransEncoder = TransEncoder(emb_size)

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 
 from .DECCaTNet_model import Encoder
 
@@ -12,29 +13,32 @@ class EncodingClassifier(nn.Module):
         return X
 
 
-class DownstreamNet(nn.Module):
+class FineTuneNet(nn.Module):
     def __init__(self, params):
         """
         encoder_path
         channel_group_size = 2
-        n_channel_groups
-        encoder_out_size
+        embedding_size
         n_classes = 2
         """
         # self.patch_size = patch_size
         super().__init__()
-        for key in params:
-            self.key = params[key]
+        self.encoder_path = params["encoder_path"]
+        self.channel_group_size = params["channel_group_size"]
+        self.embedding_size = params["embedding_size"]
+        self.n_classes = params["n_classes"]
 
-        self.encoder = Encoder()
-        self.encoder.load_state_dict(self.encoder_path)
+        self.encoder = Encoder(emb_size=self.embedding_size)
+        self.encoder.load_state_dict(torch.load(self.encoder_path))
         self.encoder.requires_grad_(False)
+
+        self.n_channel_groups = 8  # TODO: SET TO CORRECT VALUE FROM LOADING A SAMPLE
 
         # trans_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=8)
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=self.encoder_out_size * self.n_channel_groups, out_features=256),
+            nn.Linear(in_features=self.embedding_size * self.n_channel_groups, out_features=256),
             nn.ReLU(),
             nn.Linear(in_features=256, out_features=64),
             nn.ReLU(),
@@ -60,5 +64,23 @@ class DownstreamNet(nn.Module):
         return x
 
 
-def run_downstream_task(dataset, batch_size, train_split, pretrained_encoder_path, temperature, learning_rate,
-                        weight_decay, num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name):
+def run_fine_tuning(dataset, params):
+    epochs = params["epochs"]
+
+    model = FineTuneNet(params)
+
+    split = dataset.split("train")
+    print(split)
+    train = split["True"]
+    test = split["False"]
+    print(train.description)
+    print(test.description)
+
+    train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["shuffle"],
+                                               num_workers=params["num_workers"])
+
+    for epoch in range(epochs):
+        print('epoch number: ', epoch, 'of: ', epochs)
+        for X, y in tqdm(train_loader, position=0, leave=True):
+            print(f"X: {X}\n\n"
+                  f"y: {y}")

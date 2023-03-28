@@ -1,15 +1,21 @@
+import yaml
+import pickle
+
 from preprocessing.preprocess import run_preprocess
 import DECCaTNet.contrastive_framework as cf
 from DECCaTNet.custom_dataset import PathDataset
-import pickle
+
+from DECCaTNet.fine_tuning import run_fine_tuning
 if __name__ == '__main__':
 
-    windowed_ds = run_preprocess('preprocessing/preprocessing_abnormal.yaml')
-    print(windowed_ds.datasets[:100])
+    # windowed_ds = run_preprocess('preprocessing/preprocessing_abnormal.yaml')
+    with open('datasets/TUH/pickles_abnormal/windowed_ds.pkl','rb') as f:
+        windowed_ds = pickle.load(f)
 
-    # with open('datasets/TUH/pickles/split_idx_list.pkl','rb') as f:
-    #     ids_to_load = pickle.load(f)
+    with open('DECCaTNet/configs/fine_tune_test.yaml', 'r') as fid:
+        params = yaml.safe_load(fid)
 
+    run_fine_tuning(windowed_ds, params)
     # path = 'datasets/TUH/preprocessed/step_2'
     # dataset = PathDataset(ids_to_load=ids_to_load,path=path, preload=False)
     #
