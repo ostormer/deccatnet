@@ -1,3 +1,6 @@
+/.idea/
+#/models
+/src/
 /datasets/
 !/datasets/Download_links.md
 
