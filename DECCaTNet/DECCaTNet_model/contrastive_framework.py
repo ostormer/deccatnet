@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as fn
 from tqdm import tqdm
 
-import DECCaTNet.DECCaTNet_model as DECCaTNet
+from DECCaTNet.DECCaTNet_model import DECCaTNet_model as DECCaTNet
 
 """
 SeqCLR contrastive pre-training algortihm summary

@@ -1,9 +1,6 @@
-import DECCaTNet.contrastive_framework as cf
-from DECCaTNet.custom_dataset import PathDataset, ConcatPathDataset
-from DECCaTNet.DECCaTNet_model import DECCaTNet
+import DECCaTNet.DECCaTNet_model.contrastive_framework as cf
+from DECCaTNet.DECCaTNet_model import ConcatPathDataset
 # from SeqCLR.contrastive_framework import pre_train_model
-from preprocessing.preprocess import run_preprocess
-import torch
 
 import pickle
 
@@ -21,7 +18,7 @@ if __name__ == '__main__':
     with open('datasets/TUH/TUH-pickles/windowed_ids.pkl', 'rb') as f:
         ids_TUH = pickle.load(f)
 
-    path_TUH = 'datasets/TUH/preprocessed/step_2'
+    path_TUH = '../datasets/TUH/preprocessed/step_2'
 
     dataset_dict['TUH'] = (path_TUH, ids_TUH)
 

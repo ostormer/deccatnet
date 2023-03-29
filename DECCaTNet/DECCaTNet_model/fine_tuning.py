@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
+from DECCaTNet.preprocessing.preprocess import _make_adjacent_pairs
 from .DECCaTNet_model import Encoder
 
 
@@ -14,7 +15,7 @@ class EncodingClassifier(nn.Module):
 
 
 class FineTuneNet(nn.Module):
-    def __init__(self, params):
+    def __init__(self, channel_groups, params):
         """
         encoder_path
         channel_group_size = 2
@@ -25,6 +26,7 @@ class FineTuneNet(nn.Module):
         super().__init__()
         self.encoder_path = params["encoder_path"]
         self.channel_group_size = params["channel_group_size"]
+        self.channel_groups = channel_groups
         self.embedding_size = params["embedding_size"]
         self.n_classes = params["n_classes"]
 
@@ -52,6 +54,8 @@ class FineTuneNet(nn.Module):
         # TODO: Decide what to do if n_channels does not fit into encoder size (Not even)
         # Do we discard the last channels? Do we make a overlap
         encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
+        if X.shape[2] % self.n_channel_groups != 0:
+            encoder_inputs.drop
         encoder_out = []
 
         # Run each group/pair of channels through the encoder
@@ -66,23 +70,26 @@ class FineTuneNet(nn.Module):
 
 def run_fine_tuning(dataset, params):
     epochs = params["epochs"]
+    dataset_channels = sorted(
+        ['EEG F4', 'EEG P4', 'EEG T6', 'EEG P3', 'EEG C4', 'EEG C3', 'EEG T3', 'EEG T5', 'EEG O1', 'EEG FP1', 'EEG A2',
+         'EEG T1', 'EEG T2', 'EEG F7', 'EEG FZ', 'EEG O2', 'EEG A1', 'EEG CZ', 'EEG F8', 'EEG T4', 'EEG PZ', 'EEG F3',
+         'EEG FP2'])
+    channel_groups = _make_adjacent_pairs(sorted(dataset_channels))
 
-    model = FineTuneNet(params)
+    model = FineTuneNet(channel_groups, params)
 
     split = dataset.split("train")
-    print(split)
     train = split["True"]
     test = split["False"]
-    print(train.description)
-    print(test.description)
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["shuffle"],
                                                num_workers=1)
 
+    # print(train.datasets[0].targets_from)
+    # print(train.datasets[0].__getitem__(0))
+
     for epoch in range(epochs):
         print('epoch number: ', epoch, 'of: ', epochs)
-        # for batch in train_loader:
-        #     print(batch)
-        for X, y in tqdm(train_loader, position=0, leave=True):
-            print(f"X: {X}\n\n"
-                  f"y: {y}")
+        for X, y, crop_inds in tqdm(train_loader, position=0, leave=True):
+            enc = model(X)
+        print("Encoded!")
