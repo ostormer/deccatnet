@@ -77,10 +77,12 @@ def run_fine_tuning(dataset, params):
     print(test.description)
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["shuffle"],
-                                               num_workers=params["num_workers"])
+                                               num_workers=1)
 
     for epoch in range(epochs):
         print('epoch number: ', epoch, 'of: ', epochs)
+        # for batch in train_loader:
+        #     print(batch)
         for X, y in tqdm(train_loader, position=0, leave=True):
             print(f"X: {X}\n\n"
                   f"y: {y}")

@@ -144,7 +144,7 @@ def custom_turn_off_log(raw, verbose='ERROR'):
 
 
 def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming, crop_min, crop_max, sfreq, save_dir,
-                          n_jobs):
+                          n_jobs, exclude_channels=[]):
     """
     renames channels to common nameing, resamples all data to one frequency, sets common eeg_reference, applies
     bandpass filter and crops.
@@ -153,6 +153,7 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming,
     :return: preprocessed BaseConcatDataset
     """
     mne.set_log_level('ERROR')
+    ch_naming = sorted(list(set(ch_naming) - set(exclude_channels)))
     preprocessors = [Preprocessor(custom_turn_off_log),  # turn off verbose
                      # set common reference for all
                      Preprocessor('set_eeg_reference',
@@ -160,8 +161,7 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming,
                      # rename to common naming convention
                      Preprocessor(rename_channels, mapping=mapping,
                                   apply_on_array=False),
-                     Preprocessor('pick_channels', ch_names=ch_naming,
-                                  ordered=True),  # keep wanted channels
+                     Preprocessor('pick_channels', ch_names=ch_naming, ordered=True),  # keep wanted channels
                      # clip all data within a given border
                      Preprocessor(scale, factor=1e6, apply_on_array=True),
                      Preprocessor(np.clip, a_min=crop_min,
@@ -203,9 +203,12 @@ def window_ds(concat_ds: BaseConcatDataset,
         verbose='ERROR'
     )
     # store the number of windows required for loading later on
-    n_windows = [len(d) for d in windows_ds.datasets]
+    n_windows = [len(ds) for ds in windows_ds.datasets]
+    n_channels = [len(ds.windows.ch_names) for ds in windows_ds.datasets]
     windows_ds.set_description({
-        "n_windows": n_windows})
+        "n_windows": n_windows,
+        "n_channels": n_channels
+    })
 
     return windows_ds
 
@@ -267,8 +270,6 @@ def _split_channels(
     """
     mne.set_log_level(verbose='ERROR')
     raw = windows_ds.windows._raw
-    raw.drop_channels(['IBI', 'BURSTS', 'SUPPR', 'PHOTIC PH'],
-                      on_missing='ignore')  # type: ignore
     channel_selections = channel_split_func(raw.ch_names)
     windows_ds_list = []
     channel_n_windows = []
@@ -380,6 +381,11 @@ def run_preprocess(config_path, to_numpy=False):
         f"{channel_select_function} is not a valid channel selection function"
 
     preproc_params = params["preprocess"]
+    exclude_channels = None
+    try:
+        exclude_channels = preproc_params["exclude_channels"]
+    except KeyError:
+        exclude_channels = None
 
     # Read path info
     if local_load:
@@ -399,7 +405,11 @@ def run_preprocess(config_path, to_numpy=False):
 
     def _read_raw(start_idx=0, stop_idx=None):
         if source_ds == 'tuh_eeg_abnormal':
-            dataset = tuh.TUHAbnormal(dataset_root, n_jobs=preproc_params['n_jobs'])
+            dataset = tuh.TUHAbnormal(
+                dataset_root,
+                n_jobs=preproc_params['n_jobs'],
+                target_name='pathological'
+            )
         elif source_ds == 'tuh_eeg':
             dataset = tuh.TUH(dataset_root, n_jobs=preproc_params['n_jobs'])
         else:
@@ -442,9 +452,11 @@ def run_preprocess(config_path, to_numpy=False):
         dataset = first_preprocess_step(concat_dataset=dataset, mapping=ch_mapping,
                                         ch_naming=common_naming, crop_min=preproc_params['crop_min'],
                                         crop_max=preproc_params['crop_max'], sfreq=preproc_params['s_freq'],
-                                        save_dir=save_dir, n_jobs=preproc_params['n_jobs'])
+                                        save_dir=save_dir, n_jobs=preproc_params['n_jobs'],
+                                        exclude_channels=exclude_channels)
         with open(os.path.join(cache_dir, 'preproc1_ds.pkl'), 'wb') as f:
             pickle.dump(dataset, f)
+
         # next step
         return _preproc_window(dataset, start_idx=start_idx, stop_idx=stop_idx)
 

@@ -29,3 +29,9 @@ preprocess:
   crop_min: -800
   crop_max: 800
   s_freq: 250
+  exclude_channels:
+    - 'EEG 26'
+    - 'EEG 27'
+    - 'EEG 28'
+    - 'EEG 29'
+    - 'EEG 30'
