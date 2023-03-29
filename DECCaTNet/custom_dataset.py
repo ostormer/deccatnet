@@ -21,93 +21,6 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-
-class ContrastiveAugmentedDataset(BaseConcatDataset):
-    """
-    BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
-    """
-
-    def __init__(self, list_of_ds, target_transform=None, random_state=None):
-        super().__init__(list_of_ds, target_transform=target_transform)
-        if random_state == None:
-            random_state = 100
-        # TODO: select correct augmentations and parameters
-        self.augmentation_names = ['dropout', 'additive_noise', 'freq_shift']
-        self.augmentations = [augmentation.ChannelsDropout,
-                              augmentation.GaussianNoise,
-                              augmentation.FrequencyShift]
-        self.augment_params = [{'p_drop': 0.2, 'random_state': random_state},
-                               {'std': 8, 'random_state': random_state},
-                               {'sfreq': 250, 'delta_freq': 10}]
-        """
-        (probability=1, sfreq=180, bandwidth=1, max_freq=None, random_state=random_state)
-        (probability=1, p_drop=0.2, random_state=random_state)
-        (probability=1, std=0.1, random_state=random_state)
-        (probability=1, sfreq=180, max_delta_freq=2, random_state=random_state)
-        """
-
-    #
-
-    def __getitem__(self, idx):
-        """
-        goal is to create pairs of form [x_augment_1, x_augment_2], x_original
-        :param idx: idx of the dataset we are interested in
-        :return:
-        """
-        if idx < 0:
-            if -idx > len(self):
-                raise ValueError("absolute value of index should not exceed dataset length")
-            idx = len(self) + idx
-        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
-        if dataset_idx == 0:
-            sample_idx = idx
-        else:
-            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
-        sample = self.datasets[dataset_idx][sample_idx]
-        sample = torch.Tensor(sample).view(-1, sample.shape[0], sample.shape[1])
-        augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
-        # apply augmentations
-
-        aug_1, aug_2 = self.augmentations[augmentation_id[0]], self.augmentations[augmentation_id[1]]
-        param_1, param_2 = self.augment_params[augmentation_id[0]], self.augment_params[augmentation_id[1]]
-
-        augmented_1 = aug_1.operation(sample, y=None, **param_1)[0]
-        augmented_2 = aug_2.operation(sample, y=None, **param_2)[0]
-
-        # self.print_channels_and_diff(sample,augmented_1, augmentation_id[0], 0)
-        # print(augmented_1.shape, augmented_2.shape, sample.shape)
-
-        return augmented_1, augmented_2, sample
-
-    def get_splits(self, TRAIN_SPLIT: float):
-        """
-        :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
-        :return: train,test, train and test of instances ContrastiveAugmentedDataset
-        """
-        split_dict = {'test': range(round(len(self.datasets) * (1 - TRAIN_SPLIT))),
-                      'train': range(round(len(self.datasets) * (1 - TRAIN_SPLIT)),
-                                     round(len(self.datasets)))}
-        splitted = self.split(by=split_dict)
-        assert splitted['test'].__len__() + splitted['train'].__len__() == self.__len__()
-        assert list(set(splitted['test'].datasets) & set(splitted['train'].datasets)) == []
-        train, test = ContrastiveAugmentedDataset(splitted['train'].datasets), ContrastiveAugmentedDataset(
-            splitted['test'].datasets)
-
-        return train, test
-
-    def print_channels_and_diff(self, sample, augmented, augmentation_id, channel):
-        # TODO: Visualize how the different augmentations work
-        diff = sample[0][channel].detach().numpy() - augmented[channel].detach().numpy()
-        figs, axs = plt.subplots(1, 3)
-        axs[0].plot(sample[0][channel].detach().numpy())
-        axs[0].set_title('sample')
-        axs[1].plot(augmented[channel].detach().numpy())
-        axs[1].set_title('augmented ' + self.augmentation_names[augmentation_id])
-        axs[2].plot(diff)
-        axs[2].set_title('difference')
-        plt.show()
-
-
 class ConcatPathDataset(ConcatDataset):
     """
     ConcatDataset of different PathDatasets, containing several PathDatasets. This class will allow us to sample
@@ -117,11 +30,11 @@ class ConcatPathDataset(ConcatDataset):
     def __init__(self, dataset_dict: dict, preload=False, random_state=None, SSL=True, splitted_datasets=None):
         """
 
-        :param dataset_dict:
-        :param preload:
+        :param dataset_dict: dict with format key: (path,ids), used to init PathDataset
+        :param preload: wether to preload dataset or not
         :param random_state:
-        :param SSL:
-        :param splitted_datasets:
+        :param SSL: Wether we are going to do self-supervised learning or not
+        :param splitted_datasets: Only used when splitting dataset, dont need to initialize new PathDatasets
         """
         if splitted_datasets == None:
             datasets = []
@@ -136,18 +49,17 @@ class ConcatPathDataset(ConcatDataset):
     def get_splits(self, TRAIN_SPLIT: float):
         """
         :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
-        :return: train,test, train and test of instances PathDataset
+        :return: train,test, intances of ConcatPathDatasets with the correct training and testing ids
         """
-        print('getting splits')
-        train_ds = []
+        train_ds = [] #init list of ds for training and testing
         test_ds = []
-        for dataset in self.datasets:
-            train,test = dataset.get_splits(TRAIN_SPLIT)
+        for dataset in self.datasets: # iterate through datasets
+            train,test = dataset.get_splits(TRAIN_SPLIT) # use datasets get splits function, return two pathDatasets
             train_ds.append(train)
             test_ds.append(test)
 
         return ConcatPathDataset(dataset_dict=None, splitted_datasets=train_ds), \
-               ConcatPathDataset(dataset_dict=None, splitted_datasets=test_ds)
+               ConcatPathDataset(dataset_dict=None, splitted_datasets=test_ds) #return two new ConcatPathDatasets
 
 class PathDataset(Dataset):
     """
@@ -231,6 +143,91 @@ class PathDataset(Dataset):
 
         return PathDataset(train_ids, path=self.path, preload=self.preload, random_state=self.random_state), \
                PathDataset(test_ids, path=self.path, preload=self.preload, random_state=self.random_state)
+
+    def print_channels_and_diff(self, sample, augmented, augmentation_id, channel):
+        # TODO: Visualize how the different augmentations work
+        diff = sample[0][channel].detach().numpy() - augmented[channel].detach().numpy()
+        figs, axs = plt.subplots(1, 3)
+        axs[0].plot(sample[0][channel].detach().numpy())
+        axs[0].set_title('sample')
+        axs[1].plot(augmented[channel].detach().numpy())
+        axs[1].set_title('augmented ' + self.augmentation_names[augmentation_id])
+        axs[2].plot(diff)
+        axs[2].set_title('difference')
+        plt.show()
+
+class ContrastiveAugmentedDataset(BaseConcatDataset):
+    """
+    BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
+    """
+
+    def __init__(self, list_of_ds, target_transform=None, random_state=None):
+        super().__init__(list_of_ds, target_transform=target_transform)
+        if random_state == None:
+            random_state = 100
+        # TODO: select correct augmentations and parameters
+        self.augmentation_names = ['dropout', 'additive_noise', 'freq_shift']
+        self.augmentations = [augmentation.ChannelsDropout,
+                              augmentation.GaussianNoise,
+                              augmentation.FrequencyShift]
+        self.augment_params = [{'p_drop': 0.2, 'random_state': random_state},
+                               {'std': 8, 'random_state': random_state},
+                               {'sfreq': 250, 'delta_freq': 10}]
+        """
+        (probability=1, sfreq=180, bandwidth=1, max_freq=None, random_state=random_state)
+        (probability=1, p_drop=0.2, random_state=random_state)
+        (probability=1, std=0.1, random_state=random_state)
+        (probability=1, sfreq=180, max_delta_freq=2, random_state=random_state)
+        """
+
+    #
+
+    def __getitem__(self, idx):
+        """
+        goal is to create pairs of form [x_augment_1, x_augment_2], x_original
+        :param idx: idx of the dataset we are interested in
+        :return:
+        """
+        if idx < 0:
+            if -idx > len(self):
+                raise ValueError("absolute value of index should not exceed dataset length")
+            idx = len(self) + idx
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        if dataset_idx == 0:
+            sample_idx = idx
+        else:
+            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+        sample = self.datasets[dataset_idx][sample_idx]
+        sample = torch.Tensor(sample).view(-1, sample.shape[0], sample.shape[1])
+        augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
+        # apply augmentations
+
+        aug_1, aug_2 = self.augmentations[augmentation_id[0]], self.augmentations[augmentation_id[1]]
+        param_1, param_2 = self.augment_params[augmentation_id[0]], self.augment_params[augmentation_id[1]]
+
+        augmented_1 = aug_1.operation(sample, y=None, **param_1)[0]
+        augmented_2 = aug_2.operation(sample, y=None, **param_2)[0]
+
+        # self.print_channels_and_diff(sample,augmented_1, augmentation_id[0], 0)
+        # print(augmented_1.shape, augmented_2.shape, sample.shape)
+
+        return augmented_1, augmented_2, sample
+
+    def get_splits(self, TRAIN_SPLIT: float):
+        """
+        :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
+        :return: train,test, train and test of instances ContrastiveAugmentedDataset
+        """
+        split_dict = {'test': range(round(len(self.datasets) * (1 - TRAIN_SPLIT))),
+                      'train': range(round(len(self.datasets) * (1 - TRAIN_SPLIT)),
+                                     round(len(self.datasets)))}
+        splitted = self.split(by=split_dict)
+        assert splitted['test'].__len__() + splitted['train'].__len__() == self.__len__()
+        assert list(set(splitted['test'].datasets) & set(splitted['train'].datasets)) == []
+        train, test = ContrastiveAugmentedDataset(splitted['train'].datasets), ContrastiveAugmentedDataset(
+            splitted['test'].datasets)
+
+        return train, test
 
     def print_channels_and_diff(self, sample, augmented, augmentation_id, channel):
         # TODO: Visualize how the different augmentations work
