@@ -1,14 +1,14 @@
 """Following SimCLR CL structure
 """
+import os
+import time
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as fn
-import torch
-import numpy as np
-
 from tqdm import tqdm
-import os
+
 import DECCaTNet.DECCaTNet_model as DECCaTNet
-import time
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -67,12 +67,12 @@ class ContrastiveLoss(nn.Module):
         self.BATCH_DIM = 0  # the dimension in z.size which has the batch size
         self.cos_sim = nn.CosineSimilarity(0)  # use cosine similiarity as similairity measurement
 
-    def forward(self, x1: torch.Tensor, x2: torch.Tensor, method='matrix'):
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor, device, method='matrix'):
         if method == 'matrix':
-            return self.forward_matrix(x1, x2)
+            return self.forward_matrix(x1, x2, device)
         return self.forward_nested(x1, x2)
 
-    def forward_matrix(self, x1: torch.Tensor, x2: torch.Tensor):
+    def forward_matrix(self, x1: torch.Tensor, x2: torch.Tensor, device):
         """
         Attempt at faster implementation by using torch built in function sfor matrixes multiplication
         :param x1, x2: Latent space representations of all samples in batch. Positive pairs will have the same index in
@@ -105,7 +105,7 @@ class ContrastiveLoss(nn.Module):
 
         # get all negative and positive paris for denominator, exclude pairs with same samples (k=i)
         mask = (~torch.eye(batch_size * 2, batch_size * 2, dtype=bool)).float()
-
+        mask = mask.to(device)
         # use mask to get all pairs
         pairs = mask * similarity_matrix
 
@@ -230,7 +230,8 @@ class ContrastiveLossGPT(nn.Module):
 # Next up: contrastive training framework
 def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, trained_model_path, temperature,
                     learning_rate, weight_decay,
-                    num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params, time_process):
+                    num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params,
+                    time_process):
     """
 
     :param dataset: ContrastiveAugmentedDataset for pre_training
@@ -294,10 +295,9 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model and check if weights already given
+    model = DECCaTNet.DECCaTNet()
     if trained_model_path is not None:
-        model = test_model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
-    else:
-        model = DECCaTNet.DECCaTNet()
+        model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
 
     if torch.cuda.is_available():
         model.cuda()
@@ -310,9 +310,9 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
     # track losses
     losses = []
-    time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'backward', 'loss_update', 'delete']
+    time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'backward', 'loss_update', 'delete', 'total']
     # iterative traning loop
-    for epoch in tqdm(range(max_epochs)):
+    for epoch in range(max_epochs):
         print('epoch number: ', epoch, 'of: ', max_epochs)
         counter = 0  # counter for batch print.
         # start traning by looping through batches
@@ -328,7 +328,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             x1_encoded, x2_encoded = model(x1), model(x2)
             encoding_time = time.thread_time()
             # get loss, update weights and perform step
-            loss = loss_func(x1_encoded, x2_encoded, method='matrix')
+            loss = loss_func(x1_encoded, x2_encoded, device=device, method='matrix')
             loss_calculation_time = time.thread_time()
             loss.backward()
             backward_time = time.thread_time()
@@ -340,14 +340,14 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             del x2_encoded
             del x1_encoded
             del loss
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
             delete_time = time.thread_time()
             if time_process:
                 if counter == 0:
                     time_values = [batch_time - start_time, to_device_time - batch_time, encoding_time - to_device_time,
                                    loss_calculation_time - encoding_time, backward_time - loss_calculation_time,
                                    loss_update_time - backward_time,
-                                   delete_time - loss_update_time]
+                                   delete_time - loss_update_time, delete_time - start_time]
                 else:
                     time_values = [x + y for x, y in zip(time_values,
                                                          [batch_time - start_time, to_device_time - batch_time,
@@ -355,13 +355,15 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
                                                           loss_calculation_time - encoding_time,
                                                           backward_time - loss_calculation_time,
                                                           loss_update_time - backward_time,
-                                                          delete_time - loss_update_time])]
+                                                          delete_time - loss_update_time,
+                                                          delete_time - start_time
+                                                          ])]
                 # check counter and print one some codition
                 if counter % batch_print_freq == 0:
                     print('\n')
                     for x, y in zip(time_names, time_values):
-                        average = y / ((counter + 1)*batch_size)
-                        print(f'Average time used on {x} :  {average:.6f}')
+                        average = y / ((counter + 1) * batch_size)
+                        print(f'Average time used on {x} :  {average:.7f}')
             counter += 1
             start_time = time.thread_time()
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
@@ -385,13 +387,13 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
     # save all of parameters to pickelfile
     # Want to include
-    save_path_model
-    save_path_enocder
-    save_dir_model
-    losses
-    eval_losses  # TODO
-    batch_size, save_freq, shuffle, trained_model_path, temperature, learning_rate,
-    weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name
+    # save_path_model
+    # save_path_enocder
+    # save_dir_model
+    # losses
+    # eval_losses  # TODO
+    # batch_size, save_freq, shuffle, trained_model_path, temperature, learning_rate,
+    # weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name
 
     # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
 
