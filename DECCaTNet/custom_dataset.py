@@ -10,7 +10,7 @@ import torch
 # from skimage import io, transform
 # import numpy as np
 # import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from braindecode import augmentation
 from braindecode.datasets.base import BaseConcatDataset
 import matplotlib.pyplot as plt
@@ -105,18 +105,26 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
         axs[2].set_title('difference')
         plt.show()
 
+
+class ConcatPathDataset(ConcatDataset):
+    """
+    ConcatDataset of different PathDatasets, containing several PathDatasets. This class will allow us to sample
+    randomly from different PathDatasets
+    """
+
 class PathDataset(Dataset):
     """
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path, preload=False,random_state=None, SSL=True):
+    def __init__(self, ids_to_load, path, preload=False,random_state=None, SSL=True, dataset_type='normal'):
 
         self.ids_to_load = ids_to_load
         self.path = path
         self.preload = preload
         self.is_raw = False
         self.SSL = SSL
+        self.dataset_type = dataset_type
 
         if random_state == None:
             self.random_state = 100

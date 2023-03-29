@@ -279,8 +279,6 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
     :return: None
     """
-    # TODO seams like output from dataloader is planned as x , [x_1_aug, x_2_aug], need confirmation on this.
-    # TODO: get confirmation on where augmentations are applied
 
     # load dataset
     train_set, val_set = dataset.get_splits(train_split)
