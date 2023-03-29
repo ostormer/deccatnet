@@ -26,7 +26,8 @@ class FineTuneNet(nn.Module):
         super().__init__()
         self.encoder_path = params["encoder_path"]
         self.channel_group_size = params["channel_group_size"]
-        self.channel_groups = channel_groups
+        self.channel_groups = channel_groups  # Channel groups defined by names
+        self.n_channel_groups = len(self.channel_groups)  # Number of channel groups
         self.embedding_size = params["embedding_size"]
         self.n_classes = params["n_classes"]
 
@@ -34,7 +35,10 @@ class FineTuneNet(nn.Module):
         self.encoder.load_state_dict(torch.load(self.encoder_path))
         self.encoder.requires_grad_(False)
 
-        self.n_channel_groups = 8  # TODO: SET TO CORRECT VALUE FROM LOADING A SAMPLE
+        self.ordered_channels = []  # TODO: Ask Styrk about channel ordering in preprocessed files. Is it arbitrary?
+        # TODO: Make dict witch translates channel names to index in preprocessed files
+        # TODO: Use that dict to define channel groups by indexes instead of channel names
+
 
         # trans_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=8)
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
@@ -53,6 +57,7 @@ class FineTuneNet(nn.Module):
         # Split input into chunks that fit into the encoder
         # TODO: Decide what to do if n_channels does not fit into encoder size (Not even)
         # Do we discard the last channels? Do we make a overlap
+        # TODO: Define splits from channel group index list from init to reduce run time
         encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
         if X.shape[2] % self.n_channel_groups != 0:
             encoder_inputs.drop
