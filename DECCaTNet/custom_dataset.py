@@ -20,6 +20,8 @@ from braindecode.datautil.serialization import _load_parallel, _load_signals
 import warnings
 
 warnings.filterwarnings("ignore")
+
+
 class ContrastiveAugmentedDataset(BaseConcatDataset):
     """
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
@@ -72,12 +74,12 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
         augmented_1 = aug_1.operation(sample, y=None, **param_1)[0]
         augmented_2 = aug_2.operation(sample, y=None, **param_2)[0]
 
-        #self.print_channels_and_diff(sample,augmented_1, augmentation_id[0], 0)
+        # self.print_channels_and_diff(sample,augmented_1, augmentation_id[0], 0)
         # print(augmented_1.shape, augmented_2.shape, sample.shape)
 
-        return augmented_1,augmented_2, sample
+        return augmented_1, augmented_2, sample
 
-    def get_splits(self, TRAIN_SPLIT:float):
+    def get_splits(self, TRAIN_SPLIT: float):
         """
         :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
         :return: train,test, train and test of instances ContrastiveAugmentedDataset
@@ -91,9 +93,9 @@ class ContrastiveAugmentedDataset(BaseConcatDataset):
         train, test = ContrastiveAugmentedDataset(splitted['train'].datasets), ContrastiveAugmentedDataset(
             splitted['test'].datasets)
 
-        return train,test
+        return train, test
 
-    def print_channels_and_diff(self, sample, augmented, augmentation_id,channel):
+    def print_channels_and_diff(self, sample, augmented, augmentation_id, channel):
         # TODO: Visualize how the different augmentations work
         diff = sample[0][channel].detach().numpy() - augmented[channel].detach().numpy()
         figs, axs = plt.subplots(1, 3)
@@ -112,12 +114,47 @@ class ConcatPathDataset(ConcatDataset):
     randomly from different PathDatasets
     """
 
+    def __init__(self, dataset_dict: dict, preload=False, random_state=None, SSL=True, splitted_datasets=None):
+        """
+
+        :param dataset_dict:
+        :param preload:
+        :param random_state:
+        :param SSL:
+        :param splitted_datasets:
+        """
+        if splitted_datasets == None:
+            datasets = []
+            for dataset in dataset_dict.keys():
+                path_dataset = PathDataset(ids_to_load=dataset_dict[dataset][1], path=dataset_dict[dataset][0],
+                                           preload=preload, random_state=random_state, dataset_type=dataset, SSL=SSL)
+                datasets.append(path_dataset)
+        else:
+            datasets = splitted_datasets
+        super().__init__(datasets)
+
+    def get_splits(self, TRAIN_SPLIT: float):
+        """
+        :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
+        :return: train,test, train and test of instances PathDataset
+        """
+        print('getting splits')
+        train_ds = []
+        test_ds = []
+        for dataset in self.datasets:
+            train,test = dataset.get_splits(TRAIN_SPLIT)
+            train_ds.append(train)
+            test_ds.append(test)
+
+        return ConcatPathDataset(dataset_dict=None, splitted_datasets=train_ds), \
+               ConcatPathDataset(dataset_dict=None, splitted_datasets=test_ds)
+
 class PathDataset(Dataset):
     """
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path, preload=False,random_state=None, SSL=True, dataset_type='normal'):
+    def __init__(self, ids_to_load, path, preload=False, random_state=None, SSL=True, dataset_type='normal'):
 
         self.ids_to_load = ids_to_load
         self.path = path
@@ -165,7 +202,7 @@ class PathDataset(Dataset):
         fif_file_path = os.path.join(sub_dir, fif_file_name)
 
         if not self.SSL:
-            #TODO: keep target when reading a non SSL dataset
+            # TODO: keep target when reading a non SSL dataset
             target_file_path = os.path.join(sub_dir, 'target_name.json')
             target = json.load(open(target_file_path, "r"))['pathological']
 
@@ -181,20 +218,21 @@ class PathDataset(Dataset):
         augmented_1 = aug_1.operation(sample, y=None, **param_1)[0]
         augmented_2 = aug_2.operation(sample, y=None, **param_2)[0]
 
-        return augmented_1,augmented_2, sample
+        return augmented_1, augmented_2, sample
 
-    def get_splits(self, TRAIN_SPLIT:float):
+    def get_splits(self, TRAIN_SPLIT: float):
         """
         :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
         :return: train,test, train and test of instances PathDataset
         """
-        train_ids = sample(self.ids_to_load, round(len(self.ids_to_load)*TRAIN_SPLIT))
-        test_ids = list(set(self.ids_to_load)-set(train_ids))
+        train_ids = sample(self.ids_to_load, round(len(self.ids_to_load) * TRAIN_SPLIT))
+        test_ids = list(set(self.ids_to_load) - set(train_ids))
         assert len(train_ids) + len(test_ids) == len(self.ids_to_load)
-        return PathDataset(train_ids,path=self.path,preload=self.preload, random_state=self.random_state),\
-               PathDataset(test_ids,path=self.path,preload=self.preload, random_state=self.random_state)
 
-    def print_channels_and_diff(self, sample, augmented, augmentation_id,channel):
+        return PathDataset(train_ids, path=self.path, preload=self.preload, random_state=self.random_state), \
+               PathDataset(test_ids, path=self.path, preload=self.preload, random_state=self.random_state)
+
+    def print_channels_and_diff(self, sample, augmented, augmentation_id, channel):
         # TODO: Visualize how the different augmentations work
         diff = sample[0][channel].detach().numpy() - augmented[channel].detach().numpy()
         figs, axs = plt.subplots(1, 3)

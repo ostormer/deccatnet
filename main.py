@@ -1,20 +1,36 @@
 import DECCaTNet.contrastive_framework as cf
-from DECCaTNet.custom_dataset import PathDataset
+from DECCaTNet.custom_dataset import PathDataset, ConcatPathDataset
 from DECCaTNet.DECCaTNet_model import DECCaTNet
-#from SeqCLR.contrastive_framework import pre_train_model
+# from SeqCLR.contrastive_framework import pre_train_model
+from preprocessing.preprocess import run_preprocess
+import torch
 
 import pickle
+
 if __name__ == '__main__':
-    # with open('datasets/TUH/pickles/windowed_ids.pkl', 'rb') as f:
-    with open('datasets/TUH/pickles/split_idx_list.pkl', 'rb') as f:
-        ids_to_load = pickle.load(f)
+    # idx_abnormal = run_preprocess('preprocessing/preprocessing_abnormal_Styrk.yaml') # ran preproccess on abnormal
+    # load pickle
+    dataset_dict = {}
+    with open('datasets/TUH/TUH-pickles_abnormal/split_idx_list.pkl', 'rb') as f:
+        ids_abnormal = pickle.load(f)
 
-    path = 'datasets/TUH/preprocessed/step_2'
-    dataset = PathDataset(ids_to_load=ids_to_load,path=path, preload=False)
+    path_abnormal = 'datasets/TUH/preprocessed_abnormal/step_2'
 
-    cf.pre_train_model(dataset=dataset, batch_size=64,train_split=0.7,save_freq=1,shuffle=True,
-                       trained_model_path=None,temperature=1,learning_rate=0.01,weight_decay=0.01,
-                       num_workers=8,max_epochs=3,batch_print_freq=1,save_dir_model='models', model_file_name='test',
+    dataset_dict['TUH_abnormal'] = (path_abnormal, ids_abnormal)
+
+    with open('datasets/TUH/TUH-pickles/windowed_ids.pkl', 'rb') as f:
+        ids_TUH = pickle.load(f)
+
+    path_TUH = 'datasets/TUH/preprocessed/step_2'
+
+    dataset_dict['TUH'] = (path_TUH, ids_TUH)
+
+    dataset = ConcatPathDataset(dataset_dict=dataset_dict, preload=False)
+
+    cf.pre_train_model(dataset=dataset, batch_size=8, train_split=0.7, save_freq=10, shuffle=True,
+                       trained_model_path=None, temperature=1, learning_rate=0.01, weight_decay=0.01,
+                       num_workers=2, max_epochs=10, batch_print_freq=10, save_dir_model='models',
+                       model_file_name='test',
                        model_params=None, time_process=True)
 
 """
@@ -71,5 +87,3 @@ Average time used on delete :  0.000000
 
 found out:
     - """
-
-
