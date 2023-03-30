@@ -161,7 +161,7 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming,
                      # rename to common naming convention
                      Preprocessor(rename_channels, mapping=mapping,
                                   apply_on_array=False),
-                     Preprocessor('pick_channels', ch_names=ch_naming, ordered=True),  # keep wanted channels
+                     Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
                      # clip all data within a given border
                      Preprocessor(scale, factor=1e6, apply_on_array=True),
                      Preprocessor(np.clip, a_min=crop_min,
@@ -480,6 +480,7 @@ def run_preprocess(config_path, to_numpy=False):
 
         with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
             pickle.dump(windowed_ds, f)
+        # Next step, or return if fine tuning set
         if is_fine_tuning_ds:
             return windowed_ds
         else:
