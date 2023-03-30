@@ -15,7 +15,7 @@ class EncodingClassifier(nn.Module):
 
 
 class FineTuneNet(nn.Module):
-    def __init__(self, channel_groups, params):
+    def __init__(self, channel_groups, ds_channel_order, params):
         """
         encoder_path
         channel_group_size = 2
@@ -35,10 +35,15 @@ class FineTuneNet(nn.Module):
         self.encoder.load_state_dict(torch.load(self.encoder_path))
         self.encoder.requires_grad_(False)
 
-        self.ordered_channels = []  # TODO: Ask Styrk about channel ordering in preprocessed files. Is it arbitrary?
-        # TODO: Make dict witch translates channel names to index in preprocessed files
-        # TODO: Use that dict to define channel groups by indexes instead of channel names
-
+        self.ds_channel_order = ds_channel_order
+        # Make dict witch translates channel names to index in preprocessed files
+        self.channel_index = {}
+        for i, ch in enumerate(self.ds_channel_order):
+            self.channel_index[ch] = i
+        # Use channel index dict to define channel groups by indexes instead of channel names
+        self.channel_index_groups = []
+        for group in self.channel_groups:
+            self.channel_index_groups.append([self.channel_index[ch] for ch in group])
 
         # trans_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=8)
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
@@ -58,10 +63,17 @@ class FineTuneNet(nn.Module):
         # TODO: Decide what to do if n_channels does not fit into encoder size (Not even)
         # Do we discard the last channels? Do we make a overlap
         # TODO: Define splits from channel group index list from init to reduce run time
-        encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
-        if X.shape[2] % self.n_channel_groups != 0:
-            encoder_inputs.drop
-        encoder_out = []
+        channel_group_tensors = []
+        for indexes in self.channel_index_groups:
+            channel_group_tensors.append(
+                torch.concat((X[..., i, :] for i in indexes), dim=-2)  # TODO: Test this black magic!
+            )
+
+        # TODO: compare speed of the above with ll
+        # encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
+        # if X.shape[2] % self.n_channel_groups != 0:
+        #     encoder_inputs.drop
+        # encoder_out = []
 
         # Run each group/pair of channels through the encoder
         for group in encoder_inputs:
@@ -75,13 +87,13 @@ class FineTuneNet(nn.Module):
 
 def run_fine_tuning(dataset, params):
     epochs = params["epochs"]
-    dataset_channels = sorted(
-        ['EEG F4', 'EEG P4', 'EEG T6', 'EEG P3', 'EEG C4', 'EEG C3', 'EEG T3', 'EEG T5', 'EEG O1', 'EEG FP1', 'EEG A2',
-         'EEG T1', 'EEG T2', 'EEG F7', 'EEG FZ', 'EEG O2', 'EEG A1', 'EEG CZ', 'EEG F8', 'EEG T4', 'EEG PZ', 'EEG F3',
-         'EEG FP2'])
-    channel_groups = _make_adjacent_pairs(sorted(dataset_channels))
+    ds_channel_order = dataset.datasets[0].windows.ch_names
+    for windows_ds in dataset.datasets:
+        assert windows_ds.windows.ch_names == ds_channel_order
+    print("All recordings have the correct channel order")
 
-    model = FineTuneNet(channel_groups, params)
+    channel_groups = _make_adjacent_pairs(ds_channel_order)
+    model = FineTuneNet(channel_groups, ds_channel_order, params)
 
     split = dataset.split("train")
     train = split["True"]

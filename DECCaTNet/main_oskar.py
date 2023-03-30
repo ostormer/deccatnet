@@ -2,6 +2,7 @@ import pandas
 import yaml
 import pickle
 
+from DECCaTNet.preprocessing.preprocess import run_preprocess
 from DECCaTNet.DECCaTNet_model.fine_tuning import run_fine_tuning
 
 if __name__ == '__main__':
