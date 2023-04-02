@@ -29,9 +29,9 @@ class Encoder(nn.Module):
 
 class Convolution(nn.Module):
     """
-    A traditional Transformer uses potitionalembedding to capture local features
+    A traditional Transformer uses positional embedding to capture local features
     However we will use a CNN instead. This is due to the discovered effects
-    in litterature in combining CNN's and transformers for EEG classification
+    in literature in combining CNN's and transformers for EEG classification
     """
 
     def __init__(self, emb_size):
@@ -73,7 +73,7 @@ class Convolution(nn.Module):
 
 
 class TransEncoder(nn.Module):
-    def __init__(self,emb_size):
+    def __init__(self, emb_size):
         super().__init__()
         self.emb_size = emb_size
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.emb_size, nhead=8)

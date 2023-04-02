@@ -375,7 +375,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
 
-        losses.append(loss)
+        # losses.append(loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)

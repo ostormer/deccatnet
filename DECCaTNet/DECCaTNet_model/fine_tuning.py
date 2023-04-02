@@ -58,30 +58,41 @@ class FineTuneNet(nn.Module):
         )
 
     def forward(self, X):
+        print("New sample:!!!")
+        print(X.shape)
+        X = X[:, None, :, :]
         print(X.shape)
         # Split input into chunks that fit into the encoder
         # TODO: Decide what to do if n_channels does not fit into encoder size (Not even)
         # Do we discard the last channels? Do we make a overlap
         # TODO: Define splits from channel group index list from init to reduce run time
         channel_group_tensors = []
+
         for indexes in self.channel_index_groups:
+            print(indexes)
+            # Select the correct channel for each window in batch, concatenate those to new tensor
             channel_group_tensors.append(
-                torch.concat((X[..., i, :] for i in indexes), dim=-2)  # TODO: Test this black magic!
+                torch.concat([X[..., i:i+1, :] for i in indexes], dim=-2)
             )
+            print(channel_group_tensors[-1].shape)
+
+
 
         # TODO: compare speed of the above with ll
         # encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
-        # if X.shape[2] % self.n_channel_groups != 0:
-        #     encoder_inputs.drop
-        # encoder_out = []
 
+        encoder_out = []
         # Run each group/pair of channels through the encoder
-        for group in encoder_inputs:
-            print(group.shape)
+        for group in channel_group_tensors:
+            print(f"Group shape: {group.shape}")
             encoder_out.append(self.encoder(group))  # Encode group
 
-        combined_encodings = torch.flatten(torch.concat(encoder_out, dim=0))
-        x = self.classifier_net(combined_encodings)
+        print(encoder_out[0].shape)
+        X_encoded = torch.concat(encoder_out, dim=0)
+        print(X_encoded.shape)
+        X_encoded = torch.reshape(X_encoded, (X_encoded.shape[0], -1))
+        X_encoded = torch.flatten(X_encoded)
+        x = self.classifier(X_encoded)
         return x
 
 
