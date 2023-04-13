@@ -61,7 +61,6 @@ class FineTuneNet(nn.Module):
         print("New sample:!!!")
         print(X.shape)
         X = X[:, None, :, :]
-        print(X.shape)
         # Split input into chunks that fit into the encoder
         # TODO: Decide what to do if n_channels does not fit into encoder size (Not even)
         # Do we discard the last channels? Do we make a overlap

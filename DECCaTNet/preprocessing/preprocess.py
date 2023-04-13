@@ -3,6 +3,7 @@ import pickle
 import shutil
 from copy import deepcopy
 
+import braindecode.augmentation.functional
 import numpy as np
 import yaml
 from joblib import Parallel, delayed
@@ -154,6 +155,7 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming,
     """
     mne.set_log_level('ERROR')
     ch_naming = sorted(list(set(ch_naming) - set(exclude_channels)))
+    braindecode.augmentation.functional.channels_permute()
     preprocessors = [Preprocessor(custom_turn_off_log),  # turn off verbose
                      # set common reference for all
                      Preprocessor('set_eeg_reference',

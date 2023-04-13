@@ -16,10 +16,13 @@ from braindecode.datasets.base import BaseConcatDataset
 import matplotlib.pyplot as plt
 from braindecode.datautil.serialization import _load_parallel, _load_signals
 # from braindecode.datautil.serialization import load_concat_dataset
+from DECCaTNet_model.augmentations import SignalPermutation, Scale, TimeShift
 # Ignore warnings
 import warnings
+import torchplot as plt
 
 warnings.filterwarnings("ignore")
+
 
 class ConcatPathDataset(ConcatDataset):
     """
@@ -51,15 +54,37 @@ class ConcatPathDataset(ConcatDataset):
         :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
         :return: train,test, intances of ConcatPathDatasets with the correct training and testing ids
         """
-        train_ds = [] #init list of ds for training and testing
+        train_ds = []  # init list of ds for training and testing
         test_ds = []
-        for dataset in self.datasets: # iterate through datasets
-            train,test = dataset.get_splits(TRAIN_SPLIT) # use datasets get splits function, return two pathDatasets
+        for dataset in self.datasets:  # iterate through datasets
+            train, test = dataset.get_splits(TRAIN_SPLIT)  # use datasets get splits function, return two pathDatasets
             train_ds.append(train)
             test_ds.append(test)
 
         return ConcatPathDataset(dataset_dict=None, splitted_datasets=train_ds), \
-               ConcatPathDataset(dataset_dict=None, splitted_datasets=test_ds) #return two new ConcatPathDatasets
+               ConcatPathDataset(dataset_dict=None, splitted_datasets=test_ds)  # return two new ConcatPathDatasets
+
+
+def select_params(param: dict):
+    for key in param.keys():
+        value = param[key]
+        if isinstance(value, tuple):
+            if isinstance(value[0],float):
+                value_1 = random.randint(value[0] * 10, value[
+                    1] * 10) / 10  # some values are float with one decimal, but can go around this by multiplying by 10
+            elif isinstance(value[0],torch.Tensor):
+                if isinstance(value[0][0].numpy(),float):
+                    value_1 = random.randint(value[0][0].numpy() * 10, value[
+                        1][0].numpy() * 10) / 10
+                else:
+                    print(type(value[0][0].numpy()))
+                    value_1 = torch.Tensor([random.randint(value[0][0].numpy(), value[1][0].numpy())])
+            else:
+                value_1 = random.randint(value[0],value[1])
+            param[key] = value_1
+    print(f'param for denne kjøringen er {param}')
+    return param
+
 
 class PathDataset(Dataset):
     """
@@ -75,18 +100,38 @@ class PathDataset(Dataset):
         self.SSL = SSL
         self.dataset_type = dataset_type
 
-        if random_state == None:
-            self.random_state = 100
-        else:
-            self.random_state = random_state
+        self.random_state = random_state
+
+        # random.seed(self.random_state)
+        # TODO: implement a way of changing parameters underway
+        # TODO: implement way of combining augmentations
+        # legal combinations of augmentations: All of the augmentations below are "Weak"
+
         # TODO: select correct augmentations and parameters
-        self.augmentation_names = ['dropout', 'additive_noise', 'freq_shift']
-        self.augmentations = [augmentation.ChannelsDropout,
-                              augmentation.GaussianNoise,
-                              augmentation.FrequencyShift]
-        self.augment_params = [{'p_drop': 0.2, 'random_state': random_state},
-                               {'std': 8, 'random_state': random_state},
-                               {'sfreq': 250, 'delta_freq': 10}]
+
+        self.augmentation_names = ['permutation', 'masking', 'bandstop', 'gaussian', 'freq_shift', 'scale',
+                                   'time_shift']
+        self.augmentations = {'permutation': SignalPermutation,
+                              'masking': augmentation.SmoothTimeMask,
+                              'bandstop': augmentation.BandstopFilter,
+                              'gaussian': augmentation.GaussianNoise,
+                              'freq_shift': augmentation.FrequencyShift,
+                              'scale': Scale,
+                              'time_shift': TimeShift
+                              }
+        self.augment_params = {'permutation': {'n_permutations': (5, 10)},
+                               'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])),
+                                           'mask_len_samples': (5000, 7000)},
+                               'bandstop': {'sfreq': 250, 'bandwidth': 5, 'freqs_to_notch': (torch.Tensor([5.8]), torch.Tensor([82.5]))},
+                               'gaussian': {'std': (10, 50)},
+                               'freq_shift': {'delta_freq': (1, 20), 'sfreq': 250},
+                               'scale': {'scale_factor': (0.5, 1.5)},
+                               'time_shift': {'time_shift': (10, 1000)},
+
+                               # {'p_drop': 0.2, 'random_state': random_state},
+                               #                    {'std': 8, 'random_state': random_state},
+                               # {'sfreq': 250, 'delta_freq': 10}
+                               }
         """
         (probability=1, sfreq=180, bandwidth=1, max_freq=None, random_state=random_state)
         (probability=1, p_drop=0.2, random_state=random_state)
@@ -123,12 +168,21 @@ class PathDataset(Dataset):
         sample = torch.Tensor(sample)
 
         # apply augmentations
-        augmentation_id = random.sample(range(0, len(self.augmentations)), 2)
-        aug_1, aug_2 = self.augmentations[augmentation_id[0]], self.augmentations[augmentation_id[1]]
-        param_1, param_2 = self.augment_params[augmentation_id[0]], self.augment_params[augmentation_id[1]]
+        augmentation_id = random.sample(range(0, len(self.augmentation_names)), 2)
+        aug_1 = self.augmentation_names[augmentation_id[0]]
+        aug_2 = self.augmentation_names[augmentation_id[1]]
+        param_1 = self.augment_params[aug_1].copy()
+        param_2 = self.augment_params[aug_2].copy()
 
-        augmented_1 = aug_1.operation(sample, y=None, **param_1)[0]
-        augmented_2 = aug_2.operation(sample, y=None, **param_2)[0]
+        param_1 = select_params(param_1)
+        param_2 = select_params(param_2)
+
+        augmented_1 = self.augmentations[aug_1].operation(sample, y=None, **param_1)[0]
+        augmented_2 = self.augmentations[aug_2].operation(sample, y=None, **param_2)[0]
+
+        # self.visualize_augmentations(sample, augmented_1, augmented_2, augmentation_id, plot_diff=True)
+
+        #self.get_splits()
 
         return augmented_1, augmented_2, sample
 
@@ -144,17 +198,52 @@ class PathDataset(Dataset):
         return PathDataset(train_ids, path=self.path, preload=self.preload, random_state=self.random_state), \
                PathDataset(test_ids, path=self.path, preload=self.preload, random_state=self.random_state)
 
-    def print_channels_and_diff(self, sample, augmented, augmentation_id, channel):
-        # TODO: Visualize how the different augmentations work
-        diff = sample[0][channel].detach().numpy() - augmented[channel].detach().numpy()
-        figs, axs = plt.subplots(1, 3)
-        axs[0].plot(sample[0][channel].detach().numpy())
-        axs[0].set_title('sample')
-        axs[1].plot(augmented[channel].detach().numpy())
-        axs[1].set_title('augmented ' + self.augmentation_names[augmentation_id])
-        axs[2].plot(diff)
-        axs[2].set_title('difference')
+    def visualize_augmentations(self, original, augmented_1, augmented_2, augmentation_id, plot_diff=False):
+        """
+        Visualize the effect of augmentations on the original signal
+        :param plot_diff: if differences should be plotted or not.
+        :param original: original signal which has been augmented
+        :param augmented_1: augmented signal with augmentation 1
+        :param augmented_2: augmented signal with augmentation 2
+        :param augmentation_id: ids of the two selected augmentations
+        :return: a plot of the different augmentations
+        """
+        # get n_channels
+        n_channels = original.shape[1]
+
+        # reshape all for easier plotting
+        original = original[0]
+        augmented_1 = augmented_1[0]
+        augmented_2 = augmented_2[0]
+
+        # create on plot for each channel
+        if plot_diff:
+            dims = n_channels + 1
+        else:
+            dims = n_channels
+        figs, axs = plt.subplots(dims, 2)
+        for i in range(n_channels):
+            axs[i, 0].plot(original[i], color='orange', label='original')
+            axs[i, 1].plot(original[i], color='orange', label='original')
+            axs[i, 0].plot(augmented_1[i], color='blue', alpha=0.5, label=self.augmentation_names[augmentation_id[0]])
+            axs[i, 1].plot(augmented_2[i], color='blue', alpha=0.5, label=self.augmentation_names[augmentation_id[1]])
+            axs[i, 0].axis('off')
+            axs[i, 1].axis('off')
+            axs[i, 0].legend(loc='upper left')
+            axs[i, 1].legend(loc='upper left')
+            if plot_diff:
+                axs[-1, 0].plot(original[i] - augmented_1[i], alpha=0.5, label=f'diff for channel {i}')
+                axs[-1, 1].plot(original[i] - augmented_2[i], alpha=0.5, label=f'diff for channel {i}')
+                axs[-1, 0].legend(loc='upper left')
+                axs[-1, 1].legend(loc='upper left')
+                axs[-1, 0].axis('off')
+                axs[-1, 1].axis('off')
+
+        axs[0, 1].title.set_text(self.augmentation_names[augmentation_id[1]])
+        axs[0, 0].title.set_text(self.augmentation_names[augmentation_id[0]])
+        plt.tight_layout(pad=0.3, w_pad=0.5, h_pad=0.5)
         plt.show()
+
 
 class ContrastiveAugmentedDataset(BaseConcatDataset):
     """

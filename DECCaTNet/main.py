@@ -1,5 +1,5 @@
-import DECCaTNet.DECCaTNet_model.contrastive_framework as cf
-from DECCaTNet.DECCaTNet_model import ConcatPathDataset
+import DECCaTNet_model.contrastive_framework as cf
+from DECCaTNet_model.custom_dataset import ConcatPathDataset
 # from SeqCLR.contrastive_framework import pre_train_model
 
 import pickle
@@ -8,14 +8,14 @@ if __name__ == '__main__':
     # idx_abnormal = run_preprocess('preprocessing/preprocessing_abnormal_Styrk.yaml') # ran preproccess on abnormal
     # load pickle
     dataset_dict = {}
-    with open('datasets/TUH/TUH-pickles_abnormal/split_idx_list.pkl', 'rb') as f:
+    with open('../datasets/TUH/TUH-pickles_abnormal/split_idx_list.pkl', 'rb') as f:
         ids_abnormal = pickle.load(f)
 
-    path_abnormal = 'datasets/TUH/preprocessed_abnormal/step_2'
+    path_abnormal = '../datasets/TUH/preprocessed_abnormal/step_2'
 
     dataset_dict['TUH_abnormal'] = (path_abnormal, ids_abnormal)
 
-    with open('datasets/TUH/TUH-pickles/windowed_ids.pkl', 'rb') as f:
+    with open('../datasets/TUH/TUH-pickles/windowed_ids.pkl', 'rb') as f:
         ids_TUH = pickle.load(f)
 
     path_TUH = '../datasets/TUH/preprocessed/step_2'
