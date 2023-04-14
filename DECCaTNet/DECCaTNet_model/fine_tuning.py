@@ -71,11 +71,9 @@ class FineTuneNet(nn.Module):
             print(indexes)
             # Select the correct channel for each window in batch, concatenate those to new tensor
             channel_group_tensors.append(
-                torch.concat([X[..., i:i+1, :] for i in indexes], dim=-2)
+                torch.concat([X[..., i:i + 1, :] for i in indexes], dim=-2)
             )
             print(channel_group_tensors[-1].shape)
-
-
 
         # TODO: compare speed of the above with ll
         # encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
@@ -94,15 +92,18 @@ class FineTuneNet(nn.Module):
         x = self.classifier(X_encoded)
         return x
 
+
 def n_correct_preds(y_pred, y):
     num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
     num_total = len(y)
     return num_correct, num_total
 
+
 def run_fine_tuning(dataset, params):
     epochs = params["epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
+    num_workers = params['num_workers']
     ds_channel_order = dataset.datasets[0].windows.ch_names
     for windows_ds in dataset.datasets:
         assert windows_ds.windows.ch_names == ds_channel_order
@@ -114,9 +115,14 @@ def run_fine_tuning(dataset, params):
     split = dataset.split("train")
     train = split["True"]
     test = split["False"]
+    # TODO: get train/val/test set, will use test as val for now
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["shuffle"],
-                                               num_workers=1)
+                                               num_workers=num_workers)
+    val_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=False,
+                                             num_workers=num_workers)
+    test_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=False,
+                                             num_workers=num_workers)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -132,7 +138,7 @@ def run_fine_tuning(dataset, params):
     train_acc = []
     val_acc = []
     for epoch in range(epochs):
-        model.train() # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
+        model.train()  # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
         train_loss = 0
         correct_train_preds = 0
         num_train_preds = 0
@@ -141,15 +147,15 @@ def run_fine_tuning(dataset, params):
             x, y = x.to(device), y.to(device)
             optimizer.zero_grad()
 
-            #forward pass
+            # forward pass
             pred = model(x)
-            #compute loss
-            loss = loss_func(pred,y)
+            # compute loss
+            loss = loss_func(pred, y)
             # update weights
             loss.backward()
             optimizer.step()
 
-            correct, number = n_correct_preds(pred,y)
+            correct, number = n_correct_preds(pred, y)
             correct_train_preds += correct
             num_train_preds += number
 
@@ -162,10 +168,59 @@ def run_fine_tuning(dataset, params):
             del pred
             torch.cuda.empty_cache()
 
+        correct_eval_preds = 0
+        num_eval_preds = 0
+        with torch.no_grad(): #detach all gradients from tensors
+            model.eval()  # tell model it is evaluation time
+            for x, y, crops_inds in tqdm(val_loader, position=0, leave=True):
 
-        #TODO: implement evaluation on eval/test set
-        #TODO: remeber that some datasets (Abnormal/Normal) is already splitted, guessing this is implemented by Oskar.
-        #TODO: implement pickel file
+                x, y = x.to(device), y.to(device)
+                # get predictions
+                pred = model(x)
+                # get correct preds and number of preds
+                correct, number = n_correct_preds(pred, y)
+                #update preds
+                correct_eval_preds += correct
+                num_eval_preds += number
 
+                #cleare up memory
+                del x
+                del y
+                del pred
+                torch.cuda.empty_cache()
+
+        # calculate accuracies and losses and update
+        loss.append(train_loss/len(train_loader))
+        train_acc.append(correct_train_preds/num_train_preds)
+        val_acc.append(correct_eval_preds/num_eval_preds)
+
+
+    # testing
+    correct_test_preds = 0
+    num_test_preds= 0
+    with torch.no_grad(): # detach gradients
+        model.eval() # set correct flags for evaluation/testing
+        for x, y, crops_inds in tqdm(test_loader, position=0, leave=True):
+            x, y = x.to(device), y.to(device)
+            # get predictions
+            pred = model(x)
+            # get correct preds and number of preds
+            correct, number = n_correct_preds(pred, y)
+            # update preds
+            correct_test_preds += correct
+            num_test_preds += number
+
+            # cleare up memory
+            del x
+            del y
+            del pred
+            torch.cuda.empty_cache()
+
+    test_acc =
+    # TODO Fininsh test acc, make it a function and implement k-fold validation strategy, could have both and check which is best, split into two functions to make is clean/nice
+        # TODO: add all things from contrastive_framework as saving, pickle dumping etc
+        # TODO: implement testing
+        # TODO: remeber that some datasets (Abnormal/Normal) is already splitted, guessing this is implemented by Oskar.
+        # TODO: implement pickel file
 
         print("Encoded!")
