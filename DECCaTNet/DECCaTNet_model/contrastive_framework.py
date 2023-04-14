@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as fn
 from tqdm import tqdm
+import pickle as pkl
+import torchplot as plt
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
 
@@ -231,9 +233,8 @@ class ContrastiveLossGPT(nn.Module):
 def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, trained_model_path, temperature,
                     learning_rate, weight_decay,
                     num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params,
-                    time_process):
+                    time_process,n_channels):
     """
-
     :param dataset: ContrastiveAugmentedDataset for pre_training
     :param batch_size: batch size for pre_training
     :param train_split: percentage of dataset size which is training
@@ -312,6 +313,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     # iterative traning loop
     for epoch in range(max_epochs):
         print('epoch number: ', epoch, 'of: ', max_epochs)
+        epoch_loss = 0
         counter = 0  # counter for batch print.
         # start traning by looping through batches
         start_time = time.thread_time()
@@ -332,6 +334,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             backward_time = time.thread_time()
             optimizer.step()
             loss_update_time = time.thread_time()
+            epoch_loss += loss
             # free cuda memory
             del x1
             del x2
@@ -374,8 +377,8 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             # here is the solution, have the model as several modules; then different modules can be saved seperately
             temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
-
-        # losses.append(loss)
+        epoch_loss = epoch_loss/counter # get average loss
+        losses.append(epoch_loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)
@@ -384,15 +387,57 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     torch.save(model.encoder.state_dict(), save_path_enocder)
 
     # save all of parameters to pickelfile
-    # Want to include
-    # save_path_model
-    # save_path_enocder
-    # save_dir_model
-    # losses
-    # eval_losses  # TODO
-    # batch_size, save_freq, shuffle, trained_model_path, temperature, learning_rate,
-    # weight_decay, max_epochs, batch_print_freq, save_dir_model, model_file_name
+    pickle_name = 'meta_data_and_params_' + model_file_name + '.pkl'
 
-    # then biosignals write a lot of metadata to a pickel file, which might not be stupid # TODO: check this out
+    meta_data_path = os.path.join(save_dir_model, pickle_name)
+    with open(meta_data_path, 'wb') as outfile:
+        pkl.dump({
+            "avg_train_losses": losses,
+            #"avg_train_accs": avg_train_accs, #TODO: check out avg_train_accs
+            "save_dir_for_model": save_dir_model,
+            "model_file_name": model_file_name,
+            "batch_size": batch_size,
+            "shuffle": shuffle,  # "num_workers": num_workers,
+            "max_epochs": max_epochs,
+            "learning_rate": learning_rate,
+            'temperature':temperature,
+            #"beta_vals": beta_vals, # TODO: check out betavals
+            "weight_decay": weight_decay,
+            "save_freq": save_freq,
+            'noise_probability': dataset.noise_probability,
+            'model_params': model_params,
+            "channels": n_channels, #TODO:check where number of channels need to be changed
+            'dataset_names':dataset.dataset_names,
+            "sfreq": dataset.sfreq,
+            'train_split':train_split,
+            'already_trained_model':trained_model_path,
+            'num_workers':num_workers,
+
+
+        }, outfile)
 
     print('Traning Done!!')
+
+
+def plot_avgs(avg_train_losses, avg_train_accs, avg_val_accs, plot_series_name, save_path):
+    fig1, ax1 = plt.subplots()
+    ax1.plot(avg_train_losses)
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Average Loss")
+    ax1.set_title(plot_series_name + ": Average Training Losses")
+    plt.legend()
+    plt.draw()
+    loss_plot_save_path = os.path.join(save_path, plot_series_name + "_loss_visualization.png")
+    fig1.savefig(loss_plot_save_path)
+
+    fig2, ax2 = plt.subplots()
+    ax2.plot(avg_train_accs, label="training")
+    ax2.plot(avg_val_accs, label="validation")
+    ax2.set_xlabel("Epoch")
+    ax2.set_ylabel("Average Accuracy")
+    ax2.set_title(plot_series_name + ": Average Prediction Accuracy")
+    plt.legend()
+    plt.draw()
+    accuracy_plot_save_path = os.path.join(save_path, plot_series_name + "_accuracy_visualization.png")
+    fig2.savefig(accuracy_plot_save_path)
+    pass

@@ -22,11 +22,11 @@ if __name__ == '__main__':
 
     dataset_dict['TUH'] = (path_TUH, ids_TUH)
 
-    dataset = ConcatPathDataset(dataset_dict=dataset_dict, preload=False)
+    dataset = ConcatPathDataset(dataset_dict=dataset_dict, preload=False, sfreq=250, noise_probability=0.5)
 
     cf.pre_train_model(dataset=dataset, batch_size=8, train_split=0.7, save_freq=10, shuffle=True,
                        trained_model_path=None, temperature=1, learning_rate=0.01, weight_decay=0.01,
-                       num_workers=2, max_epochs=10, batch_print_freq=10, save_dir_model='models',
+                       num_workers=2, max_epochs=10, batch_print_freq=10, n_channels=2,save_dir_model='models',
                        model_file_name='test',
                        model_params=None, time_process=True)
 

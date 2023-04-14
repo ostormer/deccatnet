@@ -30,21 +30,22 @@ class ConcatPathDataset(ConcatDataset):
     randomly from different PathDatasets
     """
 
-    def __init__(self, dataset_dict: dict, preload=False, random_state=None, SSL=True, splitted_datasets=None):
+    def __init__(self, dataset_dict: dict, sfreq=250, noise_probability =0,preload=False, random_state=None, SSL=True, splitted_datasets=None):
         """
-
         :param dataset_dict: dict with format key: (path,ids), used to init PathDataset
         :param preload: wether to preload dataset or not
         :param random_state:
         :param SSL: Wether we are going to do self-supervised learning or not
         :param splitted_datasets: Only used when splitting dataset, dont need to initialize new PathDatasets
         """
+        self.dataset_names = []
         if splitted_datasets == None:
             datasets = []
             for dataset in dataset_dict.keys():
                 path_dataset = PathDataset(ids_to_load=dataset_dict[dataset][1], path=dataset_dict[dataset][0],
-                                           preload=preload, random_state=random_state, dataset_type=dataset, SSL=SSL)
+                                           preload=preload, random_state=random_state, dataset_type=dataset, SSL=SSL,sfreq=sfreq, noise_probability=noise_probability)
                 datasets.append(path_dataset)
+                self.dataset_names.append(dataset)
         else:
             datasets = splitted_datasets
         super().__init__(datasets)
@@ -90,7 +91,7 @@ class PathDataset(Dataset):
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path, noise_probability=0, preload=False, random_state=None, SSL=True, dataset_type='normal'):
+    def __init__(self, ids_to_load, path, noise_probability=0, sfreq=250,preload=False, random_state=None, SSL=True, dataset_type='normal'):
 
         self.ids_to_load = ids_to_load
         self.path = path
@@ -99,6 +100,7 @@ class PathDataset(Dataset):
         self.SSL = SSL
         self.dataset_type = dataset_type
         self.noise_probaility = noise_probability
+        self.sfreq = sfreq
 
         self.random_state = random_state
 
@@ -122,9 +124,9 @@ class PathDataset(Dataset):
         self.augment_params = {'permutation': {'n_permutations': (5, 10)},
                                'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])),
                                            'mask_len_samples': (5000, 7000)},
-                               'bandstop': {'sfreq': 250, 'bandwidth': 30, 'freqs_to_notch': (torch.Tensor([20.5]), torch.Tensor([20.6]))},
+                               'bandstop': {'sfreq': self.sfreq, 'bandwidth': 30, 'freqs_to_notch': (torch.Tensor([20.5]), torch.Tensor([20.6]))},
                                'gaussian': {'std': (10, 50)},
-                               'freq_shift': {'delta_freq': (1, 20), 'sfreq': 250},
+                               'freq_shift': {'delta_freq': (1, 20), 'sfreq': self.sfreq},
                                'scale': {'scale_factor': (0.5, 1.5)},
                                'time_shift': {'time_shift': (10, 1000)},
                                'add_noise':{'std':(1,5)}
