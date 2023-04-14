@@ -13,20 +13,54 @@ def signal_permutate(x, y, n_permutations, random_state=None):
 
     sub_tensors = list(torch.tensor_split(x, n_permutations, dim=1))
     random.shuffle(sub_tensors)
-    x = torch.cat(sub_tensors,dim=1)
-    return x.view(1,n_channels,-1),y
+    x = torch.cat(sub_tensors, dim=1)
+    return x.view(1, n_channels, -1), y
 
-def scale(x,y,scale_factor):
+
+def scale(x, y, scale_factor):
     # TODO: scale must work best if the signal is normalized arounf zero?
-    return torch.mul(x,scale_factor),y
+    return torch.mul(x, scale_factor), y
 
 
-def time_shift(x,y,time_shift):
+def time_shift(x, y, time_shift):
     n_channels = x.shape[1]
-    x = x.view(n_channels,-1)
-    time_shift = ((time_shift,)*n_channels)
-    dims = ((1,)*n_channels)
-    return torch.roll(x,time_shift, dims=dims).view(1,n_channels,-1),y
+    x = x.view(n_channels, -1)
+    time_shift = ((time_shift,) * n_channels)
+    dims = ((1,) * n_channels)
+    return torch.roll(x, time_shift, dims=dims).view(1, n_channels, -1), y
+
+
+def add_noise(x, y,std,aug: augmentation.Transform, params,random_state=None):
+    x = aug.operation(x, y=y, **params)[0]
+    return augmentation.functional.gaussian_noise(x, y=y, std=std, random_state=random_state)
+
+
+class AddNoise(augmentation.Transform):
+    operation = staticmethod(add_noise)
+
+    def __init__(
+            self,
+            probability,
+            aug: augmentation.Transform,
+            params,
+            std=0.1,
+            random_state=None
+    ):
+        super().__init__(
+            probability=probability,
+            random_state=random_state,
+        )
+        self.params = params
+        self.aug = aug
+        self.std = std
+
+    def get_augmentation_params(self, *batch):
+        return {
+            'params': self.params,
+            'aug': self.aug,
+            "std": self.std,
+            "random_state": self.rng,
+        }
 
 
 class SignalPermutation(augmentation.Transform):
@@ -52,7 +86,7 @@ class Scale(augmentation.Transform):
 
     def get_augmentation_params(self, *batch):
         return {
-            'scale_factor':self.scale_factor
+            'scale_factor': self.scale_factor
         }
 
 
@@ -65,5 +99,5 @@ class TimeShift(augmentation.Transform):
 
     def get_augmentation_params(self, *batch):
         return {
-            'time_shift':self.time_shift
+            'time_shift': self.time_shift
         }

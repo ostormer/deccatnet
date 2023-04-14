@@ -16,7 +16,7 @@ from braindecode.datasets.base import BaseConcatDataset
 import matplotlib.pyplot as plt
 from braindecode.datautil.serialization import _load_parallel, _load_signals
 # from braindecode.datautil.serialization import load_concat_dataset
-from DECCaTNet_model.augmentations import SignalPermutation, Scale, TimeShift
+from DECCaTNet_model.augmentations import SignalPermutation, Scale, TimeShift, AddNoise
 # Ignore warnings
 import warnings
 import torchplot as plt
@@ -73,16 +73,15 @@ def select_params(param: dict):
                 value_1 = random.randint(value[0] * 10, value[
                     1] * 10) / 10  # some values are float with one decimal, but can go around this by multiplying by 10
             elif isinstance(value[0],torch.Tensor):
-                if isinstance(value[0][0].numpy(),float):
-                    value_1 = random.randint(value[0][0].numpy() * 10, value[
-                        1][0].numpy() * 10) / 10
+                if isinstance(value[0][0].item(),float):
+                    value_1 = torch.Tensor([random.randint(round(value[0][0].item() * 10), round(value[
+                        1][0].item() * 10)) / 10])
                 else:
-                    print(type(value[0][0].numpy()))
-                    value_1 = torch.Tensor([random.randint(value[0][0].numpy(), value[1][0].numpy())])
+                    value_1 = torch.Tensor([random.randint(value[0][0].item(), value[1][0].item())])
             else:
                 value_1 = random.randint(value[0],value[1])
             param[key] = value_1
-    print(f'param for denne kjøringen er {param}')
+    #print(f'param for denne kjøringen er {param}')
     return param
 
 
@@ -91,7 +90,7 @@ class PathDataset(Dataset):
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path, preload=False, random_state=None, SSL=True, dataset_type='normal'):
+    def __init__(self, ids_to_load, path, noise_probability=0, preload=False, random_state=None, SSL=True, dataset_type='normal'):
 
         self.ids_to_load = ids_to_load
         self.path = path
@@ -99,15 +98,14 @@ class PathDataset(Dataset):
         self.is_raw = False
         self.SSL = SSL
         self.dataset_type = dataset_type
+        self.noise_probaility = noise_probability
 
         self.random_state = random_state
 
         # random.seed(self.random_state)
-        # TODO: implement a way of changing parameters underway
-        # TODO: implement way of combining augmentations
         # legal combinations of augmentations: All of the augmentations below are "Weak"
 
-        # TODO: select correct augmentations and parameters
+        # TODO: select correct parameters and write
 
         self.augmentation_names = ['permutation', 'masking', 'bandstop', 'gaussian', 'freq_shift', 'scale',
                                    'time_shift']
@@ -117,16 +115,19 @@ class PathDataset(Dataset):
                               'gaussian': augmentation.GaussianNoise,
                               'freq_shift': augmentation.FrequencyShift,
                               'scale': Scale,
-                              'time_shift': TimeShift
+                              'time_shift': TimeShift,
+                              'add_noise':AddNoise,
+
                               }
         self.augment_params = {'permutation': {'n_permutations': (5, 10)},
                                'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])),
                                            'mask_len_samples': (5000, 7000)},
-                               'bandstop': {'sfreq': 250, 'bandwidth': 5, 'freqs_to_notch': (torch.Tensor([5.8]), torch.Tensor([82.5]))},
+                               'bandstop': {'sfreq': 250, 'bandwidth': 30, 'freqs_to_notch': (torch.Tensor([20.5]), torch.Tensor([20.6]))},
                                'gaussian': {'std': (10, 50)},
                                'freq_shift': {'delta_freq': (1, 20), 'sfreq': 250},
                                'scale': {'scale_factor': (0.5, 1.5)},
                                'time_shift': {'time_shift': (10, 1000)},
+                               'add_noise':{'std':(1,5)}
 
                                # {'p_drop': 0.2, 'random_state': random_state},
                                #                    {'std': 8, 'random_state': random_state},
@@ -177,12 +178,19 @@ class PathDataset(Dataset):
         param_1 = select_params(param_1)
         param_2 = select_params(param_2)
 
-        augmented_1 = self.augmentations[aug_1].operation(sample, y=None, **param_1)[0]
-        augmented_2 = self.augmentations[aug_2].operation(sample, y=None, **param_2)[0]
+        if self.noise_probaility > random.random() and aug_1 != 'gaussian':
+            param_noise = select_params(self.augment_params['add_noise'].copy())
+            augmented_1 = self.augmentations['add_noise'].operation(sample,None,**param_noise,aug=self.augmentations[aug_1],params=param_1)[0]
+        else:
+            augmented_1 = self.augmentations[aug_1].operation(sample, y=None, **param_1)[0]
 
-        # self.visualize_augmentations(sample, augmented_1, augmented_2, augmentation_id, plot_diff=True)
+        if self.noise_probaility > random.random() and aug_2 != 'gaussian':
+            param_noise = select_params(self.augment_params['add_noise'].copy())
+            augmented_2 = self.augmentations['add_noise'].operation(sample,None,**param_noise,aug=self.augmentations[aug_2],params=param_2)[0]
+        else:
+            augmented_2 = self.augmentations[aug_2].operation(sample, y=None, **param_2)[0]
 
-        #self.get_splits()
+        #self.visualize_augmentations(sample, augmented_1, augmented_2, augmentation_id, plot_diff=True)
 
         return augmented_1, augmented_2, sample
 
