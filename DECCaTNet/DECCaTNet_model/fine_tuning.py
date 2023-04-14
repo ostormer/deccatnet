@@ -94,6 +94,10 @@ class FineTuneNet(nn.Module):
         x = self.classifier(X_encoded)
         return x
 
+def n_correct_preds(y_pred, y):
+    num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
+    num_total = len(y)
+    return num_correct, num_total
 
 def run_fine_tuning(dataset, params):
     epochs = params["epochs"]
@@ -124,9 +128,9 @@ def run_fine_tuning(dataset, params):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
 
-    # print(train.datasets[0].targets_from)
-    # print(train.datasets[0].__getitem__(0))
     loss = []
+    train_acc = []
+    val_acc = []
     for epoch in range(epochs):
         model.train() # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
         train_loss = 0
@@ -145,7 +149,9 @@ def run_fine_tuning(dataset, params):
             loss.backward()
             optimizer.step()
 
-            #TODO: implement number of correct guesses to evaluate
+            correct, number = n_correct_preds(pred,y)
+            correct_train_preds += correct
+            num_train_preds += number
 
             # track loss
             train_loss += loss.item()
@@ -155,6 +161,7 @@ def run_fine_tuning(dataset, params):
             del y
             del pred
             torch.cuda.empty_cache()
+
 
         #TODO: implement evaluation on eval/test set
         #TODO: remeber that some datasets (Abnormal/Normal) is already splitted, guessing this is implemented by Oskar.
