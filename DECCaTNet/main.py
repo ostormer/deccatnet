@@ -1,6 +1,7 @@
 import DECCaTNet_model.contrastive_framework as cf
 from DECCaTNet_model.custom_dataset import ConcatPathDataset
 # from SeqCLR.contrastive_framework import pre_train_model
+import DECCaTNet_model.fine_tuning as fn
 
 import pickle
 
@@ -24,11 +25,13 @@ if __name__ == '__main__':
 
     dataset = ConcatPathDataset(dataset_dict=dataset_dict, preload=False, sfreq=250, noise_probability=0.5)
 
-    cf.pre_train_model(dataset=dataset, batch_size=8, train_split=0.7, save_freq=10, shuffle=True,
+    fn.run_fine_tuning()
+
+    cf.pre_train_model(dataset=dataset, batch_size=8, train_split=0.02, save_freq=1, shuffle=True,
                        trained_model_path=None, temperature=1, learning_rate=0.01, weight_decay=0.01,
-                       num_workers=2, max_epochs=10, batch_print_freq=10, n_channels=2,save_dir_model='models',
+                       num_workers=2, max_epochs=2, batch_print_freq=10, n_channels=2,save_dir_model='models',
                        model_file_name='test',
-                       model_params=None, time_process=True)
+                       model_params=None, time_process=False)
 
 """
 batch_size = 2

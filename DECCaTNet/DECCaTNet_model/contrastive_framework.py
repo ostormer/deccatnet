@@ -312,7 +312,8 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'backward', 'loss_update', 'delete', 'total']
     # iterative traning loop
     for epoch in range(max_epochs):
-        print('epoch number: ', epoch, 'of: ', max_epochs)
+        model.train() # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
+        print('epoch number: ', epoch+1, 'of: ', max_epochs)
         epoch_loss = 0
         counter = 0  # counter for batch print.
         # start traning by looping through batches
@@ -334,7 +335,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
             backward_time = time.thread_time()
             optimizer.step()
             loss_update_time = time.thread_time()
-            epoch_loss += loss
+            epoch_loss += loss.item()
             # free cuda memory
             del x1
             del x2
@@ -371,11 +372,11 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
         if epoch % save_freq == 0 and epoch != 0:
-            print('epoch number: ', epoch, 'saving model  ')
-            temp_save_path_model = os.path.join(save_dir_model, "temp_" + str(epoch) + "_" + model_file_name)
+            print('epoch number: ', epoch+1, 'saving model  ')
+            temp_save_path_model = os.path.join(save_dir_model, "temp_" + str(epoch+1) + "_" + model_file_name)
             torch.save(model.state_dict(), temp_save_path_model)
             # here is the solution, have the model as several modules; then different modules can be saved seperately
-            temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch) + "_" + model_file_name)
+            temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch+1) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
         epoch_loss = epoch_loss/counter # get average loss
         losses.append(epoch_loss)

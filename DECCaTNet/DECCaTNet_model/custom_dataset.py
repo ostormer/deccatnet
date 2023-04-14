@@ -30,7 +30,8 @@ class ConcatPathDataset(ConcatDataset):
     randomly from different PathDatasets
     """
 
-    def __init__(self, dataset_dict: dict, sfreq=250, noise_probability =0,preload=False, random_state=None, SSL=True, splitted_datasets=None):
+    def __init__(self, dataset_dict: dict, sfreq=250, noise_probability=0, preload=False, random_state=None, SSL=True,
+                 splitted_datasets=None, dataset_names=None):
         """
         :param dataset_dict: dict with format key: (path,ids), used to init PathDataset
         :param preload: wether to preload dataset or not
@@ -39,14 +40,18 @@ class ConcatPathDataset(ConcatDataset):
         :param splitted_datasets: Only used when splitting dataset, dont need to initialize new PathDatasets
         """
         self.dataset_names = []
+        self.noise_probability = noise_probability
+        self.sfreq = sfreq
         if splitted_datasets == None:
             datasets = []
             for dataset in dataset_dict.keys():
                 path_dataset = PathDataset(ids_to_load=dataset_dict[dataset][1], path=dataset_dict[dataset][0],
-                                           preload=preload, random_state=random_state, dataset_type=dataset, SSL=SSL,sfreq=sfreq, noise_probability=noise_probability)
+                                           preload=preload, random_state=random_state, dataset_type=dataset, SSL=SSL,
+                                           sfreq=sfreq, noise_probability=noise_probability)
                 datasets.append(path_dataset)
                 self.dataset_names.append(dataset)
         else:
+            self.dataset_names = dataset_names
             datasets = splitted_datasets
         super().__init__(datasets)
 
@@ -62,27 +67,31 @@ class ConcatPathDataset(ConcatDataset):
             train_ds.append(train)
             test_ds.append(test)
 
-        return ConcatPathDataset(dataset_dict=None, splitted_datasets=train_ds), \
-               ConcatPathDataset(dataset_dict=None, splitted_datasets=test_ds)  # return two new ConcatPathDatasets
+        return ConcatPathDataset(dataset_dict=None, sfreq=self.sfreq, noise_probability=self.noise_probability,
+                                 splitted_datasets=train_ds, dataset_names=self.dataset_names), \
+               ConcatPathDataset(dataset_dict=None, sfreq=self.sfreq, noise_probability=self.noise_probability,
+                                 splitted_datasets=test_ds,
+                                 dataset_names=self.dataset_names)  # return two new ConcatPathDatasets
 
 
 def select_params(param: dict):
     for key in param.keys():
         value = param[key]
         if isinstance(value, tuple):
-            if isinstance(value[0],float):
+            if isinstance(value[0], float):
                 value_1 = random.randint(value[0] * 10, value[
                     1] * 10) / 10  # some values are float with one decimal, but can go around this by multiplying by 10
-            elif isinstance(value[0],torch.Tensor):
-                if isinstance(value[0][0].item(),float):
+            elif isinstance(value[0], torch.Tensor):
+                if isinstance(value[0][0].item(), float):
                     value_1 = torch.Tensor([random.randint(round(value[0][0].item() * 10), round(value[
-                        1][0].item() * 10)) / 10])
+                                                                                                     1][
+                                                                                                     0].item() * 10)) / 10])
                 else:
                     value_1 = torch.Tensor([random.randint(value[0][0].item(), value[1][0].item())])
             else:
-                value_1 = random.randint(value[0],value[1])
+                value_1 = random.randint(value[0], value[1])
             param[key] = value_1
-    #print(f'param for denne kjøringen er {param}')
+    # print(f'param for denne kjøringen er {param}')
     return param
 
 
@@ -91,7 +100,8 @@ class PathDataset(Dataset):
     BaseConcatDataset is a ConcatDataset from pytorch, which means thath this should be ok.
     """
 
-    def __init__(self, ids_to_load, path, noise_probability=0, sfreq=250,preload=False, random_state=None, SSL=True, dataset_type='normal'):
+    def __init__(self, ids_to_load, path, noise_probability=0, sfreq=250, preload=False, random_state=None, SSL=True,
+                 dataset_type='normal'):
 
         self.ids_to_load = ids_to_load
         self.path = path
@@ -118,18 +128,19 @@ class PathDataset(Dataset):
                               'freq_shift': augmentation.FrequencyShift,
                               'scale': Scale,
                               'time_shift': TimeShift,
-                              'add_noise':AddNoise,
+                              'add_noise': AddNoise,
 
                               }
         self.augment_params = {'permutation': {'n_permutations': (5, 10)},
                                'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])),
                                            'mask_len_samples': (5000, 7000)},
-                               'bandstop': {'sfreq': self.sfreq, 'bandwidth': 30, 'freqs_to_notch': (torch.Tensor([20.5]), torch.Tensor([20.6]))},
+                               'bandstop': {'sfreq': self.sfreq, 'bandwidth': 30,
+                                            'freqs_to_notch': (torch.Tensor([20.5]), torch.Tensor([20.6]))},
                                'gaussian': {'std': (10, 50)},
                                'freq_shift': {'delta_freq': (1, 20), 'sfreq': self.sfreq},
                                'scale': {'scale_factor': (0.5, 1.5)},
                                'time_shift': {'time_shift': (10, 1000)},
-                               'add_noise':{'std':(1,5)}
+                               'add_noise': {'std': (1, 5)}
 
                                # {'p_drop': 0.2, 'random_state': random_state},
                                #                    {'std': 8, 'random_state': random_state},
@@ -182,17 +193,21 @@ class PathDataset(Dataset):
 
         if self.noise_probaility > random.random() and aug_1 != 'gaussian':
             param_noise = select_params(self.augment_params['add_noise'].copy())
-            augmented_1 = self.augmentations['add_noise'].operation(sample,None,**param_noise,aug=self.augmentations[aug_1],params=param_1)[0]
+            augmented_1 = \
+            self.augmentations['add_noise'].operation(sample, None, **param_noise, aug=self.augmentations[aug_1],
+                                                      params=param_1)[0]
         else:
             augmented_1 = self.augmentations[aug_1].operation(sample, y=None, **param_1)[0]
 
         if self.noise_probaility > random.random() and aug_2 != 'gaussian':
             param_noise = select_params(self.augment_params['add_noise'].copy())
-            augmented_2 = self.augmentations['add_noise'].operation(sample,None,**param_noise,aug=self.augmentations[aug_2],params=param_2)[0]
+            augmented_2 = \
+            self.augmentations['add_noise'].operation(sample, None, **param_noise, aug=self.augmentations[aug_2],
+                                                      params=param_2)[0]
         else:
             augmented_2 = self.augmentations[aug_2].operation(sample, y=None, **param_2)[0]
 
-        #self.visualize_augmentations(sample, augmented_1, augmented_2, augmentation_id, plot_diff=True)
+        # self.visualize_augmentations(sample, augmented_1, augmented_2, augmentation_id, plot_diff=True)
 
         return augmented_1, augmented_2, sample
 

@@ -97,6 +97,8 @@ class FineTuneNet(nn.Module):
 
 def run_fine_tuning(dataset, params):
     epochs = params["epochs"]
+    learning_rate = params['lr_rate']
+    weight_decay = params['weight_decay']
     ds_channel_order = dataset.datasets[0].windows.ch_names
     for windows_ds in dataset.datasets:
         assert windows_ds.windows.ch_names == ds_channel_order
@@ -112,11 +114,51 @@ def run_fine_tuning(dataset, params):
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["shuffle"],
                                                num_workers=1)
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if torch.cuda.is_available():
+        model.cuda()
+        print("Moved model to CUDA")
+
+    loss_func = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
+                                 weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
+
     # print(train.datasets[0].targets_from)
     # print(train.datasets[0].__getitem__(0))
-
+    loss = []
     for epoch in range(epochs):
+        model.train() # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
+        train_loss = 0
+        correct_train_preds = 0
+        num_train_preds = 0
         print('epoch number: ', epoch, 'of: ', epochs)
-        for X, y, crop_inds in tqdm(train_loader, position=0, leave=True):
-            enc = model(X)
+        for x, y, crop_inds in tqdm(train_loader, position=0, leave=True):
+            x, y = x.to(device), y.to(device)
+            optimizer.zero_grad()
+
+            #forward pass
+            pred = model(x)
+            #compute loss
+            loss = loss_func(pred,y)
+            # update weights
+            loss.backward()
+            optimizer.step()
+
+            #TODO: implement number of correct guesses to evaluate
+
+            # track loss
+            train_loss += loss.item()
+
+            # free up cuda memory
+            del x
+            del y
+            del pred
+            torch.cuda.empty_cache()
+
+        #TODO: implement evaluation on eval/test set
+        #TODO: remeber that some datasets (Abnormal/Normal) is already splitted, guessing this is implemented by Oskar.
+        #TODO: implement pickel file
+
+
         print("Encoded!")
