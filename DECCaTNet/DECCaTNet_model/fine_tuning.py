@@ -1,3 +1,6 @@
+import braindecode.augmentation.functional
+import braindecode
+import mne
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,7 +10,7 @@ from sklearn.model_selection import KFold
 import os
 import pickle as pkl
 
-from DECCaTNet.preprocessing.preprocess import _make_adjacent_pairs
+from preprocessing.preprocess import _make_adjacent_pairs
 from .DECCaTNet_model import Encoder
 
 
@@ -18,6 +21,15 @@ class EncodingClassifier(nn.Module):
     def forward(self, X):
         return X
 
+
+class PrintLayer(nn.Module):
+    def __init__(self):
+        super(PrintLayer, self).__init__()
+
+    def forward(self, x):
+        # Do your print / debug stuff here
+        print(x.shape)
+        return x
 
 class FineTuneNet(nn.Module):
     def __init__(self, channel_groups, ds_channel_order, params):
@@ -54,12 +66,13 @@ class FineTuneNet(nn.Module):
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=self.embedding_size * self.n_channel_groups, out_features=256),
+            nn.Linear(in_features=int(self.embedding_size*self.n_channel_groups*62), out_features=256),
             nn.ReLU(),
             nn.Linear(in_features=256, out_features=64),
             nn.ReLU(),
             nn.Linear(in_features=64, out_features=self.n_classes),
-            nn.LogSoftmax(self.n_classes)
+            #PrintLayer(),
+            nn.LogSoftmax(-1)
         )
 
     def forward(self, X):
@@ -78,7 +91,7 @@ class FineTuneNet(nn.Module):
             channel_group_tensors.append(
                 torch.concat([X[..., i:i + 1, :] for i in indexes], dim=-2)
             )
-            print(channel_group_tensors[-1].shape)
+            print(f'channel_group: {channel_group_tensors[-1].shape}')
 
         # TODO: compare speed of the above with ll
         # encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
@@ -90,10 +103,12 @@ class FineTuneNet(nn.Module):
             encoder_out.append(self.encoder(group))  # Encode group
 
         print(encoder_out[0].shape)
-        X_encoded = torch.concat(encoder_out, dim=0)
+        X_encoded = torch.concat(encoder_out, dim=1)
         print(X_encoded.shape)
-        X_encoded = torch.reshape(X_encoded, (X_encoded.shape[0], -1))
-        X_encoded = torch.flatten(X_encoded)
+        X_encoded = torch.reshape(X_encoded, (X_encoded.shape[0],X_encoded.shape[1], -1))
+        print(f'encoded shape after reshape {X_encoded.shape}')
+        X_encoded = torch.flatten(X_encoded,start_dim=1) # TODO used start_dim to keep batches seperate
+        # print(f'encoded shape after reshape and flatten {X_encoded.shape}')
         x = self.classifier(X_encoded)
         return x
 
@@ -111,9 +126,9 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
     num_train_preds = 0
 
     for x, y, crop_inds in tqdm(train_loader, position=0, leave=True):
+        y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-
         # forward pass
         pred = model(x)
         # compute loss
@@ -134,6 +149,8 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
         del y
         del pred
         torch.cuda.empty_cache()
+
+    print(f'correct preds {correct_train_preds}, num_preds {num_train_preds}')
 
     return train_loss, correct_train_preds, num_train_preds
 
@@ -255,14 +272,20 @@ class EarlyStopper:
                 return True
         return False
 
-def run_fine_tuning(dataset, params, test_set=None, perform_k_fold=True, n_folds=0):
+def run_fine_tuning(dataset, params, test_set=None):
     epochs = params["epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
     num_workers = params['num_workers']
+    perform_k_fold = params['perform_kfold']
+    n_folds = params['n_folds']
     ds_channel_order = dataset.datasets[0].windows.ch_names
-    for windows_ds in dataset.datasets:
-        assert windows_ds.windows.ch_names == ds_channel_order
+
+    for i,windows_ds in enumerate(dataset.datasets):
+        if not windows_ds.windows.ch_names == ds_channel_order:
+            changes = [ds_channel_order.index(ch_n) if ds_channel_order[i]!=ch_n else i for i,ch_n in enumerate(windows_ds.windows.ch_names)]
+            print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
+        #assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}' # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
     print("All recordings have the correct channel order")
 
     early_stopper = EarlyStopper(params['patience'],params['min_delta'])

@@ -60,12 +60,12 @@ ar_channels = sorted([
     'EEG F3-REF', 'EEG F4-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG FP1-REF', 'EEG FP2-REF',
     'EEG FZ-REF',
     'EEG LUC-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG OZ-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG PZ-REF',
-    'EEG RESP1-REF', 'EEG RESP2-REF', 'EEG RLC-REF', 'EEG SP1-REF', 'EEG SP2-REF', 'EEG T1-REF',
+    'EEG RLC-REF', 'EEG SP1-REF', 'EEG SP2-REF', 'EEG T1-REF',
     'EEG T2-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF'])
 excluded = sorted([
     "EEG EKG-REF", "EEG ROC-REF", "EEG EKG1-REF", "EEG C3P-REF", "EEG C4P-REF", "EEG LOC-REF", 'EEG EKG-LE',
     'PHOTIC PH', 'DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF',
-    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF'])
+    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF','EEG RESP1-REF', 'EEG RESP2-REF'])
 
 
 def select_duration(concat_ds: BaseConcatDataset, t_min=0, t_max: int = None):
@@ -154,8 +154,8 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming,
     :return: preprocessed BaseConcatDataset
     """
     mne.set_log_level('ERROR')
-    ch_naming = sorted(list(set(ch_naming) - set(exclude_channels)))
-    braindecode.augmentation.functional.channels_permute()
+    ch_names = sorted(list(set(ch_naming) - set(exclude_channels)))
+    # print(f'ch_names: {ch_names} \n ch_naming: {ch_naming} \n exclude_channels: {exclude_channels}')
     preprocessors = [Preprocessor(custom_turn_off_log),  # turn off verbose
                      # set common reference for all
                      Preprocessor('set_eeg_reference',
@@ -163,14 +163,13 @@ def first_preprocess_step(concat_dataset: BaseConcatDataset, mapping, ch_naming,
                      # rename to common naming convention
                      Preprocessor(rename_channels, mapping=mapping,
                                   apply_on_array=False),
-                     Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
+                     Preprocessor('pick_channels', ch_names=ch_names, ordered=False),  # keep wanted channels
                      # clip all data within a given border
                      Preprocessor(scale, factor=1e6, apply_on_array=True),
                      Preprocessor(np.clip, a_min=crop_min,
                                   a_max=crop_max, apply_on_array=True),
                      Preprocessor('resample', sfreq=sfreq)]
-    # TODO: shouldn't we add a bandstopfilter? though many before us has used this
-    # Could add normalization here also
+    # TODO: shouldn't we add a bandstopfilter? though many before us has used this, maybe also normalize
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -387,7 +386,7 @@ def run_preprocess(config_path, to_numpy=False):
     try:
         exclude_channels = preproc_params["exclude_channels"]
     except KeyError:
-        exclude_channels = None
+        exclude_channels = []
 
     # Read path info
     if local_load:
