@@ -3,18 +3,18 @@
 
 source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
 start_idx: 0
-stop_idx: -1
+stop_idx: 100
 is_fine_tuning_ds: False
-read_cache: 'none'  # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'preproc', 'windows', 'split']
+read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
 local_load: True  # Whether to load from local or disk paths
 directory:
   local:
     # Loaded if local_load: True
-    dataset_root: 'datasets/TUH/tuh_eeg'
-    cache_dir: 'datasets/TUH/pickles'
-    save_dir: 'datasets/TUH/preprocessed/step_1'
-    save_dir_2: 'datasets/TUH/preprocessed/step_2'
+    dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg'
+    cache_dir: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/pickles'
+    save_dir: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/preprocessed/step_1'
+    save_dir_2: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/preprocessed/step_2'
   disk:
     # Loaded if local_load: False
     dataset_root: 'D:/TUH/tuh_eeg'
@@ -28,6 +28,10 @@ preprocess:
   channel_select_function: 'adjacent_pairs'  # How to select pairs of channels to keep
   crop_min: -800
   crop_max: 800
+  bandpass_lo: 0.3
+  bandpass_hi: 80
   s_freq: 250
+  scaling_factor: 1000000  # Scaling factor to convert to microVolts
+  delete_step_1: True
 
 
