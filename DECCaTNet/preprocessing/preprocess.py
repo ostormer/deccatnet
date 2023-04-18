@@ -3,17 +3,15 @@ import pickle
 import shutil
 from copy import deepcopy
 
-import braindecode.augmentation.functional
 import numpy as np
 import yaml
-from joblib import Parallel, delayed
 from tqdm import tqdm
 
 import braindecode.datasets.tuh as tuh
 import mne
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
 from braindecode.datautil.serialization import _check_save_dir_empty, load_concat_dataset
-from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess, scale
+from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
 
 """
 Plan and things which needs to be done:
@@ -65,7 +63,8 @@ ar_channels = sorted([
 excluded = sorted([
     "EEG EKG-REF", "EEG ROC-REF", "EEG EKG1-REF", "EEG C3P-REF", "EEG C4P-REF", "EEG LOC-REF", 'EEG EKG-LE',
     'PHOTIC PH', 'DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF',
-    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF','EEG RESP1-REF', 'EEG RESP2-REF'])
+    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF', 'EEG RESP1-REF',
+    'EEG RESP2-REF'])
 
 
 def select_duration(concat_ds: BaseConcatDataset, t_min=0, t_max: int = None):
@@ -309,8 +308,10 @@ def _split_channels_parallel(
     concat_ds.save(save_dir, overwrite=True, offset=record_index * 100)
 
     if delete_step_1:
-        step_1_dir = windows_ds.windows.filename
-        print(step_1_dir)
+        # The dir containing one preprocessed WindowsDataset and acompanying json files
+        step_1_dir = os.path.join(*os.path.split(windows_ds.windows.filename)[:-1])
+        del windows_ds
+        shutil.rmtree(step_1_dir)
 
     indexes = list(
         range(record_index * 100, record_index * 100 + len(windows_ds_list)))

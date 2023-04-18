@@ -23,5 +23,6 @@ dependencies:
 - pip:
   - torchaudio==0.13.1  
   - torchvision==0.14.1
-  - mne
+  - torchplot
+  - git+https://github.com/ostormer/mne-python.git@master#egg=mne
   - git+https://github.com/ostormer/braindecode.git@master#egg=braindecode
