@@ -3,10 +3,10 @@
 
 source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
 start_idx: 0
-stop_idx: 100
+stop_idx: -1
 is_fine_tuning_ds: False
 
-read_cache: 'windows'  # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'windows', 'preproc', 'split']
+read_cache: 'none'  # Read pickled dataset or generate new. Allowed [None, 'none', 'raw', 'windows', 'preproc', 'split']
 
 local_load: True  # Whether to load from local or disk paths
 directory:
@@ -33,5 +33,5 @@ preprocess:
   bandpass_hi: 80
   s_freq: 250
   scaling_factor: 1000000  # Scaling factor to convert to microVolts
-  delete_step_1: True
+  delete_step_1: False
 
