@@ -1,3 +1,5 @@
+import pickle
+
 import braindecode.augmentation.functional
 import braindecode
 import mne
@@ -24,7 +26,7 @@ class PrintLayer(nn.Module):
         return x
 
 class FineTuneNet(nn.Module):
-    def __init__(self, channel_groups, ds_channel_order, params):
+    def __init__(self, channel_groups, ds_channel_order, all_params,global_params):
         """
         encoder_path
         channel_group_size = 2
@@ -33,16 +35,19 @@ class FineTuneNet(nn.Module):
         """
         # self.patch_size = patch_size
         super().__init__()
+        params = all_params['fine_tuning']
+
         self.encoder_path = params["encoder_path"]
-        self.channel_group_size = params["channel_group_size"]
+        self.channel_group_size = global_params["n_channels"]
         self.channel_groups = channel_groups  # Channel groups defined by names
         self.n_channel_groups = len(self.channel_groups)  # Number of channel groups
-        self.embedding_size = params["embedding_size"]
+        self.embedding_size = global_params["embedding_size"]
         self.n_classes = params["n_classes"]
 
-        self.encoder = Encoder(emb_size=self.embedding_size)
+        self.encoder = Encoder(all_params['encoder_params'],global_params)
+
         self.encoder.load_state_dict(torch.load(self.encoder_path))
-        self.encoder.requires_grad_(False)
+        self.encoder.requires_grad_(False) # TODO what does this do?
 
         self.ds_channel_order = ds_channel_order
         # Make dict witch translates channel names to index in preprocessed files
@@ -270,43 +275,48 @@ class EarlyStopper:
                 return True
         return False
 
-def run_fine_tuning(dataset, params, test_set=None):
-    epochs = params["epochs"]
+def run_fine_tuning(all_params,global_params,test_set=None):
+    params = all_params['fine_tuning']
+
+    with open(params['ds_path'], 'rb') as fid:
+        dataset = pickle.load(fid)
+
+    epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
-    num_workers = params['num_workers']
-    perform_k_fold = params['perform_kfold']
+    num_workers = global_params['n_jobs']
+    perform_k_fold = params['PERFORM_KFOLD']
     n_folds = params['n_folds']
     ds_channel_order = dataset.datasets[0].windows.ch_names
 
     for i,windows_ds in enumerate(dataset.datasets):
         if not windows_ds.windows.ch_names == ds_channel_order:
             changes = [ds_channel_order.index(ch_n) if ds_channel_order[i]!=ch_n else i for i,ch_n in enumerate(windows_ds.windows.ch_names)]
-            print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
+            #print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
         #assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}' # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
     print("All recordings have the correct channel order")
 
-    early_stopper = EarlyStopper(params['patience'],params['min_delta'])
+    early_stopper = EarlyStopper(params['early_stopper']['patience'],params['early_stopper']['min_delta'])
 
-    channel_groups = _make_adjacent_pairs(ds_channel_order)
-    model = FineTuneNet(channel_groups, ds_channel_order, params)
+    channel_groups = _make_adjacent_groups(ds_channel_order)
+    model = FineTuneNet(channel_groups, ds_channel_order, all_params,global_params)
 
-    split = dataset.split("train")
+    split = dataset.split('train') # TODO fix train/test split here, doesnt seam to work
     train = split["True"]
     test = split["False"]
     # TODO: get train/val/test set, will use test as val for now
 
-    train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["shuffle"],
+    train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["SHUFFLE"],
                                                num_workers=num_workers)
-    val_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=params["shuffle"],
+    val_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=params["SHUFFLE"],
                                              num_workers=num_workers)
     if test_set is not None:
-        test_loader = torch.utils.data.DataLoader(test_set, batch_size=params['batch_size'], shuffle=params["shuffle"],
+        test_loader = torch.utils.data.DataLoader(test_set, batch_size=params['batch_size'], shuffle=params["SHUFFLE"],
                                                   num_workers=num_workers)
         validate_test = True
     else:
         validate_test = False
-        test_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=params["shuffle"],
+        test_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=params["SHUFFLE"],
                                                   num_workers=num_workers)  # TODO remove this once we have test set
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

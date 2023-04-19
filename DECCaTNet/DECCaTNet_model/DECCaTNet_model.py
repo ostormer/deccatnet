@@ -1,17 +1,13 @@
 import torch
 import torch.nn as nn
 
-
 class DECCaTNet(nn.Module):
     def __init__(self, all_params, global_params):
         super().__init__()
-        model_params = all_params['encoder_params']
+        encoder_params = all_params['encoder_params']
 
-        emb_size = global_params['embedding_size']
-        latent_space_size = model_params['latent_space_size']
-
-        self.encoder = Encoder(emb_size)
-        self.projector = Projector(emb_size, latent_space_size)
+        self.encoder = Encoder(encoder_params, global_params)
+        self.projector = Projector(encoder_params,global_params)
 
     def forward(self, x):
         x = self.encoder(x)
@@ -20,10 +16,10 @@ class DECCaTNet(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, emb_size):
+    def __init__(self, encoder_params,global_params):
         super().__init__()
-        self.ConvEmbedding = Convolution(emb_size)
-        self.TransEncoder = TransEncoder(emb_size)
+        self.ConvEmbedding = Convolution(encoder_params,global_params)
+        self.TransEncoder = TransEncoder(encoder_params,global_params)
 
     def forward(self, x):
         x = self.ConvEmbedding(x)
@@ -37,15 +33,16 @@ class Convolution(nn.Module):
     in literature in combining CNN's and transformers for EEG classification
     """
 
-    def __init__(self, emb_size):
+    def __init__(self, encoder_params,global_params):
         super().__init__()
-        temporal = 40
-        spatial = 40
-        dropout = 0.5
-        self.emb_size = emb_size
-        self.n_channels = 1
-        self.n_samples = 15000
-        self.temporal = nn.Sequential(nn.Conv2d(self.n_channels, temporal, kernel_size=(1, 25), stride=(1, 1))
+
+        temporal = encoder_params['temporal_size']
+        spatial = encoder_params['spatial_size']
+        dropout = encoder_params['CNN_dropout']
+        self.emb_size = global_params['embedding_size']
+        self.n_channels = global_params['n_channels']
+
+        self.temporal = nn.Sequential(nn.Conv2d(1,temporal, kernel_size=(1, 25), stride=(1, 1))
                                       )
         self.spatial = nn.Sequential(nn.Conv2d(temporal, spatial, kernel_size=(2, 1), stride=(1, 15)))
         self.pooling = nn.Sequential(nn.BatchNorm2d(spatial),
@@ -54,7 +51,7 @@ class Convolution(nn.Module):
                                      )
         self.dropout = nn.Dropout(dropout)
 
-        self.projector = nn.Sequential(nn.Conv2d(40, self.emb_size, kernel_size=(1, 1), stride=(1, 1)))
+        self.projector = nn.Sequential(nn.Conv2d(spatial, self.emb_size, kernel_size=(1, 1), stride=(1, 1)))
 
         # self.spatial = nn.Sequential(
         #
@@ -76,11 +73,14 @@ class Convolution(nn.Module):
 
 
 class TransEncoder(nn.Module):
-    def __init__(self, emb_size):
+    def __init__(self, encoder_params,global_params):
         super().__init__()
-        self.emb_size = emb_size
-        encoder_layer = nn.TransformerEncoderLayer(d_model=self.emb_size, nhead=8)
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=10)
+        self.emb_size = global_params['embedding_size']
+        self.n_heads = encoder_params['n_encoder_heads']
+        self.n_layers = encoder_params['n_encoder_layers']
+
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.emb_size, nhead=self.n_heads)
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=self.n_layers)
 
     def forward(self, x):
         x = self.encoder(x)
@@ -88,16 +88,17 @@ class TransEncoder(nn.Module):
 
 
 class Projector(nn.Module):
-    def __init__(self, emb_size, latent_space_size):
+    def __init__(self, encoder_params,global_params):
         super().__init__()
-        self.emb_size = emb_size
-        self.latent_space_size = latent_space_size
+
+        self.emb_size = global_params['embedding_size']
+        self.latent_space_size = encoder_params['latent_space_size']
         self.projection = nn.Sequential(
-            nn.Linear(in_features=self.emb_size * 62, out_features=self.emb_size * 62),
-            nn.BatchNorm1d(self.emb_size * 62),
+            nn.Linear(in_features=self.emb_size * 38, out_features=self.emb_size * 38),
+            nn.BatchNorm1d(self.emb_size * 38),
             nn.ReLU(),
-            nn.Linear(in_features=self.emb_size * 62, out_features=latent_space_size),
-            nn.BatchNorm1d(latent_space_size),
+            nn.Linear(in_features=self.emb_size * 38, out_features=self.latent_space_size),
+            nn.BatchNorm1d(self.latent_space_size),
         )
 
     def forward(self, x: torch.Tensor):
@@ -105,10 +106,3 @@ class Projector(nn.Module):
         x = self.projection(x)
         return x
 
-
-class ClassificationHead(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, X):
-        pass

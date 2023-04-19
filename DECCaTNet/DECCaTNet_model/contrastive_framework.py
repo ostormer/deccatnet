@@ -418,6 +418,8 @@ def pre_train_model(all_params,global_params):
     meta_data_path = os.path.join(save_dir_model, pickle_name)
     with open(meta_data_path, 'wb') as outfile:
         pkl.dump({
+            'all_params':all_params,
+            'global_params':global_params,
             "avg_train_losses": losses,
             #"avg_train_accs": avg_train_accs, #TODO: check out avg_train_accs
             "save_dir_for_model": save_dir_model,
@@ -430,8 +432,8 @@ def pre_train_model(all_params,global_params):
             #"beta_vals": beta_vals, # TODO: check out betavals
             "weight_decay": weight_decay,
             "save_freq": save_freq,
-            'noise_probability': dataset.noise_probability,
-            'model_params': model_params,
+            'noise_probability': params['augmentation']['noise_probability'],
+            'model_params': all_params['encoder_params'],
             "channels": n_channels, #TODO:check where number of channels need to be changed
             'dataset_names':dataset.dataset_names,
             "sfreq": dataset.sfreq,

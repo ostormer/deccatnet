@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in cronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
-  PRE_TRAINING: True
+  PREPROCESSING: False
+  PRE_TRAINING: False
   FINE_TUNING: True
 
   n_jobs: 2
@@ -10,7 +10,7 @@ global:
 
   n_channels: 2
   s_freq: 200
-  embedding_size: 32
+  embedding_size: 40
 
 directory:
   LOCAL_LOAD: True  # Whether to load from local or disk paths
@@ -42,6 +42,8 @@ preprocess:
   bandpass_hi: 80
   scaling_factor: 1000000  # Scaling factor to convert to microVolts
   DELETE_STEP_1: True
+  exclude_channels:
+    -
 
 pre_training:
   ds_path: '../datasets/TUH/preprocessed_abnormal/step_2'
@@ -49,14 +51,14 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 16
-  train_split: 0.7
+  train_split: 0.01
   SHUFFLE: True
   temperature: 1 # Temperature of normalized temeprature contrastive loss
   learning_rate: 0.1
   weight_decay: 0.01
-  max_epochs: 10
+  max_epochs: 2
 
-  save_freq: 2
+  save_freq: 1
   batch_print_freq: 5
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
@@ -68,8 +70,9 @@ pre_training:
 fine_tuning:
   # get encoder path from pre_training params
   ds_path: '../datasets/TUH/TUH-pickles_abnormal/windowed_ds.pkl'
+  encoder_path: 'models/encoder_test'
 
-  n_channels: 2
+  n_classes: 2
 
   batch_size: 16
   max_epochs: 3
@@ -88,6 +91,7 @@ fine_tuning:
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
 
+  REDO_PREPROCESS: False
   fine_tuning_preprocess:
     source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg', Add more here]
     start_idx: 0
@@ -96,14 +100,13 @@ fine_tuning:
     read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     window_size: 60  # Window length in seconds
-    channel_select_function: 'adjacent_pairs'  # How to select pairs of channels to keep
+    channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     crop_min: -800
     crop_max: 800
     bandpass_lo: 0.3
     bandpass_hi: 80
-    s_freq: 250
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
-    DELETE_STEP_1: True
+    DELETE_STEP_1: False
     exclude_channels:
       - 'EEG 26'
       - 'EEG 27'
@@ -112,7 +115,15 @@ fine_tuning:
       - 'EEG 30'
 
 encoder_params:
-  latent_space_size = 64
+  temporal_size: 40
+  spatial_size: 40
+  CNN_dropout: 0.5
+
+  n_encoder_heads: 8
+  n_encoder_layers: 6
+
+  latent_space_size: 64
+
 downstream_params:
   params: None # for now, will change after we fix implementation
 

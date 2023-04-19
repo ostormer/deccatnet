@@ -96,13 +96,14 @@ class PathDataset(Dataset):
     """
 
     def __init__(self, ids_to_load, path, all_params, global_params):
+        self.dataset_names = all_params['preprocess']['source_ds']
         self.all_params = all_params
         self.global_params = global_params
 
         self.ids_to_load = ids_to_load
         self.path = path
 
-        self.noise_probaility = self.all_params['pre_training']['augmentation']['noise_probability']
+        self.noise_probability = self.all_params['pre_training']['augmentation']['noise_probability']
         self.sfreq = self.global_params['s_freq']
         self.random_state = self.global_params['random_state']
 
@@ -129,9 +130,9 @@ class PathDataset(Dataset):
         self.augment_params = {'permutation': {'n_permutations': (5, 10)},
                                'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])),
                                            # TODO we have different sequence length, so this should be changed
-                                           'mask_len_samples': (5000, 7000)},
+                                           'mask_len_samples': (150, 1000)},
                                'bandstop': {'sfreq': self.sfreq, 'bandwidth': 5,  # TODO same here, bandwidth length
-                                            'freqs_to_notch': (torch.Tensor([2.8]), torch.Tensor([82.5]))},
+                                            'freqs_to_notch': (torch.Tensor([20.]), torch.Tensor([82.5]))},
                                'gaussian': {'std': (0, 0.2)},
                                'freq_shift': {'delta_freq': (-10, 10), 'sfreq': self.sfreq},
                                'scale': {'scale_factor': (0.5, 2)},
@@ -172,6 +173,10 @@ class PathDataset(Dataset):
         sample = signals.get_data(item=window_n)
         sample = torch.Tensor(sample)
 
+        if sample.shape[2] != 9600: # TODO fix this in preprocessing
+            # print(sample.shape,fif_file_name, window_n)
+            sample = torch.nn.functional.pad(input=sample,pad=(0,9600-sample.shape[-1],0,0,0,0),mode='constant',value=0)
+
         # apply augmentations
         augmentation_id = random.sample(range(0, len(self.augmentation_names)), 2)
         aug_1 = self.augmentation_names[augmentation_id[0]]
@@ -182,7 +187,7 @@ class PathDataset(Dataset):
         param_1 = select_params(param_1)
         param_2 = select_params(param_2)
 
-        if self.noise_probaility > random.random() and aug_1 != 'gaussian':
+        if self.noise_probability > random.random() and aug_1 != 'gaussian':
             param_noise = select_params(self.augment_params['add_noise'].copy())
             augmented_1 = \
                 self.augmentations['add_noise'].operation(sample, None, **param_noise, aug=self.augmentations[aug_1],
@@ -190,7 +195,7 @@ class PathDataset(Dataset):
         else:
             augmented_1 = self.augmentations[aug_1].operation(sample, y=None, **param_1)[0]
 
-        if self.noise_probaility > random.random() and aug_2 != 'gaussian':
+        if self.noise_probability > random.random() and aug_2 != 'gaussian':
             param_noise = select_params(self.augment_params['add_noise'].copy())
             augmented_2 = \
                 self.augmentations['add_noise'].operation(sample, None, **param_noise, aug=self.augmentations[aug_2],
