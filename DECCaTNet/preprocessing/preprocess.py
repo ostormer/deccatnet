@@ -6,7 +6,6 @@ from copy import deepcopy
 from math import ceil
 
 import numpy as np
-import yaml
 from tqdm import tqdm
 
 import braindecode.datasets.tuh as tuh
@@ -144,7 +143,7 @@ def custom_turn_off_log(raw, verbose='ERROR'):
 
 
 def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, preproc_params, save_dir,
-                       n_jobs, exclude_channels=[],s_freq=200):
+                       n_jobs, exclude_channels=[], s_freq=200):
     """
     renames channels to common naming, resamples all data to one frequency, sets common eeg_reference, applies
     bandpass filter and crops.
@@ -221,7 +220,7 @@ def window_ds(concat_ds: BaseConcatDataset,
     return windows_ds
 
 
-def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_jobs=1, channel_split_func=None,
+def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_channels, channel_split_func=None,
                       overwrite=False, delete_step_1=False) -> 'list[tuple[int, int]]':
     if channel_split_func is None:
         channel_split_func = _make_adjacent_groups
@@ -252,7 +251,7 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_jo
 
     # Not parallelized equivalent of the above
     idx_n_windows = [
-        _split_channels_parallel(windows_ds, i, save_dir, channel_split_func, delete_step_1)
+        _split_channels_parallel(windows_ds, i, save_dir, n_channels, channel_split_func, delete_step_1)
         for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets))
     ]
 
@@ -275,6 +274,7 @@ def _split_channels_parallel(
         windows_ds: WindowsDataset,
         record_index: int,
         save_dir: str,
+        n_channels: int,
         channel_split_func,
         delete_step_1
 ) -> 'tuple[list[int], list[int]]':
@@ -292,7 +292,7 @@ def _split_channels_parallel(
     mne.set_log_level(verbose='ERROR')
     epochs = windows_ds.windows
 
-    channel_selections = channel_split_func(epochs.ch_names, n_channels=params["global"]["n_channels"])
+    channel_selections = channel_split_func(epochs.ch_names, n_channels=n_channels)
     windows_ds_list = []
     channel_n_windows = []
     epochs.load_data()
@@ -399,7 +399,7 @@ def run_preprocess(params_all, global_params):
 
     # Read path info
     if local_load:
-        paths =dir_params['local']
+        paths = dir_params['local']
     else:
         paths = dir_params['disk']
     dataset_root = paths['dataset_root']
@@ -490,7 +490,7 @@ def run_preprocess(params_all, global_params):
         dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
                                      ch_naming=common_naming, preproc_params=params,
                                      save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
-                                     exclude_channels=exclude_channels,s_freq=global_params['s_freq'])
+                                     exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
 
         # Following pickle of dataset is disabled because of the
         # "cannot pickle '_io.BufferedReader' object" bug in braindecode
@@ -517,7 +517,7 @@ def run_preprocess(params_all, global_params):
         if len(dataset.datasets) > stop_idx - start_idx:
             dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
 
-        idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_jobs=global_params['n_jobs'],
+        idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_channels=global_params['n_channels'],
                                      channel_split_func=_make_adjacent_groups, overwrite=True,
                                      delete_step_1=params["DELETE_STEP_1"])
 
