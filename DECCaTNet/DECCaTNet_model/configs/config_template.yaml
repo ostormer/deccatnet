@@ -1,0 +1,129 @@
+# This is a template for how config files should look, all parameters are in cronological order of use
+# All boolean variables are in UPPERCASE lettering
+global:
+  PREPROCESSING: False
+  PRE_TRAINING: True
+  FINE_TUNING: True
+
+  n_jobs: 2
+  random_state: null # remeber null and not None
+
+  n_channels: 2
+  s_freq: 200
+  embedding_size: 32
+
+directory:
+  LOCAL_LOAD: True  # Whether to load from local or disk paths
+  local:
+    # Loaded if local_load: True
+    dataset_root: 'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\tuh_eeg_abnormal'
+    cache_dir: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/TUH-pickles_abnormal'
+    save_dir: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/preprocessed_abnormal/step_1'
+    save_dir_2: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/preprocessed_abnormal/step_2'
+  disk:
+    # Loaded if local_load: False
+    dataset_root: 'D:/TUH/tuh_eeg'
+    cache_dir: 'D:/TUH/pickles/tuh_eeg.pkl'
+    save_dir: 'D:/TUH/tuh_pre'
+    save_dir_2: 'D:/TUH/tuh_pre_2'
+
+preprocess:
+  source_ds: 'tuh_eeg_abnormal'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
+  start_idx: 0
+  stop_idx: -1
+  IS_FINE_TUNING_DS: False
+  read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+  window_size: 60  # Window length in seconds
+  channel_select_function: 'adjacent_pairs'  # How to select pairs of channels to keep
+  crop_min: -800
+  crop_max: 800
+  bandpass_lo: 0.3
+  bandpass_hi: 80
+  scaling_factor: 1000000  # Scaling factor to convert to microVolts
+  DELETE_STEP_1: True
+
+pre_training:
+  ds_path: '../datasets/TUH/preprocessed_abnormal/step_2'
+  ids_path: '../datasets/TUH/TUH-pickles_abnormal/split_idx_list.pkl'
+  pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
+
+  batch_size: 16
+  train_split: 0.7
+  SHUFFLE: True
+  temperature: 1 # Temperature of normalized temeprature contrastive loss
+  learning_rate: 0.1
+  weight_decay: 0.01
+  max_epochs: 10
+
+  save_freq: 2
+  batch_print_freq: 5
+  save_dir_model: 'models' # directory which you wish to store your model to
+  model_file_name: 'test' # Name of your model
+  TIME_PROCESS: False
+
+  augmentation:
+    noise_probability: 0
+
+fine_tuning:
+  # get encoder path from pre_training params
+  ds_path: '../datasets/TUH/TUH-pickles_abnormal/windowed_ds.pkl'
+
+  n_channels: 2
+
+  batch_size: 16
+  max_epochs: 3
+  lr_rate: 0.01
+  weight_decay: 0.005
+  train_split: 0.7
+  SHUFFLE: True
+
+  PERFORM_KFOLD: True
+  n_folds: 5
+
+  early_stopper: #params for early stopper implementation
+    patience: 4
+    min_delta: 0.1
+
+  save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
+  model_file_name: 'test' # Name of your model
+
+  fine_tuning_preprocess:
+    source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg', Add more here]
+    start_idx: 0
+    stop_idx: -1
+    IS_FINE_TUNING_DS: True
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    window_size: 60  # Window length in seconds
+    channel_select_function: 'adjacent_pairs'  # How to select pairs of channels to keep
+    crop_min: -800
+    crop_max: 800
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    s_freq: 250
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    DELETE_STEP_1: True
+    exclude_channels:
+      - 'EEG 26'
+      - 'EEG 27'
+      - 'EEG 28'
+      - 'EEG 29'
+      - 'EEG 30'
+
+encoder_params:
+  latent_space_size = 64
+downstream_params:
+  params: None # for now, will change after we fix implementation
+
+
+
+
+
+
+
+
+
+
+
+

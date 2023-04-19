@@ -1,6 +1,7 @@
 """Following SimCLR CL structure
 """
 import os
+import pickle
 import time
 
 import torch
@@ -11,6 +12,7 @@ import pickle as pkl
 import torchplot as plt
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
+from DECCaTNet_model.custom_dataset import PathDataset
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -230,10 +232,7 @@ class ContrastiveLossGPT(nn.Module):
 
 
 # Next up: contrastive training framework
-def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, trained_model_path, temperature,
-                    learning_rate, weight_decay,
-                    num_workers, max_epochs, batch_print_freq, save_dir_model, model_file_name, model_params,
-                    time_process,n_channels):
+def pre_train_model(all_params,global_params):
     """
     :param dataset: ContrastiveAugmentedDataset for pre_training
     :param batch_size: batch size for pre_training
@@ -247,7 +246,7 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     :param weight_decay:
     :param max_epochs:
     :param batch_print_freq: how often batch progress is printed in one epoch
-    :param save_dir_model: save directory for all models # TODO: check if empty and create new if empty
+    :param save_dir_model: save directory for all models #
     :param model_file_name: file name for this trained model.
     :param model_params: parameters in a dict for model to be trained
     :param time_process: If the different processes should be timed and printed / boolean
@@ -280,6 +279,31 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
 
     :return: None
     """
+    params = all_params['pre_training']
+
+    with open(params['ids_path'], 'rb') as fid:
+        pre_train_ids = pickle.load(fid)
+    dataset = PathDataset(path=params['ds_path'], ids_to_load=pre_train_ids, all_params=all_params, global_params=global_params)
+
+    batch_size = params['batch_size']
+    train_split = params['train_split']
+    shuffle = params['SHUFFLE']
+    trained_model_path = params['pretrained_model_path']
+    save_freq = params['save_freq']
+    temperature = params['temperature']
+    learning_rate = params['learning_rate']
+    weight_decay = params['weight_decay']
+    num_workers = global_params['n_jobs']
+    max_epochs = params['max_epochs']
+    batch_print_freq = params['batch_print_freq']
+    save_dir_model = params['save_dir_model']
+    model_file_name = params['model_file_name']
+    time_process = params['TIME_PROCESS']
+
+    n_channels = global_params['n_channels']
+
+    if not os.path.exists(save_dir_model):
+        os.makedirs(save_dir_model)
 
     # load dataset
     train_set, val_set = dataset.get_splits(train_split)
@@ -294,8 +318,9 @@ def pre_train_model(dataset, batch_size, train_split, save_freq, shuffle, traine
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model and check if weights already given
-    model = DECCaTNet.DECCaTNet()
+    model = DECCaTNet.DECCaTNet(all_params,global_params)
     if trained_model_path is not None:
+        print(f'loading pre_trained model from {trained_model_path}')
         model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
 
     if torch.cuda.is_available():

@@ -144,7 +144,7 @@ def custom_turn_off_log(raw, verbose='ERROR'):
 
 
 def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, preproc_params, save_dir,
-                       n_jobs, exclude_channels=[]):
+                       n_jobs, exclude_channels=[],s_freq=200):
     """
     renames channels to common naming, resamples all data to one frequency, sets common eeg_reference, applies
     bandpass filter and crops.
@@ -166,7 +166,7 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
                      apply_on_array=False),
         Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
         # Resample
-        Preprocessor('resample', sfreq=preproc_params["s_freq"]),
+        Preprocessor('resample', sfreq=s_freq),
         # rescale to microVolt (muV)
         Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
         # Bandpass filter
@@ -364,19 +364,16 @@ string_to_channel_split_func = {
 }
 
 
-def run_preprocess(config_path, to_numpy=False):
-    # ------------------------ Read values from config file ------------------------
-    with open(config_path, "r") as stream:
-        try:
-            params = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
+def run_preprocess(params_all, global_params):
+    # ------------------------ Perform preprocessing ------------------------
+    params = params_all['preprocess']
+    dir_params = params_all['directory']
 
     source_ds = params["source_ds"]
 
     start_idx = params["start_idx"]
     stop_idx = params["stop_idx"]
-    is_fine_tuning_ds = params["is_fine_tuning_ds"]
+    is_fine_tuning_ds = params["IS_FINE_TUNING_DS"]
     if stop_idx <= 0:
         stop_idx = None
 
@@ -388,26 +385,23 @@ def run_preprocess(config_path, to_numpy=False):
     assert read_cache in ['none', 'raw', 'preproc', 'windows'], \
         f"{read_cache} is not a valid cache to read"
 
-    local_load = params["local_load"]
-    preproc_params = params["preprocess"]
+    local_load = dir_params['LOCAL_LOAD']
 
-    window_size = preproc_params["window_size"]
-    channel_select_function = preproc_params["channel_select_function"]
+    window_size = params["window_size"]
+    channel_select_function = params["channel_select_function"]
     assert channel_select_function in string_to_channel_split_func.keys(), \
         f"{channel_select_function} is not a valid channel selection function"
 
-    preproc_params = params["preprocess"]
-
     try:
-        exclude_channels = preproc_params["exclude_channels"]
+        exclude_channels = params["exclude_channels"]
     except KeyError:
         exclude_channels = []
 
     # Read path info
     if local_load:
-        paths = params['directory']['local']
+        paths =dir_params['local']
     else:
-        paths = params['directory']['disk']
+        paths = dir_params['disk']
     dataset_root = paths['dataset_root']
     cache_dir = paths['cache_dir']
     preproc_save_dir = paths['save_dir']
@@ -423,11 +417,11 @@ def run_preprocess(config_path, to_numpy=False):
         if source_ds == 'tuh_eeg_abnormal':
             dataset = tuh.TUHAbnormal(
                 dataset_root,
-                n_jobs=preproc_params['n_jobs'],
+                n_jobs=global_params['n_jobs'],
                 target_name='pathological'
             )
         elif source_ds == 'tuh_eeg':
-            dataset = tuh.TUH(dataset_root, n_jobs=preproc_params['n_jobs'])
+            dataset = tuh.TUH(dataset_root, n_jobs=global_params['n_jobs'])
         else:
             raise ValueError
         print(f'Loaded {len(dataset.datasets)} files.')
@@ -461,9 +455,9 @@ def run_preprocess(config_path, to_numpy=False):
         if not os.path.exists(split_save_dir):
             os.makedirs(split_save_dir)
 
-        window_n_samples = int(preproc_params['window_size'] * preproc_params['s_freq'])
+        window_n_samples = int(params['window_size'] * global_params['s_freq'])
         print("Splitting dataset into windows:")
-        windowed_ds = window_ds(dataset, window_size_samples=window_n_samples, n_jobs=preproc_params['n_jobs'])
+        windowed_ds = window_ds(dataset, window_size_samples=window_n_samples, n_jobs=global_params['n_jobs'])
 
         with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
             pickle.dump(windowed_ds, f)
@@ -494,9 +488,9 @@ def run_preprocess(config_path, to_numpy=False):
 
         # Apply preprocessing step
         dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
-                                     ch_naming=common_naming, preproc_params=preproc_params,
-                                     save_dir=preproc_save_dir, n_jobs=preproc_params['n_jobs'],
-                                     exclude_channels=exclude_channels)
+                                     ch_naming=common_naming, preproc_params=params,
+                                     save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
+                                     exclude_channels=exclude_channels,s_freq=global_params['s_freq'])
 
         # Following pickle of dataset is disabled because of the
         # "cannot pickle '_io.BufferedReader' object" bug in braindecode
@@ -515,7 +509,7 @@ def run_preprocess(config_path, to_numpy=False):
             print("Loading preprocessed dataset from file tree...")
             ids_to_load = list(range(start_idx, stop_idx))
 
-            dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=preproc_params['n_jobs'],
+            dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'],
                                           ids_to_load=ids_to_load)
             print('Done loading windowed dataset.')
         if stop_idx is None:
@@ -523,9 +517,9 @@ def run_preprocess(config_path, to_numpy=False):
         if len(dataset.datasets) > stop_idx - start_idx:
             dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
 
-        idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_jobs=preproc_params['n_jobs'],
+        idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_jobs=global_params['n_jobs'],
                                      channel_split_func=_make_adjacent_groups, overwrite=True,
-                                     delete_step_1=preproc_params["delete_step_1"])
+                                     delete_step_1=params["DELETE_STEP_1"])
 
         with open(os.path.join(cache_dir, 'split_idx_list.pkl'), 'wb') as f:
             pickle.dump(idx_list, f)
