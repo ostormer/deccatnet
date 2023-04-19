@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 import os
 import pickle as pkl
 
-from preprocessing.preprocess import _make_adjacent_pairs
+from preprocessing.preprocess import _make_adjacent_groups
 from .DECCaTNet_model import Encoder
 
 

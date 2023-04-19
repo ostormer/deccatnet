@@ -1,7 +1,7 @@
 # This is a template for how config files should look, all parameters are in cronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
+  PREPROCESSING: True
   PRE_TRAINING: True
   FINE_TUNING: True
 
@@ -35,7 +35,7 @@ preprocess:
   read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
   window_size: 60  # Window length in seconds
-  channel_select_function: 'adjacent_pairs'  # How to select pairs of channels to keep
+  channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   crop_min: -800
   crop_max: 800
   bandpass_lo: 0.3
