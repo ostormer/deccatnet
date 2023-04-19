@@ -73,7 +73,6 @@ class ConcatPathDataset(ConcatDataset):
                                  splitted_datasets=test_ds,
                                  dataset_names=self.dataset_names)  # return two new ConcatPathDatasets
 
-
 def select_params(param: dict):
     for key in param.keys():
         value = param[key]
@@ -132,15 +131,15 @@ class PathDataset(Dataset):
 
                               }
         self.augment_params = {'permutation': {'n_permutations': (5, 10)},
-                               'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])),
+                               'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])), #TODO we have different sequence length, so this should be changed
                                            'mask_len_samples': (5000, 7000)},
-                               'bandstop': {'sfreq': self.sfreq, 'bandwidth': 30,
-                                            'freqs_to_notch': (torch.Tensor([20.5]), torch.Tensor([20.6]))},
-                               'gaussian': {'std': (10, 50)},
-                               'freq_shift': {'delta_freq': (1, 20), 'sfreq': self.sfreq},
-                               'scale': {'scale_factor': (0.5, 1.5)},
-                               'time_shift': {'time_shift': (10, 1000)},
-                               'add_noise': {'std': (1, 5)}
+                               'bandstop': {'sfreq': self.sfreq, 'bandwidth': 5, #TODO same here
+                                            'freqs_to_notch': (torch.Tensor([2.8]), torch.Tensor([82.5]))},
+                               'gaussian': {'std': (0, 0.2)},
+                               'freq_shift': {'delta_freq': (-10, 10), 'sfreq': self.sfreq}, #TODO implement that this comes from preprocessing.
+                               'scale': {'scale_factor': (0.5, 2)},
+                               'time_shift': {'time_shift': (-50, 50)}, #TODO same here
+                               'add_noise': {'std': (0,0.05)}
 
                                # {'p_drop': 0.2, 'random_state': random_state},
                                #                    {'std': 8, 'random_state': random_state},

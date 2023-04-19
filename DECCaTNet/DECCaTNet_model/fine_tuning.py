@@ -14,14 +14,6 @@ from preprocessing.preprocess import _make_adjacent_pairs
 from .DECCaTNet_model import Encoder
 
 
-class EncodingClassifier(nn.Module):
-    def __init__(self):
-        pass
-
-    def forward(self, X):
-        return X
-
-
 class PrintLayer(nn.Module):
     def __init__(self):
         super(PrintLayer, self).__init__()
@@ -76,8 +68,6 @@ class FineTuneNet(nn.Module):
         )
 
     def forward(self, X):
-        print("New sample:!!!")
-        print(X.shape)
         X = X[:, None, :, :]
         # Split input into chunks that fit into the encoder
         # TODO: Decide what to do if n_channels does not fit into encoder size (Not even)
@@ -86,12 +76,12 @@ class FineTuneNet(nn.Module):
         channel_group_tensors = []
 
         for indexes in self.channel_index_groups:
-            print(indexes)
+            # print(indexes)
             # Select the correct channel for each window in batch, concatenate those to new tensor
             channel_group_tensors.append(
                 torch.concat([X[..., i:i + 1, :] for i in indexes], dim=-2)
             )
-            print(f'channel_group: {channel_group_tensors[-1].shape}')
+            # print(f'channel_group: {channel_group_tensors[-1].shape}')
 
         # TODO: compare speed of the above with ll
         # encoder_inputs = torch.split(X, self.channel_group_size, dim=0)
@@ -99,14 +89,14 @@ class FineTuneNet(nn.Module):
         encoder_out = []
         # Run each group/pair of channels through the encoder
         for group in channel_group_tensors:
-            print(f"Group shape: {group.shape}")
+            # print(f"Group shape: {group.shape}")
             encoder_out.append(self.encoder(group))  # Encode group
 
-        print(encoder_out[0].shape)
+        # print(encoder_out[0].shape)
         X_encoded = torch.concat(encoder_out, dim=1)
-        print(X_encoded.shape)
+        # print(X_encoded.shape)
         X_encoded = torch.reshape(X_encoded, (X_encoded.shape[0],X_encoded.shape[1], -1))
-        print(f'encoded shape after reshape {X_encoded.shape}')
+        # print(f'encoded shape after reshape {X_encoded.shape}')
         X_encoded = torch.flatten(X_encoded,start_dim=1) # TODO used start_dim to keep batches seperate
         # print(f'encoded shape after reshape and flatten {X_encoded.shape}')
         x = self.classifier(X_encoded)
@@ -114,8 +104,9 @@ class FineTuneNet(nn.Module):
 
 
 def n_correct_preds(y_pred, y):
-    num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
+    num_correct = (torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)).float().sum().item()
     num_total = len(y)
+    #print(f'argmax pred {torch.argmax(y_pred, dim=1)} y {torch.argmax(y,dim=1)} results{torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)}')
     return num_correct, num_total
 
 
@@ -126,7 +117,8 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
     num_train_preds = 0
 
     for x, y, crop_inds in tqdm(train_loader, position=0, leave=True):
-        y = y.type(torch.LongTensor)
+        y = torch.Tensor([[0,1] if not elem else [1,0] for elem in y]) # TODO check what shape of target should be
+        #y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         # forward pass
@@ -150,7 +142,8 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
         del pred
         torch.cuda.empty_cache()
 
-    print(f'correct preds {correct_train_preds}, num_preds {num_train_preds}')
+    print('done with one train epoch')
+    print(f'correct preds {correct_train_preds/num_train_preds}, loss: {train_loss/num_train_preds}')
 
     return train_loss, correct_train_preds, num_train_preds
 
@@ -162,6 +155,8 @@ def validate_epoch(model, val_loader, device, loss_func):
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
         for x, y, crops_inds in tqdm(val_loader, position=0, leave=True):
+            y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])
+            #y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)
             # get predictions
             pred = model(x)
@@ -178,6 +173,9 @@ def validate_epoch(model, val_loader, device, loss_func):
             del y
             del pred
             torch.cuda.empty_cache()
+
+    print('done with validation')
+    print(f'correct preds {correct_eval_preds / num_eval_preds}, loss: {val_loss / num_eval_preds}')
 
     return val_loss, correct_eval_preds, num_eval_preds
 
@@ -217,9 +215,9 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
                     n_folds, early_stop,random_state=422):
     folds = KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
-    loss = []
-    val_loss = []
-    test_loss = []
+    avg_loss = []
+    avg_val_loss = []
+    avg_test_loss = []
     train_acc = []
     val_acc = []
     test_acc = []
@@ -239,8 +237,8 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
             val_loss, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
 
             # calculate accuracies and losses and update
-            loss.append(train_loss / len(train_loader))
-            val_loss.append(val_loss / len(val_loader))
+            avg_loss.append(train_loss / len(train_loader))
+            avg_val_loss.append(val_loss / len(val_loader))
             train_acc.append(correct_train_preds / num_train_preds)
             val_acc.append(correct_eval_preds / num_eval_preds)
 
@@ -250,10 +248,10 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
 
     if validate_test:
         test_loss, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
-        test_loss.append(test_loss / len(test_loader))
+        avg_test_loss.append(test_loss / len(test_loader))
         test_acc.append(correct_test_preds / num_test_preds)
 
-    return loss, train_acc, val_loss, val_acc, test_loss, test_acc, model
+    return avg_loss, train_acc, avg_val_loss, val_acc, avg_test_loss, test_acc, model
 
 class EarlyStopper:
     def __init__(self, patience=1, min_delta=0):
