@@ -517,13 +517,14 @@ def run_preprocess(config_path, to_numpy=False):
         if dataset is None:
             print("Loading preprocessed dataset from file tree...")
             ids_to_load = list(range(start_idx, stop_idx))
+
             dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=preproc_params['n_jobs'],
                                           ids_to_load=ids_to_load)
             print('Done loading windowed dataset.')
         if stop_idx is None:
             stop_idx = len(dataset.datasets)
         if len(dataset.datasets) > stop_idx - start_idx:
-            dataset = dataset.split(by=range(start_idx, stop_idx))['0']
+            dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
 
         idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_jobs=preproc_params['n_jobs'],
                                      channel_split_func=_make_adjacent_pairs, overwrite=True,
