@@ -1,7 +1,9 @@
+import itertools
 import os
 import pickle
 import shutil
 from copy import deepcopy
+from math import ceil
 
 import numpy as np
 import yaml
@@ -173,7 +175,7 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor(np.clip, a_min=preproc_params["crop_min"],
                      a_max=preproc_params["crop_max"], apply_on_array=True),
     ]
-    # TODO: shouldn't we add a bandstopfilter? though many before us has used this
+
     # Could add normalization here also
 
     if not os.path.exists(save_dir):
@@ -222,7 +224,7 @@ def window_ds(concat_ds: BaseConcatDataset,
 def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_jobs=1, channel_split_func=None,
                       overwrite=False, delete_step_1=False) -> 'list[tuple[int, int]]':
     if channel_split_func is None:
-        channel_split_func = _make_adjacent_pairs
+        channel_split_func = _make_adjacent_groups
     # Create save_dir for channel split dataset
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -290,7 +292,7 @@ def _split_channels_parallel(
     mne.set_log_level(verbose='ERROR')
     epochs = windows_ds.windows
 
-    channel_selections = channel_split_func(epochs.ch_names)
+    channel_selections = channel_split_func(epochs.ch_names, n_channels=params["global"]["n_channels"])
     windows_ds_list = []
     channel_n_windows = []
     epochs.load_data()
@@ -318,52 +320,47 @@ def _split_channels_parallel(
     return indexes, channel_n_windows
 
 
-def _make_single_channels(ch_list: 'list[str]') -> 'list[list[str]]':
-    return [[ch] for ch in ch_list]
+def _make_all_combinations(ch_list: 'list[str]', n_channels=2) -> 'list[list[str]]':
+    assert len(ch_list) >= n_channels
+    groups = []
+    for g in itertools.combinations(ch_list, n_channels):
+        groups.append(list(g))
+    return groups
 
 
-def _make_unique_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
-    assert len(ch_list) > 1
-    pairs = []
-    for i, channel_i in enumerate(ch_list):
-        for channel_j in ch_list[i + 1:]:
-            pairs.append([channel_i, channel_j])
-    return pairs
+def _make_all_permutations(ch_list: 'list[str]', n_channels=2) -> 'list[list[str]]':
+    assert len(ch_list) >= n_channels
+    groups = []
+    for g in itertools.permutations(ch_list, n_channels):
+        groups.append(list(g))
+    return groups
 
 
-def _make_all_pair_combos(ch_list: 'list[str]') -> 'list[list[str]]':
-    assert len(ch_list) > 1
-    pairs = []
-    for channel_i in ch_list:
-        for channel_j in ch_list:
-            pairs.append([channel_i, channel_j])
-    return pairs
+def _make_adjacent_groups(ch_list: 'list[str]', n_channels=2) -> 'list[list[str]]':
+    assert len(ch_list) >= n_channels
+    n_groups = ceil(len(ch_list) / n_channels)
+    last_start_idx = len(ch_list) - n_channels  # First channel in final group
+    # evenly spaced group starts, so overlap is distributed evenly
+    start_idx = np.round(np.linspace(0, last_start_idx, n_groups)).astype('int')
+    groups = []
+    for i in start_idx:
+        groups.append(ch_list[i:i + n_channels])
+    return groups
 
 
-def _make_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
-    assert len(ch_list) > 1
-    pairs = []
-    for i in range(len(ch_list) // 2):
-        pairs.append([ch_list[2 * i], ch_list[2 * i + 1]])
-    if len(ch_list) % 2 == 1:
-        pairs.append([ch_list[-1], ch_list[-2]])
-    return pairs
-
-
-def _make_overlapping_adjacent_pairs(ch_list: 'list[str]') -> 'list[list[str]]':
-    assert len(ch_list) > 1
-    pairs = []
-    for i in range(len(ch_list) - 1):
-        pairs.append([ch_list[i], ch_list[i + 1]])
-    return pairs
+def _make_overlapping_adjacent_groups(ch_list: 'list[str]', n_channels=2) -> 'list[list[str]]':
+    assert len(ch_list) > n_channels
+    groups = []
+    for i in range(len(ch_list) - n_channels + 1):
+        groups.append(ch_list[i:i + n_channels])
+    return groups
 
 
 string_to_channel_split_func = {
-    "single": _make_single_channels,
-    "unique_pairs": _make_unique_pair_combos,
-    "all_pairs": _make_all_pair_combos,
-    "adjacent_pairs": _make_adjacent_pairs,
-    "overlapping_adjacent_pairs": _make_overlapping_adjacent_pairs,
+    "permutations": _make_all_permutations,
+    "combinations": _make_all_combinations,
+    "adjacent_groups": _make_adjacent_groups,
+    "overlapping_adjacent_grooups": _make_overlapping_adjacent_groups,
 }
 
 
@@ -527,7 +524,7 @@ def run_preprocess(config_path, to_numpy=False):
             dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
 
         idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_jobs=preproc_params['n_jobs'],
-                                     channel_split_func=_make_adjacent_pairs, overwrite=True,
+                                     channel_split_func=_make_adjacent_groups, overwrite=True,
                                      delete_step_1=preproc_params["delete_step_1"])
 
         with open(os.path.join(cache_dir, 'split_idx_list.pkl'), 'wb') as f:
@@ -546,3 +543,8 @@ def run_preprocess(config_path, to_numpy=False):
         raise ValueError
 
     return idx_list
+
+
+if __name__ == '__main__':
+    ch_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+    print(_make_adjacent_groups(ch_names, n_channels=4))
