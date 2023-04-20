@@ -142,8 +142,46 @@ def custom_turn_off_log(raw, verbose='ERROR'):
     return raw
 
 
+def window_ds(concat_ds: BaseConcatDataset, preproc_params, n_jobs=1) -> BaseConcatDataset:
+
+    window_size = preproc_params["window_size"]
+    # Drop too short recordings and uninteresting channels
+    keep_ds = []
+    print("Dropping short recordings and excluded channels:")
+    for ds in tqdm(concat_ds.datasets):
+        if ds.raw.n_times * ds.raw.info["sfreq"] >= window_size:
+            keep_ds.append(ds)
+        ds.raw.drop_channels(preproc_params["exclude_channels"]+excluded, on_missing="ignore")
+    concat_ds = BaseConcatDataset(keep_ds)
+
+    print("Splitting dataset into windows:")
+    windows_ds = create_fixed_length_windows(
+        concat_ds,
+        n_jobs=n_jobs,
+        start_offset_samples=0,
+        stop_offset_samples=None,
+        window_size_seconds=preproc_params["window_size"],
+        drop_last_window=True,
+        drop_bad_windows=True,
+        reject=dict(eeg=5000E-6),  # Peak-to-peak high rejection threshold within each window
+        flat=dict(eeg=1E-6),  # Peak-to peak low rejection threshold
+        verbose='ERROR'
+    )
+    # https://braindecode.org/0.6/generated/braindecode.preprocessing.create_fixed_length_windows.html
+
+    # store the number of windows required for loading later on
+    n_windows = [len(ds) for ds in windows_ds.datasets]
+    n_channels = [len(ds.windows.ch_names) for ds in windows_ds.datasets]
+    windows_ds.set_description({
+        "n_windows": n_windows,
+        "n_channels": n_channels
+    })
+
+    return windows_ds
+
+
 def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, preproc_params, save_dir,
-                       n_jobs, exclude_channels=[], s_freq=200):
+                       n_jobs, exclude_channels=None, s_freq=200):
     """
     renames channels to common naming, resamples all data to one frequency, sets common eeg_reference, applies
     bandpass filter and crops.
@@ -152,6 +190,8 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
     :param n_jobs: number of available jobs for parallelization
     :return: preprocessed BaseConcatDataset
     """
+    if exclude_channels is None:
+        exclude_channels = []
     mne.set_log_level('ERROR')
     ch_naming = sorted(list(set(ch_naming) - set(exclude_channels)))
     # braindecode.augmentation.functional.channels_permute()
@@ -170,9 +210,9 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
-        # clip all data within a given border
-        Preprocessor(np.clip, a_min=preproc_params["crop_min"],
-                     a_max=preproc_params["crop_max"], apply_on_array=True),
+        # # clip all data within a given border NO LONGER USED BECAUSE WE REMOVE BAD WINDOWS BEFORE
+        # Preprocessor(np.clip, a_min=preproc_params["crop_min"],
+        #              a_max=preproc_params["crop_max"], apply_on_array=True),
     ]
 
     # Could add normalization here also
@@ -188,36 +228,6 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         overwrite=True,
     )
     return tuh_preproc
-
-
-def window_ds(concat_ds: BaseConcatDataset,
-              window_size_samples=5000, n_jobs=1, ) -> BaseConcatDataset:
-    # Drop too short samples
-    concat_ds.set_description(
-        {"n_samples": [ds.raw.n_times for ds in concat_ds.datasets]})  # type: ignore
-    keep = [n >= window_size_samples for n in concat_ds.description["n_samples"]]
-    keep_indexes = [i for i, k in enumerate(keep) if k is True]
-    concat_ds = concat_ds.split(by=keep_indexes)["0"]
-    windows_ds = create_fixed_length_windows(
-        concat_ds,
-        n_jobs=n_jobs,
-        start_offset_samples=0,
-        stop_offset_samples=None,
-        window_size_samples=window_size_samples,
-        window_stride_samples=window_size_samples,
-        drop_last_window=True,
-        drop_bad_windows=True,
-        verbose='ERROR'
-    )
-    # store the number of windows required for loading later on
-    n_windows = [len(ds) for ds in windows_ds.datasets]
-    n_channels = [len(ds.windows.ch_names) for ds in windows_ds.datasets]
-    windows_ds.set_description({
-        "n_windows": n_windows,
-        "n_channels": n_channels
-    })
-
-    return windows_ds
 
 
 def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_channels, channel_split_func=None,
@@ -428,6 +438,7 @@ def run_preprocess(params_all, global_params):
         if stop_idx is None:
             stop_idx = len(dataset.datasets)
         dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
+
         # Cache pickle
         with open(os.path.join(cache_dir, 'raw_ds.pkl'), 'wb') as f:
             pickle.dump(dataset, f)
@@ -456,8 +467,7 @@ def run_preprocess(params_all, global_params):
             os.makedirs(split_save_dir)
 
         window_n_samples = int(params['window_size'] * global_params['s_freq'])
-        print("Splitting dataset into windows:")
-        windowed_ds = window_ds(dataset, window_size_samples=window_n_samples, n_jobs=global_params['n_jobs'])
+        windowed_ds = window_ds(dataset, preproc_params=params, n_jobs=global_params['n_jobs'])
 
         with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
             pickle.dump(windowed_ds, f)
@@ -537,8 +547,3 @@ def run_preprocess(params_all, global_params):
         raise ValueError
 
     return idx_list
-
-
-if __name__ == '__main__':
-    ch_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
-    print(_make_adjacent_groups(ch_names, n_channels=4))
