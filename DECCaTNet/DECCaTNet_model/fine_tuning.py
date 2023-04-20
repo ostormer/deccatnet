@@ -49,6 +49,9 @@ class FineTuneNet(nn.Module):
         self.encoder.load_state_dict(torch.load(self.encoder_path))
         self.encoder.requires_grad_(False) # TODO what does this do?
 
+        self.out_layer_1 = all_params['downstream_params']['out_layer_1']
+        self.out_layer_2 = all_params['downstream_params']['out_layer_2']
+
         self.ds_channel_order = ds_channel_order
         # Make dict witch translates channel names to index in preprocessed files
         self.channel_index = {}
@@ -63,11 +66,11 @@ class FineTuneNet(nn.Module):
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=int(self.embedding_size*self.n_channel_groups*62), out_features=256),
+            nn.Linear(in_features=int(self.embedding_size*self.n_channel_groups*62), out_features=self.out_layer_1),
             nn.ReLU(),
-            nn.Linear(in_features=256, out_features=64),
+            nn.Linear(in_features=self.out_layer_1, out_features=self.out_layer_2),
             nn.ReLU(),
-            nn.Linear(in_features=64, out_features=self.n_classes),
+            nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
             #PrintLayer(),
             nn.LogSoftmax(-1)
         )
@@ -301,10 +304,7 @@ def run_fine_tuning(all_params,global_params,test_set=None):
     channel_groups = _make_adjacent_groups(ds_channel_order)
     model = FineTuneNet(channel_groups, ds_channel_order, all_params,global_params)
 
-    split = dataset.split('train') # TODO fix train/test split here, doesnt seam to work
-    train = split["True"]
-    test = split["False"]
-    # TODO: get train/val/test set, will use test as val for now
+    train,test = torch.utils.data.random_split(dataset,[params['train_split'],1-params['train_split']])
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["SHUFFLE"],
                                                num_workers=num_workers)
@@ -371,9 +371,8 @@ def run_fine_tuning(all_params,global_params,test_set=None):
             "weight_decay": weight_decay,
             #"save_freq": save_freq, # TODO maybe implement
             'model_params': params['model_params'],
-            "n_channels": n_channels, #TODO:check where number of channels need to be changed
-            'n_models': n_models,
-            'dataset_names':params['dataset_name'],
+            "n_channels": global_params['n_channels'], #TODO:check where number of channels need to be changed
+            'dataset_names':all_params['downstream_params'],
             'num_workers':num_workers,
 
 

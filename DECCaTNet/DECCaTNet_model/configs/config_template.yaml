@@ -1,7 +1,7 @@
 # This is a template for how config files should look, all parameters are in cronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
+  PREPROCESSING: True
   PRE_TRAINING: False
   FINE_TUNING: True
 
@@ -43,7 +43,11 @@ preprocess:
   scaling_factor: 1000000  # Scaling factor to convert to microVolts
   DELETE_STEP_1: True
   exclude_channels:
-    -
+    - 'EEG 26'
+    - 'EEG 27'
+    - 'EEG 28'
+    - 'EEG 29'
+    - 'EEG 30'
 
 pre_training:
   ds_path: '../datasets/TUH/preprocessed_abnormal/step_2'
@@ -96,7 +100,7 @@ fine_tuning:
     source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg', Add more here]
     start_idx: 0
     stop_idx: -1
-    IS_FINE_TUNING_DS: True
+    IS_FINE_TUNING_DS: False
     read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     window_size: 60  # Window length in seconds
@@ -125,7 +129,8 @@ encoder_params:
   latent_space_size: 64
 
 downstream_params:
-  params: None # for now, will change after we fix implementation
+  out_layer_1: 256
+  out_layer_2: 64
 
 
 
