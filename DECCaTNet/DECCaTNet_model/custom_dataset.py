@@ -173,10 +173,6 @@ class PathDataset(Dataset):
         sample = signals.get_data(item=window_n)
         sample = torch.Tensor(sample)
 
-        if sample.shape[2] != 9600: # TODO fix this in preprocessing
-            # print(sample.shape,fif_file_name, window_n)
-            sample = torch.nn.functional.pad(input=sample,pad=(0,9600-sample.shape[-1],0,0,0,0),mode='constant',value=0)
-
         # apply augmentations
         augmentation_id = random.sample(range(0, len(self.augmentation_names)), 2)
         aug_1 = self.augmentation_names[augmentation_id[0]]

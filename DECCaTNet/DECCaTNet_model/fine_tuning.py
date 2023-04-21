@@ -12,7 +12,8 @@ from sklearn.model_selection import KFold
 import os
 import pickle as pkl
 
-from preprocessing.preprocess import _make_adjacent_groups
+
+from preprocessing.preprocess import _make_adjacent_groups,check_windows,run_preprocess
 from .DECCaTNet_model import Encoder
 
 
@@ -37,6 +38,7 @@ class FineTuneNet(nn.Module):
         super().__init__()
         params = all_params['fine_tuning']
 
+        self.magic = global_params['magic_constant']
         self.encoder_path = params["encoder_path"]
         self.channel_group_size = global_params["n_channels"]
         self.channel_groups = channel_groups  # Channel groups defined by names
@@ -66,7 +68,7 @@ class FineTuneNet(nn.Module):
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=int(self.embedding_size*self.n_channel_groups*62), out_features=self.out_layer_1),
+            nn.Linear(in_features=int(self.embedding_size*self.n_channel_groups*self.magic), out_features=self.out_layer_1),
             nn.ReLU(),
             nn.Linear(in_features=self.out_layer_1, out_features=self.out_layer_2),
             nn.ReLU(),
@@ -281,9 +283,9 @@ class EarlyStopper:
 def run_fine_tuning(all_params,global_params,test_set=None):
     params = all_params['fine_tuning']
 
-    with open(params['ds_path'], 'rb') as fid:
-        dataset = pickle.load(fid)
-
+    if params['REDO_PREPROCESS']:
+        all_params['preprocess'] = params['fine_tuning_preprocess']
+        dataset = run_preprocess(all_params, global_params)
     epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
@@ -301,7 +303,7 @@ def run_fine_tuning(all_params,global_params,test_set=None):
 
     early_stopper = EarlyStopper(params['early_stopper']['patience'],params['early_stopper']['min_delta'])
 
-    channel_groups = _make_adjacent_groups(ds_channel_order)
+    channel_groups = _make_adjacent_groups(ds_channel_order,global_params['n_channels'])
     model = FineTuneNet(channel_groups, ds_channel_order, all_params,global_params)
 
     train,test = torch.utils.data.random_split(dataset,[params['train_split'],1-params['train_split']])
@@ -380,3 +382,7 @@ def run_fine_tuning(all_params,global_params,test_set=None):
         # TODO: remeber that some datasets (Abnormal/Normal) is already splitted, guessing this is implemented by Oskar.
 
         print("Training done")
+
+def get_window_len(ds):
+    diff = ds.windows.metadata['i_stop_in_trial'] - ds.windows.metadata['i_start_in_trial']
+    return diff.to_numpy()
