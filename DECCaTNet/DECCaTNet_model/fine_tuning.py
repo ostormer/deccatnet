@@ -13,8 +13,7 @@ import os
 import pickle as pkl
 from ray import tune
 
-
-from preprocessing.preprocess import _make_adjacent_groups,check_windows,run_preprocess
+from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
 from .DECCaTNet_model import Encoder
 
 
@@ -27,8 +26,9 @@ class PrintLayer(nn.Module):
         print(x.shape)
         return x
 
+
 class FineTuneNet(nn.Module):
-    def __init__(self, channel_groups, ds_channel_order, all_params,global_params):
+    def __init__(self, channel_groups, ds_channel_order, all_params, global_params):
         """
         encoder_path
         channel_group_size = 2
@@ -47,10 +47,10 @@ class FineTuneNet(nn.Module):
         self.embedding_size = global_params["embedding_size"]
         self.n_classes = params["n_classes"]
 
-        self.encoder = Encoder(all_params['encoder_params'],global_params)
+        self.encoder = Encoder(all_params['encoder_params'], global_params)
 
         self.encoder.load_state_dict(torch.load(self.encoder_path))
-        self.encoder.requires_grad_(False) # TODO what does this do?
+        self.encoder.requires_grad_(False)  # TODO what does this do?
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
         self.out_layer_2 = all_params['downstream_params']['out_layer_2']
@@ -71,14 +71,15 @@ class FineTuneNet(nn.Module):
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=int(self.embedding_size*self.n_channel_groups*self.magic), out_features=self.out_layer_1),
+            nn.Linear(in_features=int(self.embedding_size * self.n_channel_groups * self.magic),
+                      out_features=self.out_layer_1),
             nn.ReLU(),
             nn.Dropout(self.dropout_1),
             nn.Linear(in_features=self.out_layer_1, out_features=self.out_layer_2),
             nn.ReLU(),
             nn.Dropout(self.dropout_2),
             nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
-            #PrintLayer(),
+            # PrintLayer(),
             nn.LogSoftmax(-1)
         )
 
@@ -110,18 +111,18 @@ class FineTuneNet(nn.Module):
         # print(encoder_out[0].shape)
         X_encoded = torch.concat(encoder_out, dim=1)
         # print(X_encoded.shape)
-        X_encoded = torch.reshape(X_encoded, (X_encoded.shape[0],X_encoded.shape[1], -1))
+        X_encoded = torch.reshape(X_encoded, (X_encoded.shape[0], X_encoded.shape[1], -1))
         # print(f'encoded shape after reshape {X_encoded.shape}')
-        X_encoded = torch.flatten(X_encoded,start_dim=1) # TODO used start_dim to keep batches seperate
+        X_encoded = torch.flatten(X_encoded, start_dim=1)  # TODO used start_dim to keep batches seperate
         # print(f'encoded shape after reshape and flatten {X_encoded.shape}')
         x = self.classifier(X_encoded)
         return x
 
 
 def n_correct_preds(y_pred, y):
-    num_correct = (torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)).float().sum().item()
+    num_correct = (torch.argmax(y_pred, dim=1) == torch.argmax(y, dim=1)).float().sum().item()
     num_total = len(y)
-    #print(f'argmax pred {torch.argmax(y_pred, dim=1)} y {torch.argmax(y,dim=1)} results{torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)}')
+    # print(f'argmax pred {torch.argmax(y_pred, dim=1)} y {torch.argmax(y,dim=1)} results{torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)}')
     return num_correct, num_total
 
 
@@ -132,8 +133,8 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
     num_train_preds = 0
 
     for x, y, crop_inds in tqdm(train_loader, position=0, leave=True):
-        y = torch.Tensor([[0,1] if not elem else [1,0] for elem in y]) # TODO check what shape of target should be
-        #y = y.type(torch.LongTensor)
+        y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])  # TODO check what shape of target should be
+        # y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         # forward pass
@@ -158,7 +159,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
         torch.cuda.empty_cache()
 
     print('done with one train epoch')
-    print(f'correct preds {correct_train_preds/num_train_preds}, loss: {train_loss/num_train_preds}')
+    print(f'correct preds {correct_train_preds / num_train_preds}, loss: {train_loss / num_train_preds}')
 
     return train_loss, correct_train_preds, num_train_preds
 
@@ -171,7 +172,7 @@ def validate_epoch(model, val_loader, device, loss_func):
         model.eval()  # tell model it is evaluation time
         for x, y, crops_inds in tqdm(val_loader, position=0, leave=True):
             y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])
-            #y = y.type(torch.LongTensor)
+            # y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)
             # get predictions
             pred = model(x)
@@ -195,7 +196,8 @@ def validate_epoch(model, val_loader, device, loss_func):
     return val_loss, correct_eval_preds, num_eval_preds
 
 
-def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,early_stop):
+def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,
+                early_stop):
     loss = []
     val_loss = []
     test_loss = []
@@ -228,7 +230,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
 
 
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
-                    n_folds, early_stop,random_state=422):
+                    n_folds, early_stop, random_state=422):
     folds = KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
     avg_loss = []
     avg_val_loss = []
@@ -268,6 +270,7 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
 
     return avg_loss, train_acc, avg_val_loss, val_acc, avg_test_loss, test_acc, model
 
+
 class EarlyStopper:
     def __init__(self, patience=1, min_delta=0):
         self.patience = patience
@@ -285,12 +288,13 @@ class EarlyStopper:
                 return True
         return False
 
-def run_fine_tuning(all_params,global_params,test_set=None):
+
+def run_fine_tuning(all_params, global_params, test_set=None):
     params = all_params['fine_tuning']
 
     if params['REDO_PREPROCESS']:
         all_params['preprocess'] = params['fine_tuning_preprocess']
-        dataset = run_preprocess(all_params, global_params,fine_tuning=True)[0]
+        dataset = run_preprocess(all_params, global_params, fine_tuning=True)[0]
     epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
@@ -300,19 +304,20 @@ def run_fine_tuning(all_params,global_params,test_set=None):
 
     ds_channel_order = dataset.datasets[0].windows.ch_names
 
-    for i,windows_ds in enumerate(dataset.datasets):
+    for i, windows_ds in enumerate(dataset.datasets):
         if not windows_ds.windows.ch_names == ds_channel_order:
-            changes = [ds_channel_order.index(ch_n) if ds_channel_order[i]!=ch_n else i for i,ch_n in enumerate(windows_ds.windows.ch_names)]
-            #print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
-        #assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}' # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
+            changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
+                       enumerate(windows_ds.windows.ch_names)]
+            # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
+        # assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}' # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
     print("All recordings have the correct channel order")
 
-    early_stopper = EarlyStopper(params['early_stopper']['patience'],params['early_stopper']['min_delta'])
+    early_stopper = EarlyStopper(params['early_stopper']['patience'], params['early_stopper']['min_delta'])
 
-    channel_groups = _make_adjacent_groups(ds_channel_order,global_params['n_channels'])
-    model = FineTuneNet(channel_groups, ds_channel_order, all_params,global_params)
+    channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
+    model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
-    train,test = torch.utils.data.random_split(dataset,[params['train_split'],1-params['train_split']])
+    train, test = torch.utils.data.random_split(dataset, [params['train_split'], 1 - params['train_split']])
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["SHUFFLE"],
                                                num_workers=num_workers)
@@ -342,16 +347,19 @@ def run_fine_tuning(all_params,global_params,test_set=None):
                                                                                          params["batch_size"],
                                                                                          test_loader, device, loss_func,
                                                                                          optimizer, validate_test,
-                                                                                         n_folds,early_stopper)
+                                                                                         n_folds, early_stopper)
     else:
         loss, train_acc, val_loss, val_acc, test_loss, test_acc, model = train_model(epochs, model, train_loader,
                                                                                      val_loader, test_loader, device,
                                                                                      loss_func, optimizer,
-                                                                                     validate_test,early_stopper)
+                                                                                     validate_test, early_stopper)
 
     # TODO: implement savinf parts of models underway in training
     # save function for final model
-    save_path_model = os.path.join(params['save_dir_model'],params['model_file_name'])
+    if not os.path.exists(params['save_dir_model']):
+        os.makedirs(params['save_dir_model'])
+
+    save_path_model = os.path.join(params['save_dir_model'], params['model_file_name'])
     torch.save(model.state_dict(), save_path_model)
     # here is the solution, have the model as several modules; then different modules can be saved seperately
     save_path_enocder = os.path.join(params['save_dir_model'], "encoder_" + params['model_file_name'])
@@ -365,29 +373,29 @@ def run_fine_tuning(all_params,global_params,test_set=None):
         pkl.dump({
             "avg_train_losses": loss,
             'avg_train_acc': train_acc,
-            'avg_val_losses':val_loss,
+            'avg_val_losses': val_loss,
             'avg_val_acc': val_acc,
-            'avg_test_loss':test_loss,
-            'avg_test_acc':test_acc,
+            'avg_test_loss': test_loss,
+            'avg_test_acc': test_acc,
             "save_dir_for_model": params['save_dir_model'],
             "model_file_name": params['model_file_name'],
             "batch_size": params["batch_size"],
-            "shuffle": params["shuffle"],  # "num_workers": num_workers,
+            "shuffle": params["SHUFFLE"],  # "num_workers": num_workers,
             "max_epochs": epochs,
             "learning_rate": learning_rate,
-            #"beta_vals": beta_vals, # TODO: check out betavals
+            # "beta_vals": beta_vals, # TODO: check out betavals
             "weight_decay": weight_decay,
-            #"save_freq": save_freq, # TODO maybe implement
-            'model_params': params['model_params'],
-            "n_channels": global_params['n_channels'], #TODO:check where number of channels need to be changed
-            'dataset_names':all_params['downstream_params'],
-            'num_workers':num_workers,
-
+            # "save_freq": save_freq, # TODO maybe implement
+            'model_params': params['encoder_params'],
+            "n_channels": global_params['n_channels'],  # TODO:check where number of channels need to be changed
+            'dataset_names': params['ds_name'],
+            'num_workers': num_workers,
 
         }, outfile)
         # TODO: remeber that some datasets (Abnormal/Normal) is already splitted, guessing this is implemented by Oskar.
 
         print("Training done")
+
 
 def get_window_len(ds):
     diff = ds.windows.metadata['i_stop_in_trial'] - ds.windows.metadata['i_start_in_trial']
