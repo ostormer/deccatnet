@@ -290,13 +290,14 @@ def run_fine_tuning(all_params,global_params,test_set=None):
 
     if params['REDO_PREPROCESS']:
         all_params['preprocess'] = params['fine_tuning_preprocess']
-        dataset = run_preprocess(all_params, global_params,fine_tuning=True)
+        dataset = run_preprocess(all_params, global_params,fine_tuning=True)[0]
     epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
     num_workers = global_params['n_jobs']
     perform_k_fold = params['PERFORM_KFOLD']
     n_folds = params['n_folds']
+
     ds_channel_order = dataset.datasets[0].windows.ch_names
 
     for i,windows_ds in enumerate(dataset.datasets):

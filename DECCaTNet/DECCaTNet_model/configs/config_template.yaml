@@ -120,7 +120,7 @@ fine_tuning:
   fine_tuning_preprocess:
     source_ds: 'tuh_eeg_abnormal'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg', Add more here]
     start_idx: 0
-    stop_idx: -1
+    stop_idx: 10
     IS_FINE_TUNING_DS: True
     read_cache: 'none'  # needs to be none if new channels are excluded
 
