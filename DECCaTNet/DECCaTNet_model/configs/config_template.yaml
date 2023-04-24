@@ -44,6 +44,8 @@ preprocess:
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this
+    reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak
     DELETE_STEP_1: True
     #exclude_channels: # remember to acomment out if not used
   tuh_eeg:
@@ -60,6 +62,8 @@ preprocess:
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this
+    reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak
     DELETE_STEP_1: True
     #exclude_channels: # remember to acomment out if not used
 
@@ -130,6 +134,8 @@ fine_tuning:
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this
+    reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak
     DELETE_STEP_1: False
     exclude_channels:
     - 'EEG 26-REF'

@@ -169,12 +169,20 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params,global_params, n_jobs
         #window_stride_samples=window_size * global_params['s_freq'],
         drop_last_window=True,
         drop_bad_windows=True,
-        reject=dict(eeg=5000E-6),  # Peak-to-peak high rejection threshold within each window
-        flat=dict(eeg=1E-6),  # Peak-to peak low rejection threshold
+        reject=dict(eeg=preproc_params["reject_high_threshold"]),  # Peak-to-peak high rejection threshold within each window
+        flat=dict(eeg=preproc_params["reject_flat_threshold"]),  # Peak-to peak low rejection threshold
         verbose='ERROR'
     )
+
+    keep_ds = []
+    for ds in tqdm(windows_ds.datasets):
+        if len(ds.windows > 0):
+            keep_ds.append(ds)
+    windows_ds = BaseConcatDataset(keep_ds)
+
     # https://braindecode.org/0.6/generated/braindecode.preprocessing.create_fixed_length_windows.html
     # store the number of windows required for loading later on
+
     n_windows = [len(ds) for ds in windows_ds.datasets]
     n_channels = [len(ds.windows.ch_names) for ds in windows_ds.datasets]
     windows_ds.set_description({
