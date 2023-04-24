@@ -585,3 +585,6 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         preproc_datasets.append(idx_list)
 
     return preproc_datasets
+
+if __name__ == "__main__":
+    
