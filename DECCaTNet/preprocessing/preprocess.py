@@ -399,178 +399,181 @@ string_to_channel_split_func = {
 }
 
 
-def run_preprocess(params_all, global_params):
+def run_preprocess(params_all, global_params, fine_tuning=False):
     # ------------------------ Perform preprocessing ------------------------
-    params = params_all['preprocess']
-    dir_params = params_all['directory']
-
-    source_ds = params["source_ds"]
-
-    start_idx = params["start_idx"]
-    stop_idx = params["stop_idx"]
-    is_fine_tuning_ds = params["IS_FINE_TUNING_DS"]
-    if stop_idx <= 0:
-        stop_idx = None
-
-    assert source_ds in ['tuh_eeg_abnormal', 'tuh_eeg'], \
-        f"{source_ds} is not a valid dataset option"
-    read_cache = params["read_cache"]
-    if (read_cache is None) or read_cache in [False, 'None']:
-        read_cache = 'none'
-    assert read_cache in ['none', 'raw', 'preproc', 'windows'], \
-        f"{read_cache} is not a valid cache to read"
-
-    local_load = dir_params['LOCAL_LOAD']
-
-    window_size = params["window_size"]
-    channel_select_function = params["channel_select_function"]
-    assert channel_select_function in string_to_channel_split_func.keys(), \
-        f"{channel_select_function} is not a valid channel selection function"
-
-    try:
-        exclude_channels = params["exclude_channels"]
-    except KeyError:
-        exclude_channels = []
-
-    # Read path info
-    if local_load:
-        paths = dir_params['local']
+    if fine_tuning:
+        params_all['preprocess']['fine_tuning'] = params_all['preprocess']
+        datasets = ['fine_tuning']
     else:
-        paths = dir_params['disk']
-    dataset_root = paths['dataset_root']
-    cache_dir = paths['cache_dir']
-    preproc_save_dir = paths['save_dir']
-    split_save_dir = paths['save_dir_2']
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
+        datasets = global_params['datasets']
 
-    # -------------------------------- START PREPROC -------------------------------
-    # Disable most MNE logging output which slows execution
-    mne.set_log_level(verbose='ERROR')
+    preproc_datasets = []
 
-    def _read_raw(start_idx=0, stop_idx=None):
-        if source_ds == 'tuh_eeg_abnormal':
-            dataset = tuh.TUHAbnormal(
-                dataset_root,
-                n_jobs=global_params['n_jobs'],
-                target_name='pathological'
-            )
-        elif source_ds == 'tuh_eeg':
-            dataset = tuh.TUH(dataset_root, n_jobs=global_params['n_jobs'])
-        else:
-            raise ValueError
-        print(f'Loaded {len(dataset.datasets)} files.')
-        if stop_idx is None:
-            stop_idx = len(dataset.datasets)
-        dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
+    for dataset in datasets:
+        params = params_all['preprocess'][dataset]
+        paths = params_all['directory'][dataset]
 
-        # Cache pickle
-        with open(os.path.join(cache_dir, 'raw_ds.pkl'), 'wb') as f:
-            pickle.dump(dataset, f)
-        # Next step:
-        return _preproc_window(dataset=dataset)
+        source_ds = params["source_ds"]
 
-    def _preproc_window(dataset=None, start_idx=0, stop_idx=None):
-        """
-        Window dataset
-        """
-        if dataset is None:
-            print("Loading pickled dataset from file")
-            with open(os.path.join(cache_dir, 'raw_ds.pkl'), 'rb') as f:
-                dataset = pickle.load(f)
-                print('Done loading pickled raw dataset.')
+        start_idx = params["start_idx"]
+        stop_idx = params["stop_idx"]
+        is_fine_tuning_ds = params["IS_FINE_TUNING_DS"]
+        if stop_idx <= 0:
+            stop_idx = None
+
+        assert source_ds in ['tuh_eeg_abnormal', 'tuh_eeg'], \
+            f"{source_ds} is not a valid dataset option"
+        read_cache = params["read_cache"]
+        if (read_cache is None) or read_cache in [False, 'None']:
+            read_cache = 'none'
+        assert read_cache in ['none', 'raw', 'preproc', 'windows'], \
+            f"{read_cache} is not a valid cache to read"
+
+        window_size = params["window_size"]
+        channel_select_function = params["channel_select_function"]
+        assert channel_select_function in string_to_channel_split_func.keys(), \
+            f"{channel_select_function} is not a valid channel selection function"
+
+        try:
+            exclude_channels = params["exclude_channels"]
+        except KeyError:
+            exclude_channels = []
+
+        dataset_root = paths['dataset_root']
+        cache_dir = paths['cache_dir']
+        preproc_save_dir = paths['save_dir']
+        split_save_dir = paths['save_dir_2']
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+
+        # -------------------------------- START PREPROC -------------------------------
+        # Disable most MNE logging output which slows execution
+        mne.set_log_level(verbose='ERROR')
+
+        def _read_raw(start_idx=0, stop_idx=None):
+            if source_ds == 'tuh_eeg_abnormal':
+                dataset = tuh.TUHAbnormal(
+                    dataset_root,
+                    n_jobs=global_params['n_jobs'],
+                    target_name='pathological'
+                )
+            elif source_ds == 'tuh_eeg':
+                dataset = tuh.TUH(dataset_root, n_jobs=global_params['n_jobs'])
+            else:
+                raise ValueError
+            print(f'Loaded {len(dataset.datasets)} files.')
+            if stop_idx is None:
+                stop_idx = len(dataset.datasets)
+            dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
+
+            # Cache pickle
+            with open(os.path.join(cache_dir, 'raw_ds.pkl'), 'wb') as f:
+                pickle.dump(dataset, f)
+            # Next step:
+            return _preproc_window(dataset=dataset)
+
+        def _preproc_window(dataset=None, start_idx=0, stop_idx=None):
+            """
+            Window dataset
+            """
+            if dataset is None:
+                print("Loading pickled dataset from file")
+                with open(os.path.join(cache_dir, 'raw_ds.pkl'), 'rb') as f:
+                    dataset = pickle.load(f)
+                    print('Done loading pickled raw dataset.')
+                if stop_idx is None:
+                    stop_idx = len(dataset.datasets)
+                if len(dataset.datasets) > stop_idx - start_idx:
+                    dataset = dataset.split(by=range(start_idx, stop_idx))['0']
+
+            # Select by duration
+            print(f'Start selecting samples with duration over {window_size} sec')
+
+            dataset = select_duration(dataset, t_min=window_size, t_max=None)
+
+            if not os.path.exists(split_save_dir):
+                os.makedirs(split_save_dir)
+
+            window_n_samples = int(params['window_size'] * global_params['s_freq'])
+            windowed_ds = window_ds(dataset, preproc_params=params, global_params=global_params,n_jobs=global_params['n_jobs'])
+
+            with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
+                pickle.dump(windowed_ds, f)
+
+            # next step
+            return _preproc_first(dataset=windowed_ds, start_idx=start_idx, stop_idx=stop_idx)
+
+        def _preproc_first(dataset=None, start_idx=0, stop_idx=None):
+            if dataset is None:
+                print("Loading pickled windowed dataset...")
+                with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'rb') as f:
+                    dataset = pickle.load(f)
+                    print('Done loading pickled windowed dataset.')
             if stop_idx is None:
                 stop_idx = len(dataset.datasets)
             if len(dataset.datasets) > stop_idx - start_idx:
                 dataset = dataset.split(by=range(start_idx, stop_idx))['0']
+            # Create save_dir
+            if not os.path.exists(preproc_save_dir):
+                os.makedirs(preproc_save_dir)
 
-        # Select by duration
-        print(f'Start selecting samples with duration over {window_size} sec')
+            # with open(os.path.join(cache_dir, 'duration.pkl'), 'wb') as f:
+            #     pickle.dump(dataset, f)
+            print(f"Done. Kept {len(dataset.datasets)} files.")
 
-        dataset = select_duration(dataset, t_min=window_size, t_max=None)
+            # Change channel names to common naming scheme for tuh_eeg
+            common_naming, ch_mapping = create_channel_mapping()
 
-        if not os.path.exists(split_save_dir):
-            os.makedirs(split_save_dir)
+            # Apply preprocessing step
+            dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
+                                         ch_naming=common_naming, preproc_params=params,
+                                         save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
+                                         exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
 
-        window_n_samples = int(params['window_size'] * global_params['s_freq'])
-        windowed_ds = window_ds(dataset, preproc_params=params, global_params=global_params,n_jobs=global_params['n_jobs'])
+            # Following pickle of dataset is disabled because of the
+            # "cannot pickle '_io.BufferedReader' object" bug in braindecode
 
-        with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
-            pickle.dump(windowed_ds, f)
+            #with open(os.path.join(cache_dir, 'preproc1_ds.pkl'), 'wb') as f:
+            #    pickle.dump(dataset, f)
 
-        # next step
-        return _preproc_first(dataset=windowed_ds, start_idx=start_idx, stop_idx=stop_idx)
+            # Next step, or return if fine-tuning set
+            if is_fine_tuning_ds:
+                #check_windows(dataset)
+                return dataset
+            else:
+                return _preproc_split(dataset, start_idx=start_idx, stop_idx=stop_idx)
 
-    def _preproc_first(dataset=None, start_idx=0, stop_idx=None):
-        if dataset is None:
-            print("Loading pickled windowed dataset...")
-            with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'rb') as f:
-                dataset = pickle.load(f)
-                print('Done loading pickled windowed dataset.')
-        if stop_idx is None:
-            stop_idx = len(dataset.datasets)
-        if len(dataset.datasets) > stop_idx - start_idx:
-            dataset = dataset.split(by=range(start_idx, stop_idx))['0']
-        # Create save_dir
-        if not os.path.exists(preproc_save_dir):
-            os.makedirs(preproc_save_dir)
+        def _preproc_split(dataset=None, start_idx=0, stop_idx=None):
+            if dataset is None:
+                print("Loading preprocessed dataset from file tree...")
+                ids_to_load = list(range(start_idx, stop_idx))
 
-        # with open(os.path.join(cache_dir, 'duration.pkl'), 'wb') as f:
-        #     pickle.dump(dataset, f)
-        print(f"Done. Kept {len(dataset.datasets)} files.")
+                dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'],
+                                              ids_to_load=ids_to_load)
+                print('Done loading windowed dataset.')
+            if stop_idx is None:
+                stop_idx = len(dataset.datasets)
+            if len(dataset.datasets) > stop_idx - start_idx:
+                dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
 
-        # Change channel names to common naming scheme for tuh_eeg
-        common_naming, ch_mapping = create_channel_mapping()
+            idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_channels=global_params['n_channels'],
+                                         channel_split_func=_make_adjacent_groups, overwrite=True,
+                                         delete_step_1=params["DELETE_STEP_1"])
 
-        # Apply preprocessing step
-        dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
-                                     ch_naming=common_naming, preproc_params=params,
-                                     save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
-                                     exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
+            with open(os.path.join(cache_dir, 'split_idx_list.pkl'), 'wb') as f:
+                pickle.dump(idx_list, f)
+            return idx_list
 
-        # Following pickle of dataset is disabled because of the
-        # "cannot pickle '_io.BufferedReader' object" bug in braindecode
-
-        #with open(os.path.join(cache_dir, 'preproc1_ds.pkl'), 'wb') as f:
-        #    pickle.dump(dataset, f)
-
-        # Next step, or return if fine-tuning set
-        if is_fine_tuning_ds:
-            #check_windows(dataset)
-            return dataset
+        if read_cache == 'none':
+            idx_list = _read_raw(start_idx=start_idx, stop_idx=stop_idx)
+        elif read_cache == 'raw':
+            idx_list = _preproc_window(start_idx=start_idx, stop_idx=stop_idx)
+        elif read_cache == 'windows':
+            idx_list = _preproc_first(start_idx=start_idx, stop_idx=stop_idx)
+        elif read_cache == 'preproc':
+            idx_list = _preproc_split(start_idx=start_idx, stop_idx=stop_idx)
         else:
-            return _preproc_split(dataset, start_idx=start_idx, stop_idx=stop_idx)
+            raise ValueError
+        preproc_datasets.append(idx_list)
 
-    def _preproc_split(dataset=None, start_idx=0, stop_idx=None):
-        if dataset is None:
-            print("Loading preprocessed dataset from file tree...")
-            ids_to_load = list(range(start_idx, stop_idx))
-
-            dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'],
-                                          ids_to_load=ids_to_load)
-            print('Done loading windowed dataset.')
-        if stop_idx is None:
-            stop_idx = len(dataset.datasets)
-        if len(dataset.datasets) > stop_idx - start_idx:
-            dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
-
-        idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_channels=global_params['n_channels'],
-                                     channel_split_func=_make_adjacent_groups, overwrite=True,
-                                     delete_step_1=params["DELETE_STEP_1"])
-
-        with open(os.path.join(cache_dir, 'split_idx_list.pkl'), 'wb') as f:
-            pickle.dump(idx_list, f)
-        return idx_list
-
-    if read_cache == 'none':
-        idx_list = _read_raw(start_idx=start_idx, stop_idx=stop_idx)
-    elif read_cache == 'raw':
-        idx_list = _preproc_window(start_idx=start_idx, stop_idx=stop_idx)
-    elif read_cache == 'windows':
-        idx_list = _preproc_first(start_idx=start_idx, stop_idx=stop_idx)
-    elif read_cache == 'preproc':
-        idx_list = _preproc_split(start_idx=start_idx, stop_idx=stop_idx)
-    else:
-        raise ValueError
-
-    return idx_list
+    return preproc_datasets

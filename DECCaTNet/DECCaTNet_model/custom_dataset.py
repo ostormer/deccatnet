@@ -96,7 +96,6 @@ class PathDataset(Dataset):
     """
 
     def __init__(self, ids_to_load, path, all_params, global_params):
-        self.dataset_names = all_params['preprocess']['source_ds']
         self.all_params = all_params
         self.global_params = global_params
 

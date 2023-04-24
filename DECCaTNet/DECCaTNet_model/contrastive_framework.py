@@ -12,7 +12,7 @@ import pickle as pkl
 import torchplot as plt
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
-from DECCaTNet_model.custom_dataset import PathDataset
+from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -280,10 +280,15 @@ def pre_train_model(all_params,global_params):
     :return: None
     """
     params = all_params['pre_training']
+    all_dataset = global_params['datasets']
+    datasets_dict = {}
+    for dataset in all_dataset:
+        path_params = params[dataset]
+        with open(path_params['ids_path'], 'rb') as fid:
+            pre_train_ids = pickle.load(fid)
+        datasets_dict[dataset] = (path_params['ds_path'], pre_train_ids)
 
-    with open(params['ids_path'], 'rb') as fid:
-        pre_train_ids = pickle.load(fid)
-    dataset = PathDataset(path=params['ds_path'], ids_to_load=pre_train_ids, all_params=all_params, global_params=global_params)
+    dataset = ConcatPathDataset(datasets_dict,all_params,global_params)
 
     batch_size = params['batch_size']
     train_split = params['train_split']
@@ -436,7 +441,7 @@ def pre_train_model(all_params,global_params):
             'model_params': all_params['encoder_params'],
             "channels": n_channels, #TODO:check where number of channels need to be changed
             'dataset_names':dataset.dataset_names,
-            "sfreq": dataset.sfreq,
+            "sfreq": global_params['s_freq'],
             'train_split':train_split,
             'already_trained_model':trained_model_path,
             'num_workers':num_workers,
