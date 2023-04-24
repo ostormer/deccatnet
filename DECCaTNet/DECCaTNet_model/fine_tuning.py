@@ -386,7 +386,7 @@ def run_fine_tuning(all_params, global_params, test_set=None):
             # "beta_vals": beta_vals, # TODO: check out betavals
             "weight_decay": weight_decay,
             # "save_freq": save_freq, # TODO maybe implement
-            'model_params': params['encoder_params'],
+            'model_params': all_params['encoder_params'],
             "n_channels": global_params['n_channels'],  # TODO:check where number of channels need to be changed
             'dataset_names': params['ds_name'],
             'num_workers': num_workers,

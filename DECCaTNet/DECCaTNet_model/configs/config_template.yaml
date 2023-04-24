@@ -2,7 +2,7 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  PRE_TRAINING: False
+  PRE_TRAINING: True
   FINE_TUNING: True
 
   n_jobs: 2
