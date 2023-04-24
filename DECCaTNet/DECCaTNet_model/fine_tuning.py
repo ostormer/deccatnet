@@ -11,6 +11,7 @@ from tqdm import tqdm
 from sklearn.model_selection import KFold
 import os
 import pickle as pkl
+from ray import tune
 
 
 from preprocessing.preprocess import _make_adjacent_groups,check_windows,run_preprocess
@@ -53,6 +54,8 @@ class FineTuneNet(nn.Module):
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
         self.out_layer_2 = all_params['downstream_params']['out_layer_2']
+        self.dropout_1 = all_params['downstream_params']['dropout_1']
+        self.dropout_2 = all_params['downstream_params']['dropout_2']
 
         self.ds_channel_order = ds_channel_order
         # Make dict witch translates channel names to index in preprocessed files
@@ -70,8 +73,10 @@ class FineTuneNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(in_features=int(self.embedding_size*self.n_channel_groups*self.magic), out_features=self.out_layer_1),
             nn.ReLU(),
+            nn.Dropout(self.dropout_1),
             nn.Linear(in_features=self.out_layer_1, out_features=self.out_layer_2),
             nn.ReLU(),
+            nn.Dropout(self.dropout_2),
             nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
             #PrintLayer(),
             nn.LogSoftmax(-1)

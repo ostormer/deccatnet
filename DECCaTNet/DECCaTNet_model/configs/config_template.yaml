@@ -2,7 +2,7 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  PRE_TRAINING: True
+  PRE_TRAINING: False
   FINE_TUNING: True
 
   n_jobs: 2
@@ -52,7 +52,7 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 16
-  train_split: 0.99
+  train_split: 0.01
   SHUFFLE: True
   temperature: 1 # Temperature of normalized temeprature contrastive loss
   learning_rate: 0.1
@@ -128,6 +128,8 @@ encoder_params:
 downstream_params:
   out_layer_1: 256
   out_layer_2: 64
+  dropout_1: 0.5
+  dropout_2: 0.3
 
 
 

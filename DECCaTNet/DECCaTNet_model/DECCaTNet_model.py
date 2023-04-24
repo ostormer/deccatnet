@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from einops.layers.torch import Rearrange, Reduce
 
 class DECCaTNet(nn.Module):
     def __init__(self, all_params, global_params):
@@ -52,7 +53,7 @@ class Convolution(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         self.projector = nn.Sequential(nn.Conv2d(spatial, self.emb_size, kernel_size=(1, 1), stride=(1, 1)))
-
+        self.rearrange = Rearrange('b e (h) (w) -> b (h w) e')
         # self.spatial = nn.Sequential(
         #
         # )
@@ -66,9 +67,8 @@ class Convolution(nn.Module):
         x = self.pooling(x)
         x = self.dropout(x)
         x = self.projector(x)
-        # has shape: [Batch,embedding_size,1,62(depends on net params)] little bit weird, but ok
-        x = x.view((x.shape[0], x.shape[3], x.shape[1]))
-        # new shape: (batch_size, embedding_size, 62)
+        x = self.rearrange(x)
+
         return x
 
 
