@@ -290,7 +290,7 @@ def run_fine_tuning(all_params,global_params,test_set=None):
 
     if params['REDO_PREPROCESS']:
         all_params['preprocess'] = params['fine_tuning_preprocess']
-        dataset = run_preprocess(all_params, global_params)
+        dataset = run_preprocess(all_params, global_params,fine_tuning=True)
     epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']

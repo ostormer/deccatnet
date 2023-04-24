@@ -1,14 +1,14 @@
 # This is a template for how config files should look, all parameters are in cronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
-  PRE_TRAINING: True
+  PREPROCESSING: False
+  PRE_TRAINING: False
   FINE_TUNING: True
 
   n_jobs: 2
   random_state: null # remeber null and not None
 
-  n_channels: 1
+  n_channels: 3
   s_freq: 200
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
@@ -35,7 +35,7 @@ preprocess:
     start_idx: 0
     stop_idx: -1
     IS_FINE_TUNING_DS: False
-    read_cache: 'windows'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     window_size: 60  # Window length in seconds
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
@@ -96,6 +96,7 @@ pre_training:
     noise_probability: 0
 
 fine_tuning:
+  ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
   ds_path: '../datasets/TUH/TUH-pickles_abnormal/windowed_ds.pkl'
   encoder_path: 'models/encoder_test'

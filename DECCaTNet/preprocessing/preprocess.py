@@ -176,7 +176,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params,global_params, n_jobs
 
     keep_ds = []
     for ds in tqdm(windows_ds.datasets):
-        if len(ds.windows > 0):
+        if len(ds.windows) > 0:
             keep_ds.append(ds)
     windows_ds = BaseConcatDataset(keep_ds)
 
@@ -419,7 +419,10 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
 
     for dataset in datasets:
         params = params_all['preprocess'][dataset]
-        paths = params_all['directory'][dataset]
+        if fine_tuning:
+            paths = params_all['directory'][params_all['fine_tuning']['ds_name']]
+        else:
+            paths = params_all['directory'][dataset]
 
         source_ds = params["source_ds"]
 
