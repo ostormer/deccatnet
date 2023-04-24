@@ -223,9 +223,6 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
-        # # clip all data within a given border NO LONGER USED BECAUSE WE REMOVE BAD WINDOWS BEFORE
-        # Preprocessor(np.clip, a_min=preproc_params["crop_min"],
-        #              a_max=preproc_params["crop_max"], apply_on_array=True),
     ]
 
     # Could add normalization here also
