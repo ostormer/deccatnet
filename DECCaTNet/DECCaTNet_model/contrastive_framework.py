@@ -4,6 +4,7 @@ import os
 import pickle
 import time
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as fn
@@ -13,6 +14,10 @@ import torchplot as plt
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
 from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset
+from ray import tune
+from ray.tune import CLIReporter
+from ray.tune.schedulers import ASHAScheduler
+from functools import partial
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -230,6 +235,90 @@ class ContrastiveLossGPT(nn.Module):
 
         return loss
 
+def train_epoch(model,epoch,max_epochs,train_loader,device,optimizer,loss_func,time_process,batch_print_freq,time_names,batch_size):
+    model.train()  # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
+    print('epoch number: ', epoch + 1, 'of: ', max_epochs)
+    epoch_loss = 0
+    counter = 0  # counter for batch print.
+    # start traning by looping through batches
+    start_time = time.thread_time()
+    for aug_1, aug_2, sample in tqdm(train_loader, position=0, leave=True):
+        batch_time = time.thread_time()
+        # transfer to GPU or CUDA
+        x1, x2 = aug_1.to(device), aug_2.to(device)
+        to_device_time = time.thread_time()
+        # zero out existing gradients
+        optimizer.zero_grad()
+        # send through model and projector, asssume not splitted for now
+        x1_encoded, x2_encoded = model(x1), model(x2)
+        encoding_time = time.thread_time()
+        # get loss, update weights and perform step
+        loss = loss_func(x1_encoded, x2_encoded, device=device, method='matrix')
+        loss_calculation_time = time.thread_time()
+        loss.backward()
+        backward_time = time.thread_time()
+        optimizer.step()
+        loss_update_time = time.thread_time()
+        epoch_loss += loss.item()
+        # free cuda memory
+        del x1
+        del x2
+        del x2_encoded
+        del x1_encoded
+        del loss
+        # torch.cuda.empty_cache()
+        delete_time = time.thread_time()
+        if time_process:
+            if counter == 0:
+                time_values = [batch_time - start_time, to_device_time - batch_time, encoding_time - to_device_time,
+                               loss_calculation_time - encoding_time, backward_time - loss_calculation_time,
+                               loss_update_time - backward_time,
+                               delete_time - loss_update_time, delete_time - start_time]
+            else:
+                time_values = [x + y for x, y in zip(time_values,
+                                                     [batch_time - start_time, to_device_time - batch_time,
+                                                      encoding_time - to_device_time,
+                                                      loss_calculation_time - encoding_time,
+                                                      backward_time - loss_calculation_time,
+                                                      loss_update_time - backward_time,
+                                                      delete_time - loss_update_time,
+                                                      delete_time - start_time
+                                                      ])]
+            # check counter and print one some codition
+            if counter % batch_print_freq == 0:
+                print('\n')
+                for x, y in zip(time_names, time_values):
+                    average = y / ((counter + 1) * batch_size)
+                    print(f'Average time used on {x} :  {average:.7f}')
+        counter += 1
+        start_time = time.thread_time()
+    return model,counter,epoch_loss/counter
+
+
+def validate_epoch(model, val_loader, device, loss_func):
+    val_steps = 0
+    val_loss = 0
+    with torch.no_grad():  # detach all gradients from tensors
+        model.eval()  # tell model it is evaluation time
+        for aug_1, aug_2, sample in tqdm(val_loader, position=0, leave=True):
+            # transfer to GPU or CUDA
+            x1, x2 = aug_1.to(device), aug_2.to(device)
+            # send through model and projector, asssume not splitted for now
+            x1_encoded, x2_encoded = model(x1), model(x2)
+            # get loss, update weights and perform step
+            loss = loss_func(x1_encoded, x2_encoded, device=device, method='matrix')
+
+            val_loss += loss.item()
+            val_steps += 1
+            # free cuda memory
+            del x1
+            del x2
+            del x2_encoded
+            del x1_encoded
+            del loss
+
+    return val_loss/val_steps
+
 
 # Next up: contrastive training framework
 def pre_train_model(all_params,global_params):
@@ -342,62 +431,8 @@ def pre_train_model(all_params,global_params):
     time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'backward', 'loss_update', 'delete', 'total']
     # iterative traning loop
     for epoch in range(max_epochs):
-        model.train() # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
-        print('epoch number: ', epoch+1, 'of: ', max_epochs)
-        epoch_loss = 0
-        counter = 0  # counter for batch print.
-        # start traning by looping through batches
-        start_time = time.thread_time()
-        for aug_1, aug_2, sample in tqdm(train_loader, position=0, leave=True):
-            batch_time = time.thread_time()
-            # transfer to GPU or CUDA
-            x1, x2 = aug_1.to(device), aug_2.to(device)
-            to_device_time = time.thread_time()
-            # zero out existing gradients
-            optimizer.zero_grad()
-            # send through model and projector, asssume not splitted for now
-            x1_encoded, x2_encoded = model(x1), model(x2)
-            encoding_time = time.thread_time()
-            # get loss, update weights and perform step
-            loss = loss_func(x1_encoded, x2_encoded, device=device, method='matrix')
-            loss_calculation_time = time.thread_time()
-            loss.backward()
-            backward_time = time.thread_time()
-            optimizer.step()
-            loss_update_time = time.thread_time()
-            epoch_loss += loss.item()
-            # free cuda memory
-            del x1
-            del x2
-            del x2_encoded
-            del x1_encoded
-            del loss
-            # torch.cuda.empty_cache()
-            delete_time = time.thread_time()
-            if time_process:
-                if counter == 0:
-                    time_values = [batch_time - start_time, to_device_time - batch_time, encoding_time - to_device_time,
-                                   loss_calculation_time - encoding_time, backward_time - loss_calculation_time,
-                                   loss_update_time - backward_time,
-                                   delete_time - loss_update_time, delete_time - start_time]
-                else:
-                    time_values = [x + y for x, y in zip(time_values,
-                                                         [batch_time - start_time, to_device_time - batch_time,
-                                                          encoding_time - to_device_time,
-                                                          loss_calculation_time - encoding_time,
-                                                          backward_time - loss_calculation_time,
-                                                          loss_update_time - backward_time,
-                                                          delete_time - loss_update_time,
-                                                          delete_time - start_time
-                                                          ])]
-                # check counter and print one some codition
-                if counter % batch_print_freq == 0:
-                    print('\n')
-                    for x, y in zip(time_names, time_values):
-                        average = y / ((counter + 1) * batch_size)
-                        print(f'Average time used on {x} :  {average:.7f}')
-            counter += 1
-            start_time = time.thread_time()
+        model,counter,epoch_loss = train_epoch(model,epoch,max_epochs,train_loader,device,optimizer,loss_func,time_process,batch_print_freq,time_names, batch_size)
+
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
@@ -408,7 +443,6 @@ def pre_train_model(all_params,global_params):
             # here is the solution, have the model as several modules; then different modules can be saved seperately
             temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch+1) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
-        epoch_loss = epoch_loss/counter # get average loss
         losses.append(epoch_loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
@@ -474,3 +508,4 @@ def plot_avgs(avg_train_losses, avg_train_accs, avg_val_accs, plot_series_name, 
     accuracy_plot_save_path = os.path.join(save_path, plot_series_name + "_accuracy_visualization.png")
     fig2.savefig(accuracy_plot_save_path)
     pass
+

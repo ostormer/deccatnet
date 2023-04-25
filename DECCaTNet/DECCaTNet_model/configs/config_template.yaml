@@ -2,6 +2,7 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
+  HYPER_SEARCH: True
   PRE_TRAINING: True
   FINE_TUNING: True
 
@@ -10,6 +11,7 @@ global:
 
   n_channels: 3
   s_freq: 200
+  window_size: 60  # Window length in seconds
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
 
@@ -37,7 +39,6 @@ preprocess:
     IS_FINE_TUNING_DS: False
     read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
-    window_size: 60  # Window length in seconds
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -53,7 +54,6 @@ preprocess:
     IS_FINE_TUNING_DS: False
     read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
-    window_size: 60  # Window length in seconds
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -154,6 +154,19 @@ downstream_params:
   out_layer_2: 64
   dropout_1: 0.5
   dropout_2: 0.3
+
+hyper_search:
+  PREPROCESS: True
+  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have
+  PRE_TRAINING: True
+  FINE_TUNING: True
+
+  config:
+    l1: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
+    l2: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
+    lr: 'tune.loguniform(1e-4, 1e-1)'
+    batch_size: 'tune.choice([2, 4, 8, 16])'
+
 
 
 

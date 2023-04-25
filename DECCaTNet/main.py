@@ -1,7 +1,7 @@
 import DECCaTNet_model.contrastive_framework as cf
-from DECCaTNet_model.custom_dataset import ConcatPathDataset
 import preprocessing.preprocess as pre
 import DECCaTNet_model.fine_tuning as fn
+import DECCaTNet_model.hyper_search as hs
 
 import pickle
 import os
@@ -14,6 +14,8 @@ def run(config_path_name):
     with open(config_path, 'r') as fid:
         params = yaml.safe_load(fid)
     global_params = params['global']
+    if global_params['HYPER_SEARCH']:
+        hs.hypersearch(params,global_params)
     if global_params['PREPROCESSING']:
         pre.run_preprocess(params,global_params)
     if global_params['PRE_TRAINING']:
