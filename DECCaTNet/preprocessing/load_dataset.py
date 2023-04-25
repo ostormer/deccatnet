@@ -1,6 +1,7 @@
 import glob
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from tqdm import tqdm
@@ -75,10 +76,34 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
         for key in mat.keys():
             print(key)
 
-        print(mat)
+        # print(mat)
 
         data: np.ndarray = mat['cnt']
-        print(data.shape)
+
+        raw_nfo = mat['nfo']
+        sfreq: int = raw_nfo['fs'][0][0][0][0]  # WTF why is it packed so deep
+        ch_names = [ch[0] for ch in raw_nfo['clab'][0][0][0]]
+        print(ch_names)
+        x_pos = [pos[0] for pos in raw_nfo['xpos'][0][0]]
+        y_pos = [pos[0] for pos in raw_nfo['ypos'][0][0]]
+
+        points_3d = []
+        for flat_x, flat_y in zip(x_pos, y_pos):
+            # https://en.wikipedia.org/wiki/Azimuthal_equidistant_projection#:~:text=When%20the%20center,and%20%CE%B8%20to%3A
+            theta = 0 # TODO: Just give up on this for a while, its not needed now
+
+        plt.plot(x_pos,y_pos, '.')
+        plt.show()
+
+        info = mne.create_info(
+            ch_names,
+            sfreq,
+            ch_types=["eeg"]*len(ch_names),
+            verbose="ERROR"
+        )
+        print(info)
+        print(raw_nfo)
+
 
 
 
