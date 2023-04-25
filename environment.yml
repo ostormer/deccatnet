@@ -20,6 +20,8 @@ dependencies:
 - joblib
 - memory_profiler
 - tqdm
+- ray-tune
+- einops
 - pip:
   - torchaudio==0.13.1  
   - torchvision==0.14.1

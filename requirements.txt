@@ -17,3 +17,5 @@ pyyaml
 git+https://github.com/ostormer/mne-python.git@main#egg=mne
 git+https://github.com/ostormer/braindecode.git@master#egg=braindecode
 torchplot
+einops
+ray

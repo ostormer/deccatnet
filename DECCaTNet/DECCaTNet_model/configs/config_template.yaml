@@ -1,13 +1,13 @@
-# This is a template for how config files should look, all parameters are in cronological order of use
+# This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  HYPER_SEARCH: True
-  PREPROCESSING: False
+  PREPROCESSING: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
   FINE_TUNING: False
 
   n_jobs: 2
-  random_state: null # remeber null and not None
+  random_state: null # remember null and not None
 
   n_channels: 3
   s_freq: 200
@@ -17,26 +17,15 @@ global:
 
   datasets: ['tuh_eeg', 'tuh_eeg_abnormal']
 
-directory:
-  tuh_eeg_abnormal:
-    # Loaded if local_load: True
-    dataset_root: 'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\tuh_eeg_abnormal'
-    cache_dir: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/TUH-pickles_abnormal'
-    save_dir: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/preprocessed_abnormal/step_1'
-    save_dir_2: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/preprocessed_abnormal/step_2'
-  'tuh_eeg':
-    # Loaded if local_load: False
-    dataset_root: 'C:\Users\Styrk\OneDrive - NTNU\Documents\Skole\Master\master_code\master-eeg-trans\datasets\TUH\tuh_eeg'
-    cache_dir: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/TUH-pickles'
-    save_dir: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/preprocessed/step_1'
-    save_dir_2: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/preprocessed/step_2'
-
 preprocess:
-  tuh_eeg_abnormal:
-    source_ds: 'tuh_eeg_abnormal'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
-    start_idx: 0
-    stop_idx: -1
+  tuh_eeg_abnormal:  # This key must match the one value in params_all['global']['datasets']
+    ds_name: 'tuh_eeg_abnormal'  # Must match key
+    dataset_root: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
+    preprocess_root: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed'
     IS_FINE_TUNING_DS: False
+
+    start_idx: 0
+    stop_idx: null  # Which idx is the last to load? (null for all)
     read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
@@ -46,12 +35,16 @@ preprocess:
     reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: True
-    #exclude_channels: # remember to acomment out if not used
+    exclude_channels: []  # remember to comment out if not used
+
   tuh_eeg:
-    source_ds: 'tuh_eeg'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg']
-    start_idx: 0
-    stop_idx: -1
+    ds_name: 'tuh_eeg'  # Must match key
+    dataset_root: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg'
+    preprocess_root: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_preprocessed'
     IS_FINE_TUNING_DS: False
+
+    start_idx: 0
+    stop_idx: 50  # Which idx is the last to load? (null for all)
     read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
@@ -61,23 +54,23 @@ preprocess:
     reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: True
-    #exclude_channels: # remember to acomment out if not used
+    exclude_channels: []  # remember to comment out if not used
 
 
 pre_training:
   tuh_eeg:
-    ds_path: '../datasets/TUH/preprocessed/step_2'
-    ids_path: '../datasets/TUH/TUH-pickles/split_idx_list.pkl'
+    ds_path: '../datasets/TUH/tuh_eeg_preprocessed/split'
+    ids_path: '../datasets/TUH/tuh_eeg_preprocessed/pickles/split_idx_list.pkl'
   tuh_eeg_abnormal:
-    ds_path: '../datasets/TUH/preprocessed_abnormal/step_2'
-    ids_path: '../datasets/TUH/TUH-pickles_abnormal/split_idx_list.pkl'
+    ds_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed/split'
+    ids_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed/pickles/split_idx_list.pkl'
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 16
   train_split: 0.01
   SHUFFLE: True
-  temperature: 1 # Temperature of normalized temeprature contrastive loss
+  temperature: 1 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
   weight_decay: 0.01
   max_epochs: 2
@@ -91,10 +84,11 @@ pre_training:
   augmentation:
     noise_probability: 0
 
+
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
-  ds_path: '../datasets/TUH/TUH-pickles_abnormal/windowed_ds.pkl'
+  ds_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune/pickles/windowed_ds.pkl'
   encoder_path: 'models/encoder_test'
 
   n_classes: 2
@@ -116,15 +110,17 @@ fine_tuning:
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
 
-  REDO_PREPROCESS: True # this must allways be true, as preprocessing allways have to be done before pretraining.
+  REDO_PREPROCESS: True # this must allways be true, as preprocessing always have to be done before pretraining.
   fine_tuning_preprocess:
-    source_ds: 'tuh_eeg_abnormal'  # allowed one of ['tuh_eeg_abnormal', 'tuh_eeg', Add more here]
-    start_idx: 0
-    stop_idx: 10
+    ds_name: 'tuh_eeg_abnormal'
+    dataset_root: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
+    preprocess_root: 'C:/Users/Styrk/OneDrive - NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune'
     IS_FINE_TUNING_DS: True
+
+    start_idx: 0
+    stop_idx: 10  # Which idx is the last to load? (null for all)
     read_cache: 'none'  # needs to be none if new channels are excluded
 
-    window_size: 60  # Window length in seconds, if going to change need to do 'none' above
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -173,16 +169,3 @@ hyper_search:
     l2: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
     lr: 'tune.loguniform(1e-4, 1e-1)'
     batch_size: 'tune.choice([2, 4, 8, 16])'
-
-
-
-
-
-
-
-
-
-
-
-
-
