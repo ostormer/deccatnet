@@ -197,7 +197,7 @@ def validate_epoch(model, val_loader, device, loss_func):
 
 
 def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,
-                early_stop):
+                early_stop=None):
     loss = []
     val_loss = []
     test_loss = []
@@ -216,10 +216,10 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
         val_loss.append(val_loss / len(val_loader))
         train_acc.append(correct_train_preds / num_train_preds)
         val_acc.append(correct_eval_preds / num_eval_preds)
-
-        if early_stop.early_stop(val_loss / len(val_loader)):
-            print(f'reached stopping criteria in epoch {epoch}')
-            break
+        if early_stop:
+            if early_stop.early_stop(val_loss / len(val_loader)):
+                print(f'reached stopping criteria in epoch {epoch}')
+                break
 
     if validate_test:
         test_loss, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
@@ -230,7 +230,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
 
 
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
-                    n_folds, early_stop, random_state=422):
+                    n_folds, early_stop=None, random_state=422):
     folds = KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
     avg_loss = []
     avg_val_loss = []
@@ -258,10 +258,10 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
             avg_val_loss.append(val_loss / len(val_loader))
             train_acc.append(correct_train_preds / num_train_preds)
             val_acc.append(correct_eval_preds / num_eval_preds)
-
-            if early_stop.early_stop(val_loss / len(val_loader)):
-                print(f'reached stopping criteria in epoch {epoch} for fold {fold} ')
-                break
+            if early_stop:
+                if early_stop.early_stop(val_loss / len(val_loader)):
+                    print(f'reached stopping criteria in epoch {epoch} for fold {fold} ')
+                    break
 
     if validate_test:
         test_loss, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)

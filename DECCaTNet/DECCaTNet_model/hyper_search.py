@@ -1,3 +1,4 @@
+import ast
 import os
 import pickle
 import time
@@ -6,6 +7,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as fn
+from sklearn.model_selection import KFold
+from torch.utils.data import SubsetRandomSampler
 from tqdm import tqdm
 import pickle as pkl
 import torchplot as plt
@@ -21,14 +24,57 @@ from ray.tune.schedulers import ASHAScheduler
 from functools import partial
 from DECCaTNet_model.contrastive_framework import ContrastiveLoss, train_epoch, validate_epoch
 from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
-from DECCaTNet_model.fine_tuning import k_fold_training, train_model, FineTuneNet
+from DECCaTNet_model.fine_tuning import train_epoch, validate_epoch, FineTuneNet
 
 
 # things we wnt to be able to hypersearch:n_channels, channels_selection, augmentation_selection, all losses, architectures, basically a lot of shit
 
 def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
-    configs, all_params, global_params = make_correct_config(hyper_prams, all_params, global_params)
+    configs = make_correct_config(hyper_prams, all_params, global_params)
+    if hyper_prams['PRE_TRAINING'] and not hyper_prams['FINE_AND_PRE']:
+        scheduler = ASHAScheduler(
+            metric="val_loss",
+            mode="min",
+            max_t=hyper_prams['max_t'],
+            grace_period=1,
+            reduction_factor=2)
+        reporter = CLIReporter(
+            # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
+            metric_columns=["val_loss", "train_loss", "training_iteration"])
+    else:
+        scheduler = ASHAScheduler(
+            metric="val_acc",
+            mode="max",
+            max_t=hyper_prams['max_t'],
+            grace_period=1,
+            reduction_factor=2)
+        reporter = CLIReporter(
+            # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
+            metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"])
+
+    result = tune.run(
+        partial(hyper_search_train, all_params=all_params, global_params=global_params),
+        config=configs,
+        num_samples=10,
+        scheduler=scheduler,
+        progress_reporter=reporter
+    )
+    best_trial = result.get_best_trial("val_loss", "min", "last")
+    print("Best trial config: {}".format(best_trial.config))
+    print("Best trial final validation loss: {}".format(
+        best_trial.last_result["loss"]))
+    print("Best trial final validation accuracy: {}".format(
+        best_trial.last_result["val_acc"]))
+
+
+
+
+def make_correct_config(hyper_params, all_params, global_params):
+    config = {}
+    for key in hyper_params['config']:
+        config[key] = eval(hyper_params['config'][key])
+    return config
 
 
 def hyper_search_train(config, hyper_params=None, all_params=None, global_params=None, checkpoint_dir=None):
@@ -47,8 +93,8 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
             for key in all_params['pre_training']:
                 if key in config:
                     all_params['pre_training'][key] = config[key]
-        cf.pre_train_model(all_params,global_params)
-        fine_tuning_hypersearch(all_params,global_params,checkpoint_dir)
+        cf.pre_train_model(all_params, global_params)
+        fine_tuning_hypersearch(all_params, global_params, checkpoint_dir)
     elif hyper_params['PRE_TRAINING']:
         for key in all_params['pre_training']:
             if key in config:
@@ -60,10 +106,11 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
                 all_params['pre_training'][key] = config[key]
         fine_tuning_hypersearch(all_params, global_params, checkpoint_dir)
 
-def fine_tuning_hypersearch(all_params=None,global_params=None,checkpoint_dir=None,test_set=None):
+
+def fine_tuning_hypersearch(all_params=None, global_params=None, checkpoint_dir=None, test_set=None):
     params = all_params['fine_tuning']
 
-    if params['REDO_PREPROCESS']: # this should allways be true, will take up time
+    if params['REDO_PREPROCESS']:  # this should allways be true, will take up time
         all_params['preprocess'] = params['fine_tuning_preprocess']
         dataset = run_preprocess(all_params, global_params, fine_tuning=True)[0]
 
@@ -81,8 +128,7 @@ def fine_tuning_hypersearch(all_params=None,global_params=None,checkpoint_dir=No
             changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
                        enumerate(windows_ds.windows.ch_names)]
             # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
-        # assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}' # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
-    print("All recordings have the correct channel order")
+        assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}'  # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
 
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
     model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
@@ -113,31 +159,68 @@ def fine_tuning_hypersearch(all_params=None,global_params=None,checkpoint_dir=No
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
 
+    if checkpoint_dir:
+        model_state, optimizer_state = torch.load(
+            os.path.join(checkpoint_dir, "checkpoint"))
+        model.load_state_dict(model_state)
+        optimizer.load_state_dict(optimizer_state)
+
     if perform_k_fold:
-        loss, train_acc, val_loss, val_acc, test_loss, test_acc, model = k_fold_training(epochs, model, dataset,
-                                                                                         params["batch_size"],
-                                                                                         test_loader, device,
-                                                                                         loss_func,
-                                                                                         optimizer, validate_test,
-                                                                                         n_folds, early_stopper)
+        k_fold_training(epochs, model, dataset,
+                        params["batch_size"],
+                        test_loader, device,
+                        loss_func,
+                        optimizer, validate_test,
+                        n_folds)
     else:
-        loss, train_acc, val_loss, val_acc, test_loss, test_acc, model = train_model(epochs, model, train_loader,
-                                                                                     val_loader, test_loader,
-                                                                                     device,
-                                                                                     loss_func, optimizer,
-                                                                                     validate_test, early_stopper)
+        train_model(epochs, model, train_loader,
+                    val_loader, test_loader,
+                    device,
+                    loss_func, optimizer,
+                    validate_test)
 
-    # TODO: implement savinf parts of models underway in training
-    # save function for final model
-    if not os.path.exists(params['save_dir_model']):
-        os.makedirs(params['save_dir_model'])
 
-    save_path_model = os.path.join(params['save_dir_model'], params['model_file_name'])
-    torch.save(model.state_dict(), save_path_model)
-    # here is the solution, have the model as several modules; then different modules can be saved seperately
-    save_path_enocder = os.path.join(params['save_dir_model'], "encoder_" + params['model_file_name'])
-    torch.save(model.encoder.state_dict(), save_path_enocder)
+def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,
+                early_stop=None):
+    for epoch in range(epochs):
+        print('epoch number: ', epoch, 'of: ', epochs)
+        train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
+                                                                       optimizer)
 
+        val_loss, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
+
+        with tune.checkpoint_dir(epoch) as checkpoint_dir:
+            path = os.path.join(checkpoint_dir, "checkpoint")
+            torch.save((model.state_dict(), optimizer.state_dict()), path)
+
+        tune.report(val_loss=val_loss / len(val_loader), train_loss=train_loss / len(train_loader),
+                    val_acc=correct_eval_preds / num_eval_preds)
+
+
+def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
+                    n_folds, early_stop=None, random_state=422):
+    folds = KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+
+    for fold, (train_idx, val_idx) in tqdm(enumerate(folds.split(np.arange(len(dataset)))), position=0, leave=True):
+        print(f'Fold {fold + 1}')
+
+        train_sampler = SubsetRandomSampler(train_idx)
+        val_sampler = SubsetRandomSampler(val_idx)
+        train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
+        val_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=val_sampler)
+
+        for epoch in range(epochs):
+            print('epoch number: ', epoch, 'of: ', epochs)
+            train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
+                                                                           optimizer)
+            val_loss, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
+
+            with tune.checkpoint_dir(epoch) as checkpoint_dir:
+                path = os.path.join(checkpoint_dir, "checkpoint")
+                torch.save((model.state_dict(), optimizer.state_dict()), path)
+
+            tune.report(val_loss=val_loss / len(val_loader), train_loss=train_loss / len(train_loader),
+                        val_acc=correct_eval_preds / num_eval_preds)
 
 
 def pre_train_hypersearch(all_params=None, global_params=None, checkpoint_dir=None):
@@ -220,41 +303,3 @@ def pre_train_hypersearch(all_params=None, global_params=None, checkpoint_dir=No
             torch.save((model.state_dict(), optimizer.state_dict()), path)
 
         tune.report(val_loss=val_loss, train_loss=epoch_loss)
-
-    print('Traning Done!!')
-
-
-def run_hypersearch(all_params, global_params):
-    config = make_correct_config(all_params['config'])
-    scheduler = ASHAScheduler(
-        metric="val_loss",
-        mode="min",
-        max_t=all_params['pre_training']['max_epochs'],
-        grace_period=1,
-        reduction_factor=2)
-    reporter = CLIReporter(
-        # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
-        metric_columns=["val_loss", "epoch_loss", "training_iteration"])
-    result = tune.run(
-        partial(train_hypersearch, all_params=all_params, global_params=global_params),
-        config=config,
-        num_samples=10,
-        scheduler=scheduler,
-        progress_reporter=reporter
-    )
-    best_trial = result.get_best_trial("loss", "min", "last")
-    print("Best trial config: {}".format(best_trial.config))
-    print("Best trial final validation loss: {}".format(
-        best_trial.last_result["loss"]))
-    print("Best trial final validation accuracy: {}".format(
-        best_trial.last_result["accuracy"]))
-
-
-def make_correct_config(hyper_params, all_params, global_params):
-    config_helper = {
-        "l1": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-        "l2": tune.sample_from(lambda _: 2 ** np.random.randint(2, 9)),
-        "lr": tune.loguniform(1e-4, 1e-1),
-        "batch_size": tune.choice([2, 4, 8, 16])
-    }
-    return config, all_params, global_params

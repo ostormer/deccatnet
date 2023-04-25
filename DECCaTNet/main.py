@@ -15,7 +15,7 @@ def run(config_path_name):
         params = yaml.safe_load(fid)
     global_params = params['global']
     if global_params['HYPER_SEARCH']:
-        hs.hypersearch(params,global_params)
+        hs.hyper_search(params,global_params)
     if global_params['PREPROCESSING']:
         pre.run_preprocess(params,global_params)
     if global_params['PRE_TRAINING']:

@@ -1,10 +1,10 @@
 # This is a template for how config files should look, all parameters are in cronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
   HYPER_SEARCH: True
-  PRE_TRAINING: True
-  FINE_TUNING: True
+  PREPROCESSING: False
+  PRE_TRAINING: False
+  FINE_TUNING: False
 
   n_jobs: 2
   random_state: null # remeber null and not None
@@ -158,10 +158,17 @@ downstream_params:
 hyper_search:
   PREPROCESS: True
   FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have
-  PRE_TRAINING: True
+  PRE_TRAINING: False
   FINE_TUNING: True
+  max_t: 10
 
   config:
+    n_channels: 'tune.choice([2,3,4,5])'
+    batch_size: 'tune.choice([16,32,128])'
+    lr_rate: 'tune.loguniform(1e-4, 1e-1)'
+
+
+  inspiration:
     l1: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
     l2: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
     lr: 'tune.loguniform(1e-4, 1e-1)'
