@@ -37,9 +37,6 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
         if key in config:
             global_params[key] = config[key]
     if hyper_params['PREPROCESSING']:
-        for key in all_params['preprocess']:
-            if key in config:
-                all_params['preprocess'][key] = config[key]
         pre.run_preprocess(all_params, global_params)
     if hyper_params['FINE_AND_PRE']:
         if hyper_params['PRE_TRAINING']:

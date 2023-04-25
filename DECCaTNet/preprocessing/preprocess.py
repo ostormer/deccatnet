@@ -437,7 +437,7 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         assert read_cache in ['none', 'raw', 'preproc', 'windows'], \
             f"{read_cache} is not a valid cache to read"
 
-        window_size = params["window_size"]
+        window_size = global_params["window_size"]
         channel_select_function = params["channel_select_function"]
         assert channel_select_function in string_to_channel_split_func.keys(), \
             f"{channel_select_function} is not a valid channel selection function"
@@ -587,4 +587,4 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
     return preproc_datasets
 
 if __name__ == "__main__":
-    
+    pass
