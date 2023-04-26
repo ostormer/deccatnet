@@ -16,7 +16,11 @@ def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
     start_idx = ds_params['start_idx']
     stop_idx = ds_params['stop_idx']
 
-    recording_ids = range(start_idx, stop_idx)
+    try:
+        recording_ids = range(start_idx, stop_idx)
+    except:
+        recording_ids = None
+
     dataset = tuh.TUH(root_dir, n_jobs=global_params['n_jobs'], recording_ids=recording_ids)
     return dataset
 

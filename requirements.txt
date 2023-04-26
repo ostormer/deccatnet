@@ -19,3 +19,4 @@ git+https://github.com/ostormer/braindecode.git@master#egg=braindecode
 torchplot
 einops
 ray
+torchplot
