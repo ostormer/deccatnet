@@ -540,8 +540,8 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
     """
     # ------------------------ Perform preprocessing ------------------------
     if fine_tuning:
-        params_all['preprocess']['fine_tuning'] = params_all['preprocess']
-        datasets = ['fine_tuning']
+        params_all['preprocess'][params_all['fine_tuning']['ds_name']] = params_all['preprocess']
+        datasets = [params_all['fine_tuning']['ds_name']]
     else:
         datasets = global_params['datasets']
 
@@ -550,8 +550,6 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
     for dataset_name in datasets:
         print(f"========= Beginning preprocessing pipeline for {dataset_name} =========")
         ds_params = params_all['preprocess'][dataset_name]
-
-        is_fine_tuning_ds = ds_params["IS_FINE_TUNING_DS"]
 
         assert dataset_name in ['tuh_eeg_abnormal', 'tuh_eeg', 'seed'], \
             f"{dataset_name} is not an implemented dataset name"
