@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 import mne
-from DECCaTNet.preprocessing.load_dataset import load_func_dict
+from preprocessing.load_dataset import load_func_dict
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
 from braindecode.datautil.serialization import _check_save_dir_empty, load_concat_dataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
@@ -561,7 +561,7 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         assert read_cache in ['none', 'raw', 'preproc', 'windows'], \
             f"{read_cache} is not a valid cache to read"
 
-        channel_select_function = ds_params["channel_select_function"]
+        channel_select_function = global_params["channel_select_function"]
         assert channel_select_function in string_to_channel_split_func.keys(), \
             f"{channel_select_function} is not a valid channel selection function"
 
