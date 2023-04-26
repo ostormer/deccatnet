@@ -404,7 +404,7 @@ def pre_train_model(all_params,global_params):
 
     # create data_loaders, here batch size is decided
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle,
-                                               num_workers=num_workers)
+                                               num_workers=num_workers,drop_last=True)
     # maybe alos num_workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # check if cuda setup allowed:

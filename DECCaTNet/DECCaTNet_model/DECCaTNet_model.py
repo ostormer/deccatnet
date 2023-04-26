@@ -6,12 +6,13 @@ class DECCaTNet(nn.Module):
     def __init__(self, all_params, global_params):
         super().__init__()
         encoder_params = all_params['encoder_params']
-
+        self.global_params = global_params
         self.encoder = Encoder(encoder_params, global_params)
         self.projector = Projector(encoder_params,global_params)
 
     def forward(self, x):
         x = self.encoder(x)
+        #print(f'shape is {x.shape} and number of channels is {self.global_params["n_channels"]}')
         x = self.projector(x)
         return x
 

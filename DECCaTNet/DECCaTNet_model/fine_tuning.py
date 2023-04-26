@@ -49,7 +49,7 @@ class FineTuneNet(nn.Module):
 
         self.encoder = Encoder(all_params['encoder_params'], global_params)
 
-        self.encoder.load_state_dict(torch.load(self.encoder_path))
+        self.encoder.load_state_dict(torch.load(self.encoder_path)) # saved in the hyperparameter tuning itself.
         self.encoder.requires_grad_(False)  # TODO what does this do?
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
@@ -317,12 +317,21 @@ def run_fine_tuning(all_params, global_params, test_set=None):
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
     model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
-    train, test = torch.utils.data.random_split(dataset, [params['train_split'], 1 - params['train_split']])
+    indices = list(range(len(dataset)))
+    split = int(np.floor(params['train_split'] * len(dataset)))
+    if params['SHUFFLE']:
+        np.random.shuffle(indices)
+    train_indices, val_indices = indices[:split], indices[split:]
 
-    train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"], shuffle=params["SHUFFLE"],
-                                               num_workers=num_workers)
-    val_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=params["SHUFFLE"],
-                                             num_workers=num_workers)
+    # Creating PT data samplers and loaders:
+    train_sampler = SubsetRandomSampler(train_indices)
+    valid_sampler = SubsetRandomSampler(val_indices)
+
+    train_loader = torch.utils.data.DataLoader(dataset, batch_size=params["batch_size"],
+                                               num_workers=num_workers, sampler=train_sampler)
+    val_loader = torch.utils.data.DataLoader(dataset, batch_size=params['batch_size'],
+                                             num_workers=num_workers, sampler=valid_sampler)
+
     if test_set is not None:
         test_loader = torch.utils.data.DataLoader(test_set, batch_size=params['batch_size'], shuffle=params["SHUFFLE"],
                                                   num_workers=num_workers)

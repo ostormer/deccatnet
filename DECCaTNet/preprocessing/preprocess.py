@@ -492,6 +492,7 @@ def _preproc_first(ds_params, global_params, dataset=None):
     # Next step, or return if fine-tuning set
     if is_fine_tuning_ds:
         # check_windows(dataset)
+        print('this is a fine_tuning dataset, returning it')
         return dataset
     else:
         return _preproc_split(ds_params, global_params, dataset)
