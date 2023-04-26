@@ -30,7 +30,11 @@ def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
     start_idx = ds_params['start_idx']
     stop_idx = ds_params['stop_idx']
 
-    recording_ids = range(start_idx, stop_idx)
+    try:
+        recording_ids = range(start_idx, stop_idx)
+    except:
+        recording_ids = None
+
     dataset = tuh.TUHAbnormal(root_dir, recording_ids=recording_ids, n_jobs=global_params['n_jobs'],
                               target_name='pathological')
     return dataset
