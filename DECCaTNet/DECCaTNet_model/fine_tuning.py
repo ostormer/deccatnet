@@ -48,8 +48,10 @@ class FineTuneNet(nn.Module):
         self.n_classes = params["n_classes"]
 
         self.encoder = Encoder(all_params['encoder_params'], global_params)
-
-        self.encoder.load_state_dict(torch.load(self.encoder_path)) # saved in the hyperparameter tuning itself.
+        if torch.cuda.is_available():
+            self.encoder.load_state_dict(torch.load(self.encoder_path))
+        else:
+            self.encoder.load_state_dict(torch.load(self.encoder_path,map_location=torch.device('cpu'))) # saved in the hyperparameter tuning itself.
         self.encoder.requires_grad_(False)  # TODO what does this do?
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
@@ -84,7 +86,8 @@ class FineTuneNet(nn.Module):
         )
 
     def forward(self, X):
-        X = X[:, None, :, :]
+        if len(X.shape) == 3:
+            X = X[:, None, :, :]
         # Split input into chunks that fit into the encoder
         # TODO: Decide what to do if n_channels does not fit into encoder size (Not even)
         # Do we discard the last channels? Do we make a overlap
@@ -104,6 +107,7 @@ class FineTuneNet(nn.Module):
 
         encoder_out = []
         # Run each group/pair of channels through the encoder
+
         for group in channel_group_tensors:
             # print(f"Group shape: {group.shape}")
             encoder_out.append(self.encoder(group))  # Encode group
@@ -132,7 +136,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
     correct_train_preds = 0
     num_train_preds = 0
 
-    for x, y, crop_inds in tqdm(train_loader, position=0, leave=True):
+    for x, y in tqdm(train_loader, position=0, leave=True):
         y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])  # TODO check what shape of target should be
         # y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
@@ -170,7 +174,7 @@ def validate_epoch(model, val_loader, device, loss_func):
     val_loss = 0
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
-        for x, y, crops_inds in tqdm(val_loader, position=0, leave=True):
+        for x, y in tqdm(val_loader, position=0, leave=True):
             y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])
             # y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)

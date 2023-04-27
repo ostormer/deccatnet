@@ -24,7 +24,6 @@ def run(config_path_name):
         fn.run_fine_tuning(params,global_params)
 
 
-
 if __name__ == '__main__':
     run('config_template')
 

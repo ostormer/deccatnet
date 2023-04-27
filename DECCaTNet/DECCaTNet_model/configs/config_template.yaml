@@ -115,6 +115,7 @@ fine_tuning:
     dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
     preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune'
     IS_FINE_TUNING_DS: True
+    target_name: 'pathological'
 
     start_idx: 0
     stop_idx: 10  # Which idx is the last to load? (null for all)
@@ -151,7 +152,7 @@ downstream_params:
 
 hyper_search:
   PERFORM_PREPROCESS: False
-  PREPROCESS: True
+  PREPROCESS: True # wether you need correct paths i there is changes to preprocess but they are already loeaded
   FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False

@@ -20,6 +20,7 @@ from DECCaTNet_model.augmentations import SignalPermutation, Scale, TimeShift, A
 # Ignore warnings
 import warnings
 import torchplot as plt
+import pandas as pd
 
 warnings.filterwarnings("ignore")
 
@@ -88,6 +89,62 @@ def select_params(param: dict):
             param[key] = value_1
     # print(f'param for denne kjøringen er {param}')
     return param
+
+class FineTunePathDataset(Dataset):
+    """
+    Pathdataset for finetuning which is possible to pickle
+    """
+    def __init__(self,ids_to_load,path,ds_params,global_params, target_name):
+        self.global_params = global_params
+        self.ds_params = ds_params
+
+        self.ids_to_load = ids_to_load
+        self.path = path
+
+        self.preload = False
+        self.is_raw = False
+
+        self.target_name = target_name
+
+    def __len__(self):
+        return len(self.ids_to_load)
+
+    def __getitem__(self, idx):
+        """
+        goal is to create pairs of form [x_augment_1, x_augment_2], x_original
+        :param idx: idx of the dataset we are interested in
+        :return:
+        """
+        # form of self.
+        mne.set_log_level('ERROR')
+        path_i, window_n = self.ids_to_load[idx]
+
+        sub_dir = os.path.join(self.path, str(path_i))
+        file_name_patterns = ['{}-raw.fif', '{}-epo.fif']
+        fif_name_pattern = file_name_patterns[0] if self.is_raw else file_name_patterns[1]
+        fif_file_name = fif_name_pattern.format(path_i)
+        fif_file_path = os.path.join(sub_dir, fif_file_name)
+
+        signals = _load_signals(fif_file_path, self.preload, self.is_raw)
+        window = signals.get_data(item=window_n)
+        window = torch.Tensor(window)
+        description_df = pd.read_json(os.path.join(sub_dir, "description.json"),typ='series')
+        target = description_df[self.target_name]
+        return window,target
+
+    def get_splits(self, TRAIN_SPLIT: float):
+        """
+        :param TRAIN_SPLIT: percentage size of train dataset compared to original dataset
+        :return: train,test, train and test of instances PathDataset
+        """
+        train_ids = sample(self.ids_to_load, round(len(self.ids_to_load) * TRAIN_SPLIT))
+        test_ids = list(set(self.ids_to_load) - set(train_ids))
+        assert len(train_ids) + len(test_ids) == len(self.ids_to_load)
+
+        return FineTunePathDataset(train_ids, path=self.path, ds_params=self.ds_params, global_params=self.global_params,target_name=self.target_name), \
+               FineTunePathDataset(test_ids, path=self.path, ds_params=self.ds_params, global_params=self.global_params,target_name=self.target_name)
+
+
 
 
 class PathDataset(Dataset):

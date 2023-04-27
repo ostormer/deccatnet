@@ -10,10 +10,9 @@ from tqdm import tqdm
 
 import mne
 from preprocessing.load_dataset import load_func_dict
-from braindecode.datasets import BaseConcatDataset, WindowsDataset
+from braindecode.datasets import BaseConcatDataset, WindowsDataset, BaseDataset
 from braindecode.datautil.serialization import _check_save_dir_empty, load_concat_dataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
-
 """
 Plan and things which needs to be done:
 For one and one file:
@@ -490,12 +489,46 @@ def _preproc_first(ds_params, global_params, dataset=None):
                                  save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
                                  exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
     # Next step, or return if fine-tuning set
-    if is_fine_tuning_ds:
-        # check_windows(dataset)
-        print('this is a fine_tuning dataset, returning it')
+    if is_fine_tuning_ds and not global_params['HYPER_SEARCH']:
         return dataset
+    elif is_fine_tuning_ds:
+        return _save_fine_tuning_ds(ds_params, global_params, dataset)
     else:
         return _preproc_split(ds_params, global_params, dataset)
+
+
+def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
+    """
+    saves a fine_tuning dataset in the same way as a pre_training dataset to make it pickable
+    :param ds_params: dataset parameters
+    :param global_params: global parameters
+    :param dataset: fine_tuning ds which needs to be saved
+    :return: a finetuning PathDataset
+    """
+
+    save_dir = ds_params['split_save_dir']
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    idx = []
+    for i,window_ds in enumerate(orig_dataset.datasets):
+        #print(window_ds.description)
+        for i_window in range(len(window_ds)):
+            idx.append((i,i_window))
+
+    dataset = BaseConcatDataset(orig_dataset.datasets)
+    dataset.save(save_dir, overwrite=True)
+
+    return idx,save_dir,ds_params,orig_dataset
+
+
+def _save_func_fine_tuning(windows_ds, record_index, save_dir, delete_step_1):
+    print(windows_ds)
+    dataset = BaseDataset(windows_ds)
+    dataset.save(save_dir, overwrite=True, offset=record_index)
+
+    return record_index
 
 
 def _preproc_split(ds_params, global_params, dataset=None):
