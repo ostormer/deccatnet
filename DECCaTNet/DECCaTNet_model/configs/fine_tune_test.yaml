@@ -1,4 +1,4 @@
-encoder_path: "models/encoder_test"
+encoder_path: "models/encoder_test_n_channels_2"
 epochs: 3
 
 channel_group_size: 2
