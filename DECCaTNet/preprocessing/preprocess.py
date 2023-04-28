@@ -144,18 +144,37 @@ def custom_turn_off_log(raw, verbose='ERROR'):
 def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> BaseConcatDataset:
     n_jobs = global_params['n_jobs']
     window_size = global_params['window_size']
+    save_dir = preproc_params['preproc_save_dir']
     # Drop too short recordings and uninteresting channels
     keep_ds = []
     print('Dropping short recordings and excluded channels:')
     try:
-        exclude_chan = preproc_params['exclude_channels']
+        exclude_ch = preproc_params['exclude_channels']
     except IndexError:
-        exclude_chan = []
+        exclude_ch = []
     for ds in tqdm(concat_ds.datasets):
         if ds.raw.n_times * ds.raw.info['sfreq'] >= window_size:
             keep_ds.append(ds)
-        ds.raw.drop_channels(exclude_chan + excluded, on_missing='ignore')
+        ds.raw.drop_channels(exclude_ch + excluded, on_missing='ignore')
+    print(f'Kept  {len(keep_ds)} recordings')
     concat_ds = BaseConcatDataset(keep_ds)
+
+    preprocessors = [
+        Preprocessor(custom_turn_off_log),  # turn off verbose
+        Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
+    ]
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    print("Rescaling to microVolts...")
+    preprocess(concat_ds=concat_ds,  # preprocess is in place, doesnt return anything because overwrtie=True
+               preprocessors=preprocessors,
+               n_jobs=n_jobs,
+               save_dir=save_dir,
+               overwrite=True,
+               )
+    print("Done rescaling to microVolts")
+
 
     print('Splitting dataset into windows:')
     windows_ds = create_fixed_length_windows(
@@ -164,7 +183,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         start_offset_samples=0,
         stop_offset_samples=None,
         window_size_seconds=window_size,
-        drop_last_window=True,
+        drop_last_window=False,
         drop_bad_windows=True,
         reject=dict(eeg=preproc_params['reject_high_threshold']),
         # Peak-to-peak high rejection threshold within each window
@@ -173,9 +192,11 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     )
 
     keep_ds = []
+    print('Dropping all recordings with 0 good windows...')
     for ds in tqdm(windows_ds.datasets):
         if len(ds.windows) > 0:
             keep_ds.append(ds)
+    print(f'Kept {len(keep_ds)} recordings')
     windows_ds = BaseConcatDataset(keep_ds)
 
     # https://braindecode.org/0.6/generated/braindecode.preprocessing.create_fixed_length_windows.html
@@ -217,8 +238,8 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
         # Resample
         Preprocessor('resample', sfreq=s_freq),
-        # rescale to microVolt (muV)
-        Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
+        # # rescale to microVolt (muV)
+        # Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
@@ -585,7 +606,7 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         print(f"========= Beginning preprocessing pipeline for {dataset_name} =========")
         ds_params = params_all['preprocess'][dataset_name]
 
-        assert dataset_name in ['tuh_eeg_abnormal', 'tuh_eeg', 'seed'], \
+        assert dataset_name in load_func_dict.keys(), \
             f"{dataset_name} is not an implemented dataset name"
         read_cache = ds_params["read_cache"]
         if (read_cache is None) or read_cache in [False, 'None']:
