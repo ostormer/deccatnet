@@ -129,7 +129,7 @@ fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
   ds_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune/pickles/windowed_ds.pkl'
-  encoder_path: 'models/encoder_test'
+  encoder_path: 'models/encoder_test_n_channels_2'
 
   n_classes: 2
 

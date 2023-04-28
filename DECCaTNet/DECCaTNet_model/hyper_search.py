@@ -101,11 +101,18 @@ def update_paths(config, all_params, global_params, change_on):
     return all_params
 
 
-def update_model_paths(config, all_params):
+def update_model_paths(config, all_params,change_on,global_params):
     # all datasets are chosen correctly, however selecting the correct model for encoding is not yet done.
     # for example: finding correct pretraining parameters for rpetraining loss
     # when testing for something in the final model, it is important that the correct encoder is chosen
     # when testing for something in the encoder, it is impo
+    # will be called only when we pretrain and fine_tune, if only fine_tune not called
+    # and if only pre_train not called. When we pre_train and fine_tune, we change on numerous different things
+    # want to change encoder save path and dont need to do this as we will only
+    # pretrain and fine_tune: will not change anything in fine_tune, doesnt need change
+    # preprocess, pretrain and fine_tune: will change file names, but all changes is in preprocess, so no
+    # need to change anything in pre
+
     pass
 
 
@@ -145,6 +152,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
 
     if params['REDO_PREPROCESS']:  # this should allways be true, will take up time
         all_params['preprocess'] = params['fine_tuning_preprocess']
+
         idx,path,ds_params,orig_dataset = run_preprocess(all_params, global_params, fine_tuning=True)[0]
         dataset = FineTunePathDataset(idx,path,ds_params,global_params,ds_params['target_name'])
 
@@ -186,6 +194,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     try:
         model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
     except:
+        assert all_params['hyper_search']['FINE_TUNING'] == True, ('assertion failed as this should only be accsessible when only finetuning')
         all_params['fine_tuning']['encoder_path'] = 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/DECCaTNet/' + all_params['fine_tuning']['encoder_path']
         model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
