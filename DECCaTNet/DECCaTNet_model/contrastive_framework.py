@@ -2,22 +2,17 @@
 """
 import os
 import pickle
+import pickle as pkl
 import time
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as fn
-from tqdm import tqdm
-import pickle as pkl
 import torchplot as plt
+from DECCaTNet_model.custom_dataset import ConcatPathDataset
+from tqdm import tqdm
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
-from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset
-from ray import tune
-from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler
-from functools import partial
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -235,7 +230,9 @@ class ContrastiveLossGPT(nn.Module):
 
         return loss
 
-def train_epoch(model,epoch,max_epochs,train_loader,device,optimizer,loss_func,time_process,batch_print_freq,time_names,batch_size):
+
+def train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func, time_process, batch_print_freq,
+                time_names, batch_size):
     model.train()  # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
     print('epoch number: ', epoch + 1, 'of: ', max_epochs)
     epoch_loss = 0
@@ -292,7 +289,7 @@ def train_epoch(model,epoch,max_epochs,train_loader,device,optimizer,loss_func,t
                     print(f'Average time used on {x} :  {average:.7f}')
         counter += 1
         start_time = time.thread_time()
-    return model,counter,epoch_loss/counter
+    return model, counter, epoch_loss / counter
 
 
 def validate_epoch(model, val_loader, device, loss_func):
@@ -317,11 +314,11 @@ def validate_epoch(model, val_loader, device, loss_func):
             del x1_encoded
             del loss
 
-    return val_loss/val_steps
+    return val_loss / val_steps
 
 
 # Next up: contrastive training framework
-def pre_train_model(all_params,global_params):
+def pre_train_model(all_params, global_params):
     """
     :param dataset: ContrastiveAugmentedDataset for pre_training
     :param batch_size: batch size for pre_training
@@ -368,31 +365,32 @@ def pre_train_model(all_params,global_params):
 
     :return: None
     """
-    params = all_params['pre_training']
-    all_dataset = global_params['datasets']
+    pretrain_params = all_params['pre_training']
+    preprocess_params = all_params['preprocess']
+    pretrain_datasets = pretrain_params['datasets']
     datasets_dict = {}
-    for dataset in all_dataset:
-        path_params = params[dataset]
-        with open(path_params['ids_path'], 'rb') as fid:
+    for dataset in pretrain_datasets:
+        preprocess_root = preprocess_params[dataset]['preprocess_root']
+        with open(os.path.join(preprocess_root, 'pickles', 'split_idx_list.pkl'), 'rb') as fid:
             pre_train_ids = pickle.load(fid)
-        datasets_dict[dataset] = (path_params['ds_path'], pre_train_ids)
+        datasets_dict[dataset] = (os.path.join(preprocess_root, 'split'), pre_train_ids)
 
-    dataset = ConcatPathDataset(datasets_dict,all_params,global_params)
+    dataset = ConcatPathDataset(datasets_dict, all_params, global_params)
 
-    batch_size = params['batch_size']
-    train_split = params['train_split']
-    shuffle = params['SHUFFLE']
-    trained_model_path = params['pretrained_model_path']
-    save_freq = params['save_freq']
-    temperature = params['temperature']
-    learning_rate = params['learning_rate']
-    weight_decay = params['weight_decay']
+    batch_size = pretrain_params['batch_size']
+    train_split = pretrain_params['train_split']
+    shuffle = pretrain_params['SHUFFLE']
+    trained_model_path = pretrain_params['pretrained_model_path']
+    save_freq = pretrain_params['save_freq']
+    temperature = pretrain_params['temperature']
+    learning_rate = pretrain_params['learning_rate']
+    weight_decay = pretrain_params['weight_decay']
     num_workers = global_params['n_jobs']
-    max_epochs = params['max_epochs']
-    batch_print_freq = params['batch_print_freq']
-    save_dir_model = params['save_dir_model']
-    model_file_name = params['model_file_name']
-    time_process = params['TIME_PROCESS']
+    max_epochs = pretrain_params['max_epochs']
+    batch_print_freq = pretrain_params['batch_print_freq']
+    save_dir_model = pretrain_params['save_dir_model']
+    model_file_name = pretrain_params['model_file_name']
+    time_process = pretrain_params['TIME_PROCESS']
 
     n_channels = global_params['n_channels']
 
@@ -404,7 +402,7 @@ def pre_train_model(all_params,global_params):
 
     # create data_loaders, here batch size is decided
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle,
-                                               num_workers=num_workers,drop_last=True)
+                                               num_workers=num_workers, drop_last=True)
     # maybe alos num_workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # check if cuda setup allowed:
@@ -412,7 +410,7 @@ def pre_train_model(all_params,global_params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model and check if weights already given
-    model = DECCaTNet.DECCaTNet(all_params,global_params)
+    model = DECCaTNet.DECCaTNet(all_params, global_params)
     if trained_model_path is not None:
         print(f'loading pre_trained model from {trained_model_path}')
         model.__init__from_dict(torch.load(trained_model_path))  # loaded already trained-model
@@ -431,17 +429,19 @@ def pre_train_model(all_params,global_params):
     time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'backward', 'loss_update', 'delete', 'total']
     # iterative traning loop
     for epoch in range(max_epochs):
-        model,counter,epoch_loss = train_epoch(model,epoch,max_epochs,train_loader,device,optimizer,loss_func,time_process,batch_print_freq,time_names, batch_size)
+        model, counter, epoch_loss = train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func,
+                                                 time_process, batch_print_freq, time_names, batch_size)
 
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
         if epoch % save_freq == 0 and epoch != 0:
-            print('epoch number: ', epoch+1, 'saving model  ')
-            temp_save_path_model = os.path.join(save_dir_model, "temp_" + str(epoch+1) + "_" + model_file_name)
+            print('epoch number: ', epoch + 1, 'saving model  ')
+            temp_save_path_model = os.path.join(save_dir_model, "temp_" + str(epoch + 1) + "_" + model_file_name)
             torch.save(model.state_dict(), temp_save_path_model)
             # here is the solution, have the model as several modules; then different modules can be saved seperately
-            temp_save_path_encoder = os.path.join(save_dir_model, "temp_encoder" + str(epoch+1) + "_" + model_file_name)
+            temp_save_path_encoder = os.path.join(save_dir_model,
+                                                  "temp_encoder" + str(epoch + 1) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
         losses.append(epoch_loss)
     # save function for final model
@@ -457,29 +457,28 @@ def pre_train_model(all_params,global_params):
     meta_data_path = os.path.join(save_dir_model, pickle_name)
     with open(meta_data_path, 'wb') as outfile:
         pkl.dump({
-            'all_params':all_params,
-            'global_params':global_params,
+            'all_params': all_params,
+            'global_params': global_params,
             "avg_train_losses": losses,
-            #"avg_train_accs": avg_train_accs, #TODO: check out avg_train_accs
+            # "avg_train_accs": avg_train_accs, #TODO: check out avg_train_accs
             "save_dir_for_model": save_dir_model,
             "model_file_name": model_file_name,
             "batch_size": batch_size,
             "shuffle": shuffle,  # "num_workers": num_workers,
             "max_epochs": max_epochs,
             "learning_rate": learning_rate,
-            'temperature':temperature,
-            #"beta_vals": beta_vals, # TODO: check out betavals
+            'temperature': temperature,
+            # "beta_vals": beta_vals, # TODO: check out betavals
             "weight_decay": weight_decay,
             "save_freq": save_freq,
-            'noise_probability': params['augmentation']['noise_probability'],
+            'noise_probability': pretrain_params['augmentation']['noise_probability'],
             'model_params': all_params['encoder_params'],
-            "channels": n_channels, #TODO:check where number of channels need to be changed
-            'dataset_names':dataset.dataset_names,
+            "channels": n_channels,  # TODO:check where number of channels need to be changed
+            'dataset_names': dataset.dataset_names,
             "sfreq": global_params['s_freq'],
-            'train_split':train_split,
-            'already_trained_model':trained_model_path,
-            'num_workers':num_workers,
-
+            'train_split': train_split,
+            'already_trained_model': trained_model_path,
+            'num_workers': num_workers,
 
         }, outfile)
 
@@ -508,4 +507,3 @@ def plot_avgs(avg_train_losses, avg_train_accs, avg_val_accs, plot_series_name, 
     accuracy_plot_save_path = os.path.join(save_path, plot_series_name + "_accuracy_visualization.png")
     fig2.savefig(accuracy_plot_save_path)
     pass
-

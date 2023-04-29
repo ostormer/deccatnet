@@ -10,6 +10,11 @@ import mne
 from braindecode.datasets import BaseDataset, BaseConcatDataset, tuh
 from braindecode.datautil import load_concat_dataset
 
+excluded_tuh = sorted([
+    "EEG EKG-REF", "EEG ROC-REF", "EEG EKG1-REF", "EEG C3P-REF", "EEG C4P-REF", "EEG LOC-REF", 'EEG EKG-LE',
+    'PHOTIC PH', 'DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF',
+    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF', 'EEG RESP1-REF',
+    'EEG RESP2-REF'])
 
 def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
     root_dir = ds_params['dataset_root']
@@ -22,6 +27,8 @@ def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
         recording_ids = None
 
     dataset = tuh.TUH(root_dir, n_jobs=global_params['n_jobs'], recording_ids=recording_ids)
+    for ds in dataset.datasets:
+        ds.raw.drop_channels(excluded_tuh)
     return dataset
 
 
@@ -37,6 +44,8 @@ def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
 
     dataset = tuh.TUHAbnormal(root_dir, recording_ids=recording_ids, n_jobs=global_params['n_jobs'],
                               target_name='pathological')
+    for ds in dataset.datasets:
+        ds.raw.drop_channels(excluded_tuh)
     return dataset
 
 
@@ -98,9 +107,8 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
         # Prepare data
         data: np.ndarray = mat['cnt']
         data = data.transpose().astype(numpy.float32)
-        print(data)
-
         raw = mne.io.RawArray(data, info, verbose='ERROR')  # Create raw object
+
         description = {"file_path": file_path}
         ds = BaseDataset(raw, description=description, target_name=None)
         base_datasets.append(ds)

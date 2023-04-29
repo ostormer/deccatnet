@@ -1,9 +1,9 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
+  PREPROCESSING: False
   HYPER_SEARCH: False
-  PRE_TRAINING: False
+  PRE_TRAINING: True
   FINE_TUNING: False
 
   n_jobs: 1
@@ -98,12 +98,7 @@ preprocess:
 
 
 pre_training:
-  tuh_eeg:
-    ds_path: '../datasets/TUH/tuh_eeg_preprocessed/split'
-    ids_path: '../datasets/TUH/tuh_eeg_preprocessed/pickles/split_idx_list.pkl'
-  tuh_eeg_abnormal:
-    ds_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed/split'
-    ids_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed/pickles/split_idx_list.pkl'
+  datasets: ['bciciv_1']  # Which datasets (given in 'preprocess') to use for pretraining
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 

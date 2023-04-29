@@ -6,13 +6,14 @@ from copy import deepcopy
 from math import ceil
 
 import numpy as np
+from DECCaTNet.preprocessing.load_dataset import load_func_dict
 from tqdm import tqdm
 
 import mne
-from preprocessing.load_dataset import load_func_dict
 from braindecode.datasets import BaseConcatDataset, WindowsDataset, BaseDataset
 from braindecode.datautil.serialization import _check_save_dir_empty, load_concat_dataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
+
 """
 Plan and things which needs to be done:
 For one and one file:
@@ -60,11 +61,13 @@ ar_channels = sorted([
     'EEG LUC-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG OZ-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG PZ-REF',
     'EEG RLC-REF', 'EEG SP1-REF', 'EEG SP2-REF', 'EEG T1-REF',
     'EEG T2-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF'])
-excluded = sorted([
-    "EEG EKG-REF", "EEG ROC-REF", "EEG EKG1-REF", "EEG C3P-REF", "EEG C4P-REF", "EEG LOC-REF", 'EEG EKG-LE',
-    'PHOTIC PH', 'DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF',
-    'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF', 'EEG RESP1-REF',
-    'EEG RESP2-REF'])
+
+
+# excluded = sorted([
+#     "EEG EKG-REF", "EEG ROC-REF", "EEG EKG1-REF", "EEG C3P-REF", "EEG C4P-REF", "EEG LOC-REF", 'EEG EKG-LE',
+#     'PHOTIC PH', 'DC4-DC', 'DC3-DC', 'DC7-DC', 'DC2-DC', 'DC8-DC', 'DC6-DC', 'DC1-DC', 'DC5-DC', 'EMG-REF',
+#     'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF', 'EEG RESP1-REF',
+#     'EEG RESP2-REF'])
 
 
 def select_duration(concat_ds: BaseConcatDataset, t_min=0, t_max: int = None):
@@ -155,7 +158,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     for ds in tqdm(concat_ds.datasets):
         if ds.raw.n_times * ds.raw.info['sfreq'] >= window_size:
             keep_ds.append(ds)
-        ds.raw.drop_channels(exclude_ch + excluded, on_missing='ignore')
+        ds.raw.drop_channels(exclude_ch, on_missing='ignore')
     print(f'Kept  {len(keep_ds)} recordings')
     concat_ds = BaseConcatDataset(keep_ds)
 
@@ -174,7 +177,6 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
                overwrite=True,
                )
     print("Done rescaling to microVolts")
-
 
     print('Splitting dataset into windows:')
     windows_ds = create_fixed_length_windows(
@@ -233,8 +235,7 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor('set_eeg_reference',
                      ref_channels='average', ch_type='eeg'),
         # rename to common naming convention
-        Preprocessor(rename_channels, mapping=mapping,
-                     apply_on_array=False),
+        # Preprocessor(rename_channels, mapping=mapping, apply_on_array=False),
         Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
         # Resample
         Preprocessor('resample', sfreq=s_freq),
@@ -520,7 +521,7 @@ def _preproc_first(ds_params, global_params, dataset=None):
 
 def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
     """
-    saves a fine_tuning dataset in the same way as a pre_training dataset to make it pickable
+    saves a fine_tuning dataset in the same way as a pre_training dataset to make it pickleable
     :param ds_params: dataset parameters
     :param global_params: global parameters
     :param dataset: fine_tuning ds which needs to be saved
@@ -533,14 +534,14 @@ def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
         os.makedirs(save_dir)
 
     idx = []
-    for i,window_ds in enumerate(orig_dataset.datasets):
-        #print(window_ds.description)
+    for i, window_ds in enumerate(orig_dataset.datasets):
+        # print(window_ds.description)
         for i_window in range(len(window_ds)):
-            idx.append((i,i_window))
+            idx.append((i, i_window))
 
     dataset = BaseConcatDataset(orig_dataset.datasets)
     dataset.save(save_dir, overwrite=True)
-    return idx,save_dir,ds_params,orig_dataset
+    return idx, save_dir, ds_params, orig_dataset
 
 
 def _save_func_fine_tuning(windows_ds, record_index, save_dir, delete_step_1):
