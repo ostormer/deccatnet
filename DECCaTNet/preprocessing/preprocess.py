@@ -165,6 +165,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     preprocessors = [
         Preprocessor(custom_turn_off_log),  # turn off verbose
         Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
+
     ]
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -178,6 +179,14 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
                )
     print("Done rescaling to microVolts")
 
+    if preproc_params['reject_high_threshold'] is None:
+        reject_dict = None
+    else:
+        reject_dict = dict(eeg=preproc_params['reject_high_threshold'])
+    if preproc_params['reject_flat_threshold'] is None:
+        flat_dict = None
+    else:
+        flat_dict = dict(eeg=preproc_params['reject_flat_threshold'])
     print('Splitting dataset into windows:')
     windows_ds = create_fixed_length_windows(
         concat_ds,
@@ -187,9 +196,8 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         window_size_seconds=window_size,
         drop_last_window=False,
         drop_bad_windows=True,
-        reject=dict(eeg=preproc_params['reject_high_threshold']),
-        # Peak-to-peak high rejection threshold within each window
-        flat=dict(eeg=preproc_params['reject_flat_threshold']),  # Peak-to peak low rejection threshold
+        reject=reject_dict,  # Peak-to-peak high rejection threshold within each window
+        flat=flat_dict,  # Peak-to peak low rejection threshold
         verbose='ERROR'
     )
 

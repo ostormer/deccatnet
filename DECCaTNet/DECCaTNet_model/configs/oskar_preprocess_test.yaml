@@ -1,9 +1,9 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
+  PREPROCESSING: True
   HYPER_SEARCH: False
-  PRE_TRAINING: True
+  PRE_TRAINING: False
   FINE_TUNING: False
 
   n_jobs: 1
@@ -16,7 +16,7 @@ global:
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
-  datasets: ['bciciv_1']
+  datasets: ['seed']
 
 
 preprocess:
@@ -71,9 +71,9 @@ preprocess:
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
     bandpass_hi: 80
-    scaling_factor: 0.1  # Scaling factor to convert to microVolts
-    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
-    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: null  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: null  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: True
     exclude_channels: []  # remember to comment out if not used
 

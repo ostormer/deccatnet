@@ -55,6 +55,44 @@ preprocess:
     DELETE_STEP_1: True
     exclude_channels: []  # remember to comment out if not used
 
+  seed:
+    ds_name: 'seed'  # Must match key
+    dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\SEED\seed_raw'
+    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\SEED\preprocessed'
+    IS_FINE_TUNING_DS: False
+
+    start_idx: 0
+    stop_idx: null  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: null  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: null  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: True
+    exclude_channels: [ ]  # remember to comment out if not used
+
+  bciciv_1:
+    ds_name: 'bciciv_1'  # Must match key
+    dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\BCICIV_1\bciciv_1_raw'
+    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\BCICIV_1\preprocessed'
+    IS_FINE_TUNING_DS: False
+
+    start_idx: 0
+    stop_idx: null  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 0.1  # Scaling factor to convert to microVolts
+    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (uV)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (uV)
+    DELETE_STEP_1: True
+    exclude_channels: [ ]  # remember to comment out if not used
+
 
 pre_training:
   datasets: ['tuh_eeg', 'tuh_eeg_abnormal']
