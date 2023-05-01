@@ -244,6 +244,8 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
+    #if preproc_params['IS_FINE_TUNING_DS']:
+    #    preprocessors.append(Preprocessor('equalize_channels', copy=False))
 
     # Could add normalization here also
 
@@ -514,7 +516,7 @@ def _preproc_first(ds_params, global_params, dataset=None):
     if is_fine_tuning_ds and not global_params['HYPER_SEARCH']:
         return dataset
     elif is_fine_tuning_ds:
-        return _save_fine_tuning_ds(ds_params, global_params, dataset)
+        return None
     else:
         return _preproc_split(ds_params, global_params, dataset)
 
@@ -527,6 +529,10 @@ def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
     :param dataset: fine_tuning ds which needs to be saved
     :return: a finetuning PathDataset
     """
+    # first ensure that everything is on the correct order
+    # print(f'started to equalize channels')
+    # windows = [window.windows for window in orig_dataset.datasets]
+    # windows = mne.equalize_channels(windows)
 
     save_dir = ds_params['split_save_dir']
 

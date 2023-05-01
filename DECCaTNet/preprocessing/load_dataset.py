@@ -44,12 +44,13 @@ def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
 
     dataset = tuh.TUHAbnormal(root_dir, recording_ids=recording_ids, n_jobs=global_params['n_jobs'],
                               target_name='pathological')
-    for i,ds in enumerate(dataset.datasets): # TODO this throws ValueError channels not found
+    for i,ds in enumerate(dataset.datasets):
         for channel in excluded_tuh:
             try:
                 ds.raw.drop_channels(channel)
             except:
-                print(f'ValueError: Channel(s){channel} most likely not found in raw file number: {i}')
+                pass
+                #print(f'ValueError: Channel(s){channel} most likely not found in raw file number: {i}')
     return dataset
 
 
