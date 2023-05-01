@@ -87,8 +87,8 @@ fine_tuning:
 
   n_classes: 2
 
-  batch_size: 124
-  max_epochs: 3
+  batch_size: 16
+  max_epochs: 1
   lr_rate: 0.01
   weight_decay: 0.005
   train_split: 0.7
@@ -104,7 +104,7 @@ fine_tuning:
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
 
-  REDO_PREPROCESS: True # this must allways be true, as preprocessing always have to be done before pretraining.
+  REDO_PREPROCESS: False # this must allways be true, as preprocessing always have to be done before pretraining.
   fine_tuning_preprocess:
     ds_name: 'tuh_eeg_abnormal'
     dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
@@ -113,7 +113,7 @@ fine_tuning:
     target_name: 'pathological'
 
     start_idx: 0
-    stop_idx: null  # Which idx is the last to load? (null for all)
+    stop_idx: 10  # Which idx is the last to load? (null for all)
     read_cache: 'none'  # needs to be none if new channels are excluded, else windows is acceptable
 
     bandpass_lo: 0.3

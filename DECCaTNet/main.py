@@ -23,6 +23,7 @@ def run(config_path_name):
     if global_params['FINE_TUNING']:
         fn.run_fine_tuning(params,global_params)
 
+# TODO: how to report correct performance when we are ready to do so.
 
 if __name__ == '__main__':
     run('config_template')

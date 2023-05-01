@@ -75,7 +75,7 @@ def hyper_search(all_params, global_params):
     best_trial = result.get_best_trial(metric='val_acc',mode='max')
     print("Best trial config: {}".format(best_trial.config))
     print("Best trial final validation loss: {}".format(
-        best_trial.last_result["loss"]))
+        best_trial.last_result["val_loss"]))
     print("Best trial final validation accuracy: {}".format(
         best_trial.last_result["val_acc"]))
 
@@ -124,9 +124,9 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
     if hyper_params['PREPROCESS']:
         # should change names for preprocessing, only n_channels and channel_selection which can be changed
         if 'n_channels' in config:
-            all_params = update_paths(config, all_params, global_params, 'n_channels')
+            all_params = update_paths(config, copy.deepcopy(all_params), global_params, 'n_channels')
         if 'channel_select_function' in config:
-            all_params = update_paths(config, all_params, global_params, 'channel_select_function')
+            all_params = update_paths(config, copy.deepcopy(all_params), global_params, 'channel_select_function')
     if hyper_params['PERFORM_PREPROCESS']:
         pre.run_preprocess(all_params, global_params)
     if hyper_params['FINE_AND_PRE']:
@@ -150,10 +150,11 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
 def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     params = all_params['fine_tuning']
 
-    if params['REDO_PREPROCESS']:  # TODO fix that this can be laoded from file
-        all_params['preprocess'] = params['fine_tuning_preprocess']
+    if params['REDO_PREPROCESS']:
+        new_params = copy.deepcopy(all_params)
+        new_params['preprocess'] = params['fine_tuning_preprocess']
 
-        run_preprocess(all_params, global_params, fine_tuning=True)
+        run_preprocess(new_params, global_params, fine_tuning=True)
 
     idx = []
     # we need, idx, paths and dataset_params
@@ -163,6 +164,8 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     indexes = os.listdir(preproc_path)
     for i in indexes:
         sub_dir = os.path.join(preproc_path, str(i))
+        print(sub_dir)
+        print(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series'))
         for i_window in range(
                 int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
             idx.append((i, i_window))
