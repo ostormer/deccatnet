@@ -5,6 +5,7 @@ import pickle
 import time
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as fn
@@ -13,13 +14,14 @@ from torch.utils.data import SubsetRandomSampler
 from tqdm import tqdm
 import pickle as pkl
 import torchplot as plt
+from pathlib import Path
 
 import DECCaTNet_model.contrastive_framework as cf
 import preprocessing.preprocess as pre
 import DECCaTNet_model.fine_tuning as fn
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
-from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset,FineTunePathDataset
+from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset, FineTunePathDataset
 from ray import tune
 import ray
 from ray.tune import CLIReporter
@@ -32,6 +34,7 @@ from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_p
 from DECCaTNet_model.fine_tuning import train_epoch, validate_epoch, FineTuneNet
 from ray.util import inspect_serializability
 
+
 # things we wnt to be able to hypersearch:n_channels, channels_selection, augmentation_selection, all losses, architectures, basically a lot of shit
 
 def hyper_search(all_params, global_params):
@@ -43,7 +46,7 @@ def hyper_search(all_params, global_params):
             metric="val_loss",
             mode="min",
             max_t=hyper_prams['max_t'],
-            grace_period=1,
+            grace_period=1,  # TODO comment what this does and all other params
             reduction_factor=2)
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
@@ -61,7 +64,8 @@ def hyper_search(all_params, global_params):
             max_report_frequency=30)
 
     result = tune.run(
-        partial(hyper_search_train, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params), global_params=copy.deepcopy(global_params)),
+        partial(hyper_search_train, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
+                global_params=copy.deepcopy(global_params)),
         config=configs,
         num_samples=1,
         scheduler=scheduler,
@@ -89,10 +93,6 @@ def update_paths(config, all_params, global_params, change_on):
                                                                    'preprocess_root'] + '_' + change_on + '_' + str(
             config[
                 change_on])
-        all_params['pre_training'][dataset]['ds_path'] = all_params['preprocess'][dataset][
-                                                             'preprocess_root'] + '/split'
-        all_params['pre_training'][dataset]['ids_path'] = all_params['preprocess'][dataset][
-                                                              'preprocess_root'] + '/pickles/split_idx_list.pkl'
     all_params['fine_tuning']['fine_tuning_preprocess']['preprocess_root'] = \
         all_params['fine_tuning']['fine_tuning_preprocess']['preprocess_root'] + '_' + change_on + '_' + str(
             config[change_on])
@@ -101,7 +101,7 @@ def update_paths(config, all_params, global_params, change_on):
     return all_params
 
 
-def update_model_paths(config, all_params,change_on,global_params):
+def update_model_paths(config, all_params, change_on, global_params):
     # all datasets are chosen correctly, however selecting the correct model for encoding is not yet done.
     # for example: finding correct pretraining parameters for rpetraining loss
     # when testing for something in the final model, it is important that the correct encoder is chosen
@@ -150,12 +150,27 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
 def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     params = all_params['fine_tuning']
 
-    if params['REDO_PREPROCESS']:  # this should allways be true, will take up time
+    if params['REDO_PREPROCESS']:  # TODO fix that this can be laoded from file
         all_params['preprocess'] = params['fine_tuning_preprocess']
 
-        idx,path,ds_params,orig_dataset = run_preprocess(all_params, global_params, fine_tuning=True)[0]
-        dataset = FineTunePathDataset(idx,path,ds_params,global_params,ds_params['target_name'])
+        idx, split_path, ds_params = run_preprocess(all_params, global_params, fine_tuning=True)[0]
 
+
+    else:
+        idx = []
+        # we need, idx, paths and dataset_params
+        path = all_params['fine_tuning']['ds_path']
+        # get splits path by first getting windows path and then removing last object
+        split_path = os.path.join(*Path(path).parts[:-2], 'split')
+        indexes = os.listdir(split_path)
+        for i in indexes:
+            sub_dir = os.path.join(split_path, str(i))
+            for i_window in range(
+                    int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
+                idx.append((i, i_window))
+        ds_params = all_params['fine_tuning']['fine_tuning_preprocess']
+
+    dataset = FineTunePathDataset(idx, split_path, ds_params, global_params, ds_params['target_name'])
     epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
@@ -163,21 +178,23 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     perform_k_fold = params['PERFORM_KFOLD']
     n_folds = params['n_folds']
 
-    ds_channel_order = orig_dataset.datasets[0].windows.ch_names
+    # im thinking load one window
+    ds_channel_order = dataset.__getitem__(0, window_order=True)
 
-    for i, windows_ds in enumerate(orig_dataset.datasets):
-        if not windows_ds.windows.ch_names == ds_channel_order:
-            changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
-                       enumerate(windows_ds.windows.ch_names)]
+    for i in range(len(idx)):
+        window_order = dataset.__getitem__(i, window_order=True)
+        # if not window_order == ds_channel_order:
+        #     changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
+        #                enumerate(window_order)]
             # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
-        assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}'  # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
+        assert window_order == ds_channel_order, f'{window_order} \n {ds_channel_order}'
 
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
 
-    train,valid = dataset.get_splits(params['train_split'])
+    train, valid = dataset.get_splits(params['train_split'])
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"],
-                                               num_workers=num_workers,shuffle=params['SHUFFLE'])
+                                               num_workers=num_workers, shuffle=params['SHUFFLE'])
     val_loader = torch.utils.data.DataLoader(valid, batch_size=params['batch_size'],
                                              num_workers=num_workers, shuffle=params['SHUFFLE'])
     if test_set is not None:
@@ -194,8 +211,11 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     try:
         model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
     except:
-        assert all_params['hyper_search']['FINE_TUNING'] == True, ('assertion failed as this should only be accsessible when only finetuning')
-        all_params['fine_tuning']['encoder_path'] = 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/DECCaTNet/' + all_params['fine_tuning']['encoder_path']
+        assert all_params['hyper_search']['FINE_TUNING'] == True, (
+            'assertion failed as this should only be accsessible when only finetuning')
+        all_params['fine_tuning'][
+            'encoder_path'] = 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/DECCaTNet/' + \
+                              all_params['fine_tuning']['encoder_path']
         model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
     if torch.cuda.is_available():
@@ -253,18 +273,19 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
             val_loss, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
 
             session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
-                            'val_acc': correct_eval_preds / num_eval_preds})#, checkpoint=checkpoint)
+                            'val_acc': correct_eval_preds / num_eval_preds})  # , checkpoint=checkpoint)
 
 
 def pre_train_hypersearch(all_params=None, global_params=None):
     params = all_params['pre_training']
-    all_dataset = global_params['datasets']
+    preprocess_params = all_params['preprocess']
+    pretrain_datasets = params['datasets']
     datasets_dict = {}
-    for dataset in all_dataset:
-        path_params = params[dataset]
-        with open(path_params['ids_path'], 'rb') as fid:
+    for dataset in pretrain_datasets:
+        preprocess_root = preprocess_params[dataset]['preprocess_root']
+        with open(os.path.join(preprocess_root, 'pickles', 'split_idx_list.pkl'), 'rb') as fid:
             pre_train_ids = pickle.load(fid)
-        datasets_dict[dataset] = (path_params['ds_path'], pre_train_ids)
+        datasets_dict[dataset] = (os.path.join(preprocess_root, 'split'), pre_train_ids)
 
     dataset = ConcatPathDataset(datasets_dict, all_params, global_params)
 
@@ -324,7 +345,7 @@ def pre_train_hypersearch(all_params=None, global_params=None):
 
         losses.append(epoch_loss)
         val_losses.append(val_loss)
-        session.report({'val_loss': val_loss, 'train_loss': epoch_loss})#, checkpoint=checkpoint)
+        session.report({'val_loss': val_loss, 'train_loss': epoch_loss})  # , checkpoint=checkpoint)
 
     # save function for final model, needs to be done anyway
     save_path_model = os.path.join(save_dir_model, model_file_name)

@@ -67,7 +67,7 @@ pre_training:
   temperature: 1 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
   weight_decay: 0.01
-  max_epochs: 2
+  max_epochs: 1
 
   save_freq: 1
   batch_print_freq: 5
@@ -121,7 +121,7 @@ fine_tuning:
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: False
+    DELETE_STEP_1: True
     exclude_channels:
     - 'EEG 26-REF'
     - 'EEG 27-REF'
@@ -147,7 +147,7 @@ downstream_params:
 
 hyper_search:
   PERFORM_PREPROCESS: False
-  PREPROCESS: True # wether you need correct paths i there is changes to preprocess but they are already loeaded
+  PREPROCESS: True # wether you need correct paths when there is changes to preprocess but they are already loeaded
   FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False

@@ -109,7 +109,7 @@ class FineTunePathDataset(Dataset):
     def __len__(self):
         return len(self.ids_to_load)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx,window_order=False):
         """
         goal is to create pairs of form [x_augment_1, x_augment_2], x_original
         :param idx: idx of the dataset we are interested in
@@ -126,6 +126,8 @@ class FineTunePathDataset(Dataset):
         fif_file_path = os.path.join(sub_dir, fif_file_name)
 
         signals = _load_signals(fif_file_path, self.preload, self.is_raw)
+        if window_order:
+            return signals.ch_names
         window = signals.get_data(item=window_n)
         window = torch.Tensor(window)
         description_df = pd.read_json(os.path.join(sub_dir, "description.json"),typ='series')

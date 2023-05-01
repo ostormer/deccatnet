@@ -6,7 +6,7 @@ from copy import deepcopy
 from math import ceil
 
 import numpy as np
-from DECCaTNet.preprocessing.load_dataset import load_func_dict
+from preprocessing.load_dataset import load_func_dict
 from tqdm import tqdm
 
 import mne
@@ -539,17 +539,10 @@ def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
         for i_window in range(len(window_ds)):
             idx.append((i, i_window))
 
+    print(f'saving BaseConcatDataset to {save_dir}, with the following idx: {idx}')
     dataset = BaseConcatDataset(orig_dataset.datasets)
     dataset.save(save_dir, overwrite=True)
-    return idx, save_dir, ds_params, orig_dataset
-
-
-def _save_func_fine_tuning(windows_ds, record_index, save_dir, delete_step_1):
-    print(windows_ds)
-    dataset = BaseDataset(windows_ds)
-    dataset.save(save_dir, overwrite=True, offset=record_index)
-
-    return record_index
+    return idx, save_dir, ds_params
 
 
 def _preproc_split(ds_params, global_params, dataset=None):
