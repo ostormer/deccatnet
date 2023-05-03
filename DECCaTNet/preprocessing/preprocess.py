@@ -171,7 +171,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     ]
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    preprocess(concat_ds=concat_ds,  # preprocess is in place, doesnt return anything because overwrtie=True
+    preprocess(concat_ds=concat_ds,  # preprocess is in place, doesn't return anything because overwrite=True
                preprocessors=preprocessors,
                n_jobs=n_jobs,
                save_dir=save_dir,
@@ -202,14 +202,13 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     )
     # Trying to free up memory
     for ds in concat_ds.datasets:
-        del ds.raw
         del ds
     del concat_ds
     gc.collect()
 
     keep_ds = []
     print('Dropping all recordings with 0 good windows...')
-    for ds in tqdm(windows_ds.datasets):
+    for ds in windows_ds.datasets:
         if len(ds.windows) > 0:
             keep_ds.append(ds)
     print(f'Kept {len(keep_ds)} recordings')
@@ -242,8 +241,7 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
     preprocessors = [
         Preprocessor(custom_turn_off_log),  # turn off verbose
         # set common reference for all
-        Preprocessor('set_eeg_reference',
-                     ref_channels='average', ch_type='eeg'),
+        Preprocessor('set_eeg_reference', ref_channels='average', ch_type='eeg'),
         # rename to common naming convention
         # Preprocessor(rename_channels, mapping=mapping, apply_on_array=False),
         Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
@@ -255,8 +253,6 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
     #if preproc_params['IS_FINE_TUNING_DS']:
     #    preprocessors.append(Preprocessor('equalize_channels', copy=False))
 
-    # Could add normalization here also
-
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -266,8 +262,6 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
                save_dir=save_dir,
                overwrite=True,
                )
-    # check_windows(concat_dataset)
-    # Divide data by trial: Check sampling frequency
 
     return concat_dataset
 
@@ -509,6 +503,7 @@ def _preproc_first(ds_params, global_params, dataset=None):
     if stop_idx is None:
         stop_idx = len(dataset.datasets)
     if len(dataset.datasets) > stop_idx - start_idx:
+        print(f"Cropping dataset to be between {start_idx} and {stop_idx}")
         dataset = dataset.split(by=range(start_idx, stop_idx))['0']
 
     print("Keeping values from ")
@@ -519,12 +514,13 @@ def _preproc_first(ds_params, global_params, dataset=None):
         os.makedirs(preproc_save_dir)
     else:
         # Delete all other folders
-        keep_dirs = set([str(i) for i in range(start_idx, stop_idx)])
+        keep_dirs = set([str(i) for i in range(len(dataset.datasets))])
         print(start_idx, stop_idx)
         dirs_from_previous_step = set(os.listdir(preproc_save_dir))
         dirs_to_delete = sorted(list(dirs_from_previous_step - keep_dirs))
         print("Deleting following dirs as they are from before the preprocessing overwrote the others")
         print(dirs_to_delete)
+        dataset = dataset.split(by=keep_dirs)['0']
         for ds_dir in dirs_to_delete:
             try:
                 shutil.rmtree(os.path.join(preproc_save_dir, ds_dir))
