@@ -21,4 +21,4 @@ def run(config_path_name):
 
 
 if __name__ == '__main__':
-    run('anakin_preprocess')
+    run('config_anakin_preprocess')
