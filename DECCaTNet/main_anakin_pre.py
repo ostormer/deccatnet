@@ -8,7 +8,7 @@ import preprocessing.preprocess as pre
 
 
 def run(config_path_name):
-    config_path = os.path.join('DECCaTNet_model/configs', config_path_name + '.yaml')
+    config_path = os.path.join('/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/configs', config_path_name + '.yaml')
     with open(config_path, 'r') as fid:
         params = yaml.safe_load(fid)
     global_params = params['global']

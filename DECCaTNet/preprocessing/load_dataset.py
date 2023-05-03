@@ -28,7 +28,7 @@ def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
 
     dataset = tuh.TUH(root_dir, n_jobs=global_params['n_jobs'], recording_ids=recording_ids)
     for ds in dataset.datasets:
-        ds.raw.drop_channels(excluded_tuh)
+        ds.raw.drop_channels(excluded_tuh, on_missing='ignore')
     return dataset
 
 
@@ -46,11 +46,7 @@ def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
                               target_name='pathological')
     for ds in dataset.datasets:
         for channel in excluded_tuh:
-            try:
-                ds.raw.drop_channels(channel)
-            except:
-                pass
-                #print(f'ValueError: Channel(s){channel} most likely not found in raw file number: {i}')
+            ds.raw.drop_channels(channel, on_missing='ignore')
     return dataset
 
 
@@ -65,7 +61,7 @@ def load_raw_seed(ds_params, global_params, drop_non_eeg=True) -> BaseConcatData
     for file_path in tqdm(file_paths):
         raw = mne.io.read_raw_cnt(file_path, verbose='INFO', preload=False)
         if drop_non_eeg:
-            raw.drop_channels(['M1', 'M2', 'VEO', 'HEO'])
+            raw.drop_channels(['M1', 'M2', 'VEO', 'HEO'], on_missing='ignore')
         description = {"file_path": file_path}
         ds = BaseDataset(raw, description=description, target_name=None)
         base_datasets.append(ds)

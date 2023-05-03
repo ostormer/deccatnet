@@ -55,7 +55,6 @@ preprocess:
     DELETE_STEP_1: False
     exclude_channels: []  # remember to comment out if not used
 
-preprocess:
   tuh_eeg_abnormal_train:  # This key must match one value in params_all['global']['datasets']
     ds_name: 'tuh_eeg_abnormal_train'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
