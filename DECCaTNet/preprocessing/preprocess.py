@@ -320,7 +320,7 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_ch
     idx_n_windows = [
         _split_channels_parallel(windows_ds, i, save_dir, n_channels, channel_split_func, delete_step_1)
         for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets),
-                                  miniters=len(windowed_concat_ds.datasets) / 100)
+                                  miniters=len(windowed_concat_ds.datasets) / 100, maxinterval=300)
     ]
 
     print('Creating idx list')
