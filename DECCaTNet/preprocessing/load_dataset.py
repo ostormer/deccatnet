@@ -16,6 +16,7 @@ excluded_tuh = sorted([
     'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF', 'EEG RESP1-REF',
     'EEG RESP2-REF'])
 
+
 def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
     root_dir = ds_params['dataset_root']
     start_idx = ds_params['start_idx']
@@ -58,7 +59,7 @@ def load_raw_seed(ds_params, global_params, drop_non_eeg=True) -> BaseConcatData
     file_paths = glob.glob(os.path.join(root_dir, '**/*.cnt'), recursive=True)
     file_paths = file_paths[start_idx:stop_idx]  # Keep only wanted part of dataset
     base_datasets = []
-    for file_path in tqdm(file_paths):
+    for file_path in tqdm(file_paths, miniters=len(file_paths) / 50):
         raw = mne.io.read_raw_cnt(file_path, verbose='INFO', preload=False)
         if drop_non_eeg:
             raw.drop_channels(['M1', 'M2', 'VEO', 'HEO'], on_missing='ignore')
@@ -82,7 +83,7 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
     file_paths = file_paths[start_idx:stop_idx]  # Keep only wanted part of dataset
 
     base_datasets = []
-    for file_path in tqdm(file_paths):
+    for file_path in tqdm(file_paths, miniters=len(file_paths) / 50):
         mat = loadmat(file_path)
         raw_nfo = mat['nfo']
         # Create info object
@@ -116,7 +117,8 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
     concat_dataset = BaseConcatDataset(base_datasets)
     print("Serializing braindecode dataset to free up memory...")
     concat_dataset.save(ds_params["preproc_save_dir"], overwrite=True)
-    concat_dataset = load_concat_dataset(path=ds_params["preproc_save_dir"], preload=False, n_jobs=global_params["n_jobs"])
+    concat_dataset = load_concat_dataset(path=ds_params["preproc_save_dir"], preload=False,
+                                         n_jobs=global_params["n_jobs"])
 
     return concat_dataset
 
@@ -142,4 +144,3 @@ if __name__ == '__main__':
     }
 
     bciciv_1 = load_raw_bciciv_1(ds_params, global_params)
-

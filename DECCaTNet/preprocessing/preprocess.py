@@ -1,6 +1,5 @@
 import gc
 import itertools
-import json
 import os
 import pickle
 import shutil
@@ -12,7 +11,7 @@ from preprocessing.load_dataset import load_func_dict
 from tqdm import tqdm
 
 import mne
-from braindecode.datasets import BaseConcatDataset, WindowsDataset, BaseDataset
+from braindecode.datasets import BaseConcatDataset, WindowsDataset
 from braindecode.datautil.serialization import _check_save_dir_empty, load_concat_dataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
 
@@ -157,7 +156,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         exclude_ch = preproc_params['exclude_channels']
     except IndexError:
         exclude_ch = []
-    for ds in tqdm(concat_ds.datasets):
+    for ds in concat_ds.datasets:
         if ds.raw.n_times * ds.raw.info['sfreq'] >= window_size:
             keep_ds.append(ds)
         ds.raw.drop_channels(exclude_ch, on_missing='ignore')
@@ -250,7 +249,7 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
-    #if preproc_params['IS_FINE_TUNING_DS']:
+    # if preproc_params['IS_FINE_TUNING_DS']:
     #    preprocessors.append(Preprocessor('equalize_channels', copy=False))
 
     if not os.path.exists(save_dir):
@@ -320,20 +319,22 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_ch
     # Not parallelized equivalent of the above
     idx_n_windows = [
         _split_channels_parallel(windows_ds, i, save_dir, n_channels, channel_split_func, delete_step_1)
-        for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets))
+        for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets),
+                                  miniters=len(windowed_concat_ds.datasets) / 100)
     ]
 
     print('Creating idx list')
     # make list with an element for each window in the entire dataset,
     # pointing at file and window number.
     idx_list = []
-    for pair in tqdm(idx_n_windows):
+    for pair in idx_n_windows:
         # For all recordings in the dataset
         dir_names, n_windows = pair
         for d, w in zip(dir_names, n_windows):
             # For all windows_datasets originating from one recording
             for window_index in range(w):
                 idx_list.append((d, window_index))
+    print('Done creating idx list, returning.')
 
     return idx_list
 
@@ -520,13 +521,12 @@ def _preproc_first(ds_params, global_params, dataset=None):
         dirs_to_delete = sorted(list(dirs_from_previous_step - keep_dirs))
         print("Deleting following dirs as they are from before the preprocessing overwrote the others")
         print(dirs_to_delete)
-        dataset = dataset.split(by=keep_dirs)['0']
+        dataset = dataset.split(by=list(keep_dirs))['0']
         for ds_dir in dirs_to_delete:
             try:
                 shutil.rmtree(os.path.join(preproc_save_dir, ds_dir))
             except OSError:
                 os.remove(os.path.join(preproc_save_dir, ds_dir))
-
 
     # Apply preprocessing step
     dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
@@ -589,7 +589,7 @@ def _preproc_split(ds_params, global_params, dataset=None):
         else:
             ids_to_load = list(range(start_idx, stop_idx))
             dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'],
-                                        ids_to_load=ids_to_load)
+                                          ids_to_load=ids_to_load)
         print('Done loading preprocessed dataset.')
     if stop_idx is None:
         stop_idx = len(dataset.datasets)
