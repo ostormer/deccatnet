@@ -1,4 +1,6 @@
+import gc
 import itertools
+import json
 import os
 import pickle
 import shutil
@@ -162,15 +164,13 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     print(f'Kept  {len(keep_ds)} recordings')
     concat_ds = BaseConcatDataset(keep_ds)
 
+    print("Rescaling to microVolts...")
     preprocessors = [
         Preprocessor(custom_turn_off_log),  # turn off verbose
         Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
-
     ]
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-
-    print("Rescaling to microVolts...")
     preprocess(concat_ds=concat_ds,  # preprocess is in place, doesnt return anything because overwrtie=True
                preprocessors=preprocessors,
                n_jobs=n_jobs,
@@ -200,7 +200,13 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         flat=flat_dict,  # Peak-to peak low rejection threshold
         verbose='ERROR'
     )
+    # Trying to free up memory
+    for ds in concat_ds.datasets:
+        del ds.raw
+        del ds
     del concat_ds
+    gc.collect()
+
     keep_ds = []
     print('Dropping all recordings with 0 good windows...')
     for ds in tqdm(windows_ds.datasets):
@@ -215,7 +221,6 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         "n_windows": n_windows,
         "n_channels": n_channels
     })
-
     return windows_ds
 
 
@@ -244,8 +249,6 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
         # Resample
         Preprocessor('resample', sfreq=s_freq),
-        # # rescale to microVolt (muV)
-        # Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
@@ -384,6 +387,7 @@ def _split_channels_parallel(
         # The dir containing one preprocessed WindowsDataset and acompanying json files
         step_1_dir = os.path.join(*os.path.split(windows_ds.windows.filename)[:-1])
         del windows_ds
+        gc.collect()
         shutil.rmtree(step_1_dir)
 
     indexes = list(
@@ -507,11 +511,24 @@ def _preproc_first(ds_params, global_params, dataset=None):
     if len(dataset.datasets) > stop_idx - start_idx:
         dataset = dataset.split(by=range(start_idx, stop_idx))['0']
 
+    print("Keeping values from ")
     # Change channel names to common naming scheme for tuh_eeg
     common_naming, ch_mapping = create_channel_mapping()
     # Create preproc_save_dir
     if not os.path.exists(preproc_save_dir):
         os.makedirs(preproc_save_dir)
+    else:
+        # Delete all other folders
+        keep_dirs = set(range(start_idx, stop_idx))
+        print(start_idx, stop_idx)
+        dirs_from_previous_step = set(os.listdir(preproc_save_dir))
+        dirs_to_delete = dirs_from_previous_step - keep_dirs
+        print("Deleting following dirs as they are from before the preprocessing overwrote the others")
+        print(dirs_to_delete)
+        for ds_dir in dirs_to_delete:
+            shutil.rmtree(os.path.join(preproc_save_dir, ds_dir))
+
+
     # Apply preprocessing step
     dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
                                  ch_naming=common_naming, preproc_params=ds_params,
