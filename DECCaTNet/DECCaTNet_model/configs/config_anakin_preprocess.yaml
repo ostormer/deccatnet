@@ -27,7 +27,7 @@ preprocess:
 
     start_idx: 0
     stop_idx: null # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80

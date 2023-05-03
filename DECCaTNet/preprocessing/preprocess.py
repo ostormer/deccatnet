@@ -200,7 +200,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         flat=flat_dict,  # Peak-to peak low rejection threshold
         verbose='ERROR'
     )
-
+    del concat_ds
     keep_ds = []
     print('Dropping all recordings with 0 good windows...')
     for ds in tqdm(windows_ds.datasets):
@@ -208,9 +208,6 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
             keep_ds.append(ds)
     print(f'Kept {len(keep_ds)} recordings')
     windows_ds = BaseConcatDataset(keep_ds)
-
-    # https://braindecode.org/0.6/generated/braindecode.preprocessing.create_fixed_length_windows.html
-    # store the number of windows required for loading later on
 
     n_windows = [len(ds) for ds in windows_ds.datasets]
     n_channels = [len(ds.windows.ch_names) for ds in windows_ds.datasets]
@@ -575,11 +572,14 @@ def _preproc_split(ds_params, global_params, dataset=None):
 
         dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'],
                                       ids_to_load=ids_to_load)
-        print('Done loading windowed dataset.')
+        print('Done loading preprocessed dataset.')
     if stop_idx is None:
         stop_idx = len(dataset.datasets)
     if len(dataset.datasets) > stop_idx - start_idx:
         dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
+
+    if ds_params["IS_FINE_TUNING_DS"]:  # Return loaded and possibly cut dataset
+        return dataset
 
     if not os.path.exists(split_save_dir):
         os.makedirs(split_save_dir)
