@@ -40,43 +40,48 @@ from ray.util import inspect_serializability
 def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
-    ray.init(num_cpus=1)
+    #ray.init(num_cpus=1)
     if hyper_prams['PRE_TRAINING']:
+        mode = 'min'
+        metric = 'val_loss'
         scheduler = ASHAScheduler(
-            metric="val_loss",
-            mode="min",
+            metric=metric,
+            mode=mode,
             max_t=hyper_prams['max_t'],
-            grace_period=1,  # TODO comment what this does and all other params
-            reduction_factor=2)
+            grace_period=hyper_prams['grace_period'],  # TODO comment what this does and all other params
+            reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             metric_columns=["val_loss", "train_loss", "training_iteration"])
     else:
+        mode = 'max'
+        metric = 'val_acc'
         scheduler = ASHAScheduler(
-            metric="val_acc",
-            mode="max",
+            metric=metric,
+            mode=mode,
             max_t=hyper_prams['max_t'],
-            grace_period=1,
-            reduction_factor=2)
+            grace_period=hyper_prams['grace_period'],  # TODO comment what this does and all other params
+            reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
-            max_report_frequency=30)
+            max_report_frequency=hyper_prams['max_report_frequency'])
 
     result = tune.run(
         partial(hyper_search_train, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
                 global_params=copy.deepcopy(global_params)),
         config=configs,
-        num_samples=1,
+        num_samples=hyper_prams['num_samples'],
         scheduler=scheduler,
         progress_reporter=reporter,
         local_dir='../tune_results'
     )
-    best_trial = result.get_best_trial(metric='val_acc',mode='max')
+    best_trial = result.get_best_trial(metric=metric,mode=mode)
     print("Best trial config: {}".format(best_trial.config))
     print("Best trial final validation loss: {}".format(
         best_trial.last_result["val_loss"]))
-    print("Best trial final validation accuracy: {}".format(
+    if mode == 'max':
+        print("Best trial final validation accuracy: {}".format(
         best_trial.last_result["val_acc"]))
 
 
