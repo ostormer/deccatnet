@@ -519,14 +519,17 @@ def _preproc_first(ds_params, global_params, dataset=None):
         os.makedirs(preproc_save_dir)
     else:
         # Delete all other folders
-        keep_dirs = set(range(start_idx, stop_idx))
+        keep_dirs = set([str(i) for i in range(start_idx, stop_idx)])
         print(start_idx, stop_idx)
         dirs_from_previous_step = set(os.listdir(preproc_save_dir))
-        dirs_to_delete = dirs_from_previous_step - keep_dirs
+        dirs_to_delete = sorted(list(dirs_from_previous_step - keep_dirs))
         print("Deleting following dirs as they are from before the preprocessing overwrote the others")
         print(dirs_to_delete)
         for ds_dir in dirs_to_delete:
-            shutil.rmtree(os.path.join(preproc_save_dir, ds_dir))
+            try:
+                shutil.rmtree(os.path.join(preproc_save_dir, ds_dir))
+            except OSError:
+                os.remove(os.path.join(preproc_save_dir, ds_dir))
 
 
     # Apply preprocessing step
