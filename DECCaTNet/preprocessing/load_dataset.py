@@ -44,7 +44,7 @@ def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
 
     dataset = tuh.TUHAbnormal(root_dir, recording_ids=recording_ids, n_jobs=global_params['n_jobs'],
                               target_name='pathological')
-    for i,ds in enumerate(dataset.datasets):
+    for ds in dataset.datasets:
         for channel in excluded_tuh:
             try:
                 ds.raw.drop_channels(channel)
