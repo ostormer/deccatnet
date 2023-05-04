@@ -397,6 +397,9 @@ def pre_train_model(all_params, global_params):
     if not os.path.exists(save_dir_model):
         os.makedirs(save_dir_model)
 
+    if global_params['HYPER_SEARCH']:
+        dataset = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
+
     # load dataset
     train_set, val_set = dataset.get_splits(train_split)
 
@@ -426,12 +429,12 @@ def pre_train_model(all_params, global_params):
 
     # track losses
     losses = []
+    val_losses = []
     time_names = ['batch', 'to_device', 'encoding', 'loss_calculation', 'backward', 'loss_update', 'delete', 'total']
     # iterative traning loop
     for epoch in range(max_epochs):
         model, counter, epoch_loss = train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func,
                                                  time_process, batch_print_freq, time_names, batch_size)
-
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
@@ -444,6 +447,8 @@ def pre_train_model(all_params, global_params):
                                                   "temp_encoder" + str(epoch + 1) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
         losses.append(epoch_loss)
+        val_loss = validate_epoch(model, val_loader, device, loss_func)
+        val_losses.append(val_loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)

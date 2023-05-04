@@ -138,8 +138,8 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
         for key in all_params['pre_training']:
             if key in config:
                 all_params['pre_training'][key] = config[key]
-        cf.pre_train_model(all_params, global_params)
-        fine_tuning_hypersearch(all_params, global_params)
+        cf.pre_train_model(copy.deepcopy(all_params), global_params)
+        fine_tuning_hypersearch(copy.deepcopy(all_params), global_params)
     elif hyper_params['PRE_TRAINING']:
         for key in all_params['pre_training']:
             if key in config:
@@ -313,6 +313,7 @@ def pre_train_hypersearch(all_params=None, global_params=None):
     if not os.path.exists(save_dir_model):
         os.makedirs(save_dir_model)
 
+    dataset = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
     # load dataset
     train_set, val_set = dataset.get_splits(train_split)
 
@@ -321,8 +322,7 @@ def pre_train_hypersearch(all_params=None, global_params=None):
                                                num_workers=num_workers, drop_last=True)
     # maybe alos num_workers)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
-    # check if cuda setup allowed:
-    # device = torch.device("cpu")
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # init model and check if weights already given
