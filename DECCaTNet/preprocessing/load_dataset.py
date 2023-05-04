@@ -126,6 +126,8 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
 load_func_dict = {
     'tuh_eeg': load_raw_tuh_eeg,
     'tuh_eeg_abnormal': load_raw_tuh_eeg_abnormal,
+    'tuh_eeg_abnormal_train': load_raw_tuh_eeg_abnormal,
+    'tuh_eeg_abnormal_eval': load_raw_tuh_eeg_abnormal,
     'seed': load_raw_seed,
     'bciciv_1': load_raw_bciciv_1,
 }
