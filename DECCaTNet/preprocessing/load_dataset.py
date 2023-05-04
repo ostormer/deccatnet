@@ -17,6 +17,11 @@ excluded_tuh = sorted([
     'EEG RESP2-REF'])
 
 
+def reset_irrelevant_values(concat_ds):
+    for ds in concat_ds.datasets:
+        ds.raw.set_meas_date(0)
+
+
 def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
     root_dir = ds_params['dataset_root']
     start_idx = ds_params['start_idx']
@@ -30,6 +35,7 @@ def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
     dataset = tuh.TUH(root_dir, n_jobs=global_params['n_jobs'], recording_ids=recording_ids)
     for ds in dataset.datasets:
         ds.raw.drop_channels(excluded_tuh, on_missing='ignore')
+    reset_irrelevant_values(dataset)
     return dataset
 
 
@@ -48,6 +54,7 @@ def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
     for ds in dataset.datasets:
         for channel in excluded_tuh:
             ds.raw.drop_channels(channel, on_missing='ignore')
+    reset_irrelevant_values(dataset)
     return dataset
 
 
@@ -68,6 +75,7 @@ def load_raw_seed(ds_params, global_params, drop_non_eeg=True) -> BaseConcatData
         base_datasets.append(ds)
 
     dataset = BaseConcatDataset(base_datasets)
+    reset_irrelevant_values(dataset)
     return dataset
 
 
@@ -119,7 +127,7 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
     concat_dataset.save(ds_params["preproc_save_dir"], overwrite=True)
     concat_dataset = load_concat_dataset(path=ds_params["preproc_save_dir"], preload=False,
                                          n_jobs=global_params["n_jobs"])
-
+    reset_irrelevant_values(concat_dataset)
     return concat_dataset
 
 
