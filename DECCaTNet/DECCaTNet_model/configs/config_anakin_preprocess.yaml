@@ -41,7 +41,7 @@ preprocess:
   tuh_eeg_abnormal_eval:  # This key must match one value in params_all['global']['datasets']
     ds_name: 'tuh_eeg_abnormal_eval'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/eval'
-    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_eval_pre'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre'
     IS_FINE_TUNING_DS: True
 
     start_idx: 0
@@ -59,7 +59,7 @@ preprocess:
   tuh_eeg_abnormal_train:  # This key must match one value in params_all['global']['datasets']
     ds_name: 'tuh_eeg_abnormal_train'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
-    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_train_pre'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre'
     IS_FINE_TUNING_DS: True
 
     start_idx: 0

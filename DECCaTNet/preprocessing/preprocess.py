@@ -263,12 +263,6 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
                overwrite=True,
                reload=False,
                )
-    # Delete temp save dir that the preprocessing task has created a newer version
-    temp_save_dir = os.path.join(preproc_params['preprocess_root'], 'temp')
-    try:
-        shutil.rmtree(temp_save_dir)
-    except OSError:
-        os.remove(temp_save_dir)
 
     # return concat_dataset
 
@@ -538,6 +532,13 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
                            save_dir=batch_save_dir, n_jobs=n_jobs,
                            exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
         gc.collect()
+    
+    # Delete temp save dir that the preprocessing task has created a newer version
+    temp_save_dir = os.path.join(ds_params['preprocess_root'], 'temp')
+    try:
+        shutil.rmtree(temp_save_dir)
+    except OSError:
+        os.remove(temp_save_dir)
 
     # # Create preproc_save_dir
     # if not os.path.exists(preproc_save_dir):
