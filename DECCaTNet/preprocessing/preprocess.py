@@ -170,12 +170,13 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     ]
     if not os.path.exists(temp_save_dir):
         os.makedirs(temp_save_dir)
-    preprocess(concat_ds=concat_ds,  # preprocess is in place, doesn't return anything because overwrite=True
-               preprocessors=preprocessors,
-               n_jobs=n_jobs,
-               save_dir=temp_save_dir,
-               overwrite=True,
-               )
+    concat_ds = preprocess(concat_ds=concat_ds,
+                           preprocessors=preprocessors,
+                           n_jobs=n_jobs,
+                           save_dir=temp_save_dir,
+                           overwrite=True,
+                           reload=True,
+                           )
     print("Done rescaling to microVolts")
 
     if preproc_params['reject_high_threshold'] is None:
@@ -255,20 +256,21 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    preprocess(concat_ds=concat_dataset,  # preprocess is in place, doesnt return anything because overwrtie=True
+    preprocess(concat_ds=concat_dataset,  # preprocess and save to files, reload in later step
                preprocessors=preprocessors,
                n_jobs=n_jobs,
                save_dir=save_dir,
                overwrite=True,
+               reload=False,
                )
-    # Delete temp save dir that the preprocess task has created a newer version
+    # Delete temp save dir that the preprocessing task has created a newer version
     temp_save_dir = os.path.join(preproc_params['preprocess_root'], 'temp')
     try:
         shutil.rmtree(temp_save_dir)
     except OSError:
         os.remove(temp_save_dir)
 
-    return concat_dataset
+    # return concat_dataset
 
 
 def check_windows(concat_dataset):
@@ -436,7 +438,7 @@ string_to_channel_split_func = {
     "permutations": _make_all_permutations,
     "combinations": _make_all_combinations,
     "adjacent_groups": _make_adjacent_groups,
-    "overlapping_adjacent_grooups": _make_overlapping_adjacent_groups,
+    "overlapping_adjacent_groups": _make_overlapping_adjacent_groups,
 }
 
 
@@ -484,16 +486,17 @@ def _preproc_window(ds_params, global_params, dataset=None):
 
     with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
         pickle.dump(windowed_ds, f)
-    # next step
-    return _preproc_first(ds_params, global_params, dataset=windowed_ds)
+
+    return _preproc_preprocess_windowed(ds_params, global_params, dataset=windowed_ds)
 
 
-def _preproc_first(ds_params, global_params, dataset=None):
+def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     """
     Wrapper function to load pickled WindowsDataset if needed, then run preprocessing pipeline on it
     """
     start_idx = ds_params['start_idx']
     stop_idx = ds_params['stop_idx']
+    n_jobs = global_params['n_jobs']
     preproc_save_dir = ds_params['preproc_save_dir']
     cache_dir = ds_params['cache_dir']
     is_fine_tuning_ds = ds_params['IS_FINE_TUNING_DS']
@@ -515,22 +518,48 @@ def _preproc_first(ds_params, global_params, dataset=None):
 
     # Change channel names to common naming scheme for tuh_eeg
     common_naming, ch_mapping = create_channel_mapping()
-    # Create preproc_save_dir
-    if not os.path.exists(preproc_save_dir):
-        os.makedirs(preproc_save_dir)
 
-    # Apply preprocessing step
-    dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
-                                 ch_naming=common_naming, preproc_params=ds_params,
-                                 save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
-                                 exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
+    # Split next step to save number of open files
+    ds_index = list(range(len(dataset.datasets)))
+    preprocessing_batch = [i // 500 for i in ds_index]
+    dataset.set_description({"preprocessing_batch": preprocessing_batch})
+    batches = dataset.split(by=preprocessing_batch)
+    batch_save_dirs = []
+
+    for split_name, batch in batches.items():
+        batch_save_dir = os.path.join(preproc_save_dir, split_name)
+        # Create preproc_save_dir
+        if not os.path.exists(batch_save_dir):
+            os.makedirs(batch_save_dir)
+        batch_save_dirs.append(batch_save_dir)
+        # Apply preprocessing step
+        preprocess_signals(concat_dataset=batch, mapping=ch_mapping,
+                           ch_naming=common_naming, preproc_params=ds_params,
+                           save_dir=batch_save_dir, n_jobs=n_jobs,
+                           exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
+        gc.collect()
+
+    # # Create preproc_save_dir
+    # if not os.path.exists(preproc_save_dir):
+    #     os.makedirs(preproc_save_dir)
+    #
+    # # Apply preprocessing step
+    # dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
+    #                              ch_naming=common_naming, preproc_params=ds_params,
+    #                              save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
+    #                              exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
     # Next step, or return if fine-tuning set
     if is_fine_tuning_ds and not global_params['HYPER_SEARCH']:
-        return dataset
+        # return
+        return None
     elif is_fine_tuning_ds:
         return None
     else:
-        return _preproc_split(ds_params, global_params, dataset)
+        concat_ds_batches = []
+        for batch_dir in batch_save_dirs:
+            concat_ds_batches.append(load_concat_dataset(batch_dir, preload=False, n_jobs=n_jobs))
+        preprocessed_concat_ds = BaseConcatDataset(concat_ds_batches)
+        return _preproc_split(ds_params, global_params, dataset=preprocessed_concat_ds)
 
 
 def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
@@ -649,7 +678,7 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         elif read_cache == 'raw':
             idx_list = _preproc_window(ds_params, global_params)
         elif read_cache == 'windows':
-            idx_list = _preproc_first(ds_params, global_params)
+            idx_list = _preproc_preprocess_windowed(ds_params, global_params)
         elif read_cache == 'preproc':
             idx_list = _preproc_split(ds_params, global_params)
         else:
