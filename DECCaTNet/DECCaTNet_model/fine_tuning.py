@@ -12,6 +12,11 @@ from sklearn.model_selection import KFold
 import os
 import pickle as pkl
 from ray import tune
+import copy
+from pathlib import Path
+from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset, FineTunePathDataset
+
+import pandas as pd
 
 from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
 from .DECCaTNet_model import Encoder
@@ -213,21 +218,21 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
         train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
                                                                        optimizer)
 
-        val_loss, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
+        val_loss_out, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
 
         # calculate accuracies and losses and update
         loss.append(train_loss / len(train_loader))
-        val_loss.append(val_loss / len(val_loader))
+        val_loss.append(val_loss_out / len(val_loader))
         train_acc.append(correct_train_preds / num_train_preds)
         val_acc.append(correct_eval_preds / num_eval_preds)
         if early_stop:
-            if early_stop.early_stop(val_loss / len(val_loader)):
+            if early_stop.early_stop(val_loss_out / len(val_loader)):
                 print(f'reached stopping criteria in epoch {epoch}')
                 break
 
     if validate_test:
-        test_loss, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
-        test_loss.append(test_loss / len(test_loader))
+        test_loss_out, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
+        test_loss.append(test_loss_out / len(test_loader))
         test_acc.append(correct_test_preds / num_test_preds)
 
     return loss, train_acc, val_loss, val_acc, test_loss, test_acc, model
@@ -297,8 +302,25 @@ def run_fine_tuning(all_params, global_params, test_set=None):
     params = all_params['fine_tuning']
 
     if params['REDO_PREPROCESS']:
-        all_params['preprocess'] = params['fine_tuning_preprocess']
-        dataset = run_preprocess(all_params, global_params, fine_tuning=True)[0]
+        new_params = copy.deepcopy(all_params)
+        new_params['preprocess'] = params['fine_tuning_preprocess']
+
+        run_preprocess(new_params, global_params, fine_tuning=True)
+
+    idx = []
+    # we need, idx, paths and dataset_params
+    path = all_params['fine_tuning']['ds_path']
+    # get splits path by first getting windows path and then removing last object
+    preproc_path = os.path.join(*Path(path).parts[:-2], 'first_preproc')
+    indexes = os.listdir(preproc_path)
+    for i in indexes:
+        sub_dir = os.path.join(preproc_path, str(i))
+        for i_window in range(
+                int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
+            idx.append((i, i_window))
+    ds_params = all_params['fine_tuning']['fine_tuning_preprocess']
+
+    dataset = FineTunePathDataset(idx, preproc_path, ds_params, global_params, ds_params['target_name'])
     epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
@@ -306,46 +328,38 @@ def run_fine_tuning(all_params, global_params, test_set=None):
     perform_k_fold = params['PERFORM_KFOLD']
     n_folds = params['n_folds']
 
-    ds_channel_order = dataset.datasets[0].windows.ch_names
+    # im thinking load one window
+    ds_channel_order = dataset.__getitem__(0, window_order=True)
 
-    for i, windows_ds in enumerate(dataset.datasets):
-        if not windows_ds.windows.ch_names == ds_channel_order:
-            changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
-                       enumerate(windows_ds.windows.ch_names)]
+    for i in range(len(idx)):
+        window_order = dataset.__getitem__(i, window_order=True)
+        # if not window_order == ds_channel_order:
+        #     changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
+        #                enumerate(window_order)]
             # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
-        # assert windows_ds.windows.ch_names == ds_channel_order, f'{windows_ds.windows.ch_names} \n {ds_channel_order}' # TODO remove comment, i cant pass this assertion. Might have something to do with paralellization
-    print("All recordings have the correct channel order")
-
-    early_stopper = EarlyStopper(params['early_stopper']['patience'], params['early_stopper']['min_delta'])
+        #assert window_order == ds_channel_order, f'{window_order} \n {ds_channel_order}' # TODO fix assertion
 
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
-    model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
-    indices = list(range(len(dataset)))
-    split = int(np.floor(params['train_split'] * len(dataset)))
-    if params['SHUFFLE']:
-        np.random.shuffle(indices)
-    train_indices, val_indices = indices[:split], indices[split:]
+    train, valid = dataset.get_splits(params['train_split'])
 
-    # Creating PT data samplers and loaders:
-    train_sampler = SubsetRandomSampler(train_indices)
-    valid_sampler = SubsetRandomSampler(val_indices)
-
-    train_loader = torch.utils.data.DataLoader(dataset, batch_size=params["batch_size"],
-                                               num_workers=num_workers, sampler=train_sampler)
-    val_loader = torch.utils.data.DataLoader(dataset, batch_size=params['batch_size'],
-                                             num_workers=num_workers, sampler=valid_sampler)
-
+    train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"],
+                                               num_workers=num_workers, shuffle=params['SHUFFLE'])
+    val_loader = torch.utils.data.DataLoader(valid, batch_size=params['batch_size'],
+                                             num_workers=num_workers, shuffle=params['SHUFFLE'])
     if test_set is not None:
-        test_loader = torch.utils.data.DataLoader(test_set, batch_size=params['batch_size'], shuffle=params["SHUFFLE"],
+        test_loader = torch.utils.data.DataLoader(test_set, batch_size=params['batch_size'],
+                                                  shuffle=params["SHUFFLE"],
                                                   num_workers=num_workers)
         validate_test = True
     else:
         validate_test = False
-        test_loader = torch.utils.data.DataLoader(test, batch_size=params['batch_size'], shuffle=params["SHUFFLE"],
-                                                  num_workers=num_workers)  # TODO remove this once we have test set
+        test_loader = val_loader  # TODO remove this once we have test set
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+    model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
     if torch.cuda.is_available():
         model.cuda()
@@ -354,6 +368,8 @@ def run_fine_tuning(all_params, global_params, test_set=None):
     loss_func = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
+
+    early_stopper = EarlyStopper(params['early_stopper']['patience'],params['early_stopper']['min_delta'])
 
     if perform_k_fold:
         loss, train_acc, val_loss, val_acc, test_loss, test_acc, model = k_fold_training(epochs, model, dataset,

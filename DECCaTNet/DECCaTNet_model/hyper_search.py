@@ -169,8 +169,6 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     indexes = os.listdir(preproc_path)
     for i in indexes:
         sub_dir = os.path.join(preproc_path, str(i))
-        print(sub_dir)
-        print(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series'))
         for i_window in range(
                 int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
             idx.append((i, i_window))

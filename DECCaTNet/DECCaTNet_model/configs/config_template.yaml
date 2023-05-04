@@ -2,9 +2,9 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
-  FINE_TUNING: False
+  FINE_TUNING: True
 
   n_jobs: 4
   random_state: null # remember null and not None
@@ -12,9 +12,10 @@ global:
   n_channels: 3
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
-  window_size: 60  # Window length in seconds
-  embedding_size: 40
-  magic_constant: 49 #TODO find a way to fix this
+  window_size: 20  # Window length in seconds
+  embedding_size: 50
+  magic_constant: 13 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
+  # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsized used for classification.
 
   datasets: ['tuh_eeg', 'tuh_eeg_abnormal'] # which datasets should be used for pre_training
 
@@ -32,7 +33,7 @@ preprocess:
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
-    reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this (V)
+    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: True
     exclude_channels: []  # remember to comment out if not used
@@ -50,7 +51,7 @@ preprocess:
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
-    reject_high_threshold: 0.008  # Reject windows with higher peak-to-peak than this (V)
+    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: True
     exclude_channels: []  # remember to comment out if not used
@@ -100,7 +101,7 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 16
-  train_split: 0.01
+  train_split: 0.1
   SHUFFLE: True
   temperature: 1 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
@@ -142,7 +143,7 @@ fine_tuning:
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
 
-  REDO_PREPROCESS: False # this must allways be true, as preprocessing always have to be done before pretraining.
+  REDO_PREPROCESS: False # Should atleats be done once to ensure that correct channels is kept
   fine_tuning_preprocess:
     ds_name: 'tuh_eeg_abnormal'
     dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
@@ -168,8 +169,8 @@ fine_tuning:
     - 'EEG 30-REF'
 
 encoder_params:
-  temporal_size: 40
-  spatial_size: 40
+  temporal_size: 50
+  spatial_size: 60
   CNN_dropout: 0.5
 
   n_encoder_heads: 10

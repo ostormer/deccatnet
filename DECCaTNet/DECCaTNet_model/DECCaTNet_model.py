@@ -63,12 +63,18 @@ class Convolution(nn.Module):
         # )
 
     def forward(self, x):
+        #x = torch.squeeze(x,dim=1)
+        #print(f'first shape {x.shape}')
         x = self.temporal(x)
         x = self.spatial(x)
+        #print(f'after temporal and spatial {x.shape}')
         x = self.pooling(x)
+        #print(f'after pooling {x.shape}')
         x = self.dropout(x)
         x = self.projector(x)
+        #print(f'after projector shape {x.shape}')
         x = self.rearrange(x)
+        #print(f'output shape from Convolution {x.shape}') # this is what we essentially need.
 
         return x
 
@@ -103,7 +109,7 @@ class Projector(nn.Module):
         )
 
     def forward(self, x: torch.Tensor):
-        x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), -1) # flatten it.
         x = self.projection(x)
         return x
 

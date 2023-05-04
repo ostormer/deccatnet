@@ -27,10 +27,14 @@ def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
         recording_ids = None
 
     dataset = tuh.TUH(root_dir, n_jobs=global_params['n_jobs'], recording_ids=recording_ids)
-    for ds in dataset.datasets:
-        ds.raw.drop_channels(excluded_tuh)
+    for i,ds in enumerate(dataset.datasets):
+        for channel in excluded_tuh:
+            try:
+                ds.raw.drop_channels(channel)
+            except:
+                pass
+                #print(f'ValueError: Channel(s){channel} most likely not found in raw file number: {i}')
     return dataset
-
 
 def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
     root_dir = ds_params['dataset_root']

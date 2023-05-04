@@ -189,7 +189,11 @@ hyper_search:
   FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
+
   max_t: 10
+  grace_period: 1
+  reduction_factor: 10
+  num_samples: 2
 
   config:
     n_channels: 'tune.grid_search([2,3,4,5])'
