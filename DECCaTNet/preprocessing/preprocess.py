@@ -523,7 +523,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     ds_index = list(range(len(dataset.datasets)))
     preprocessing_batch = [i // 500 for i in ds_index]
     dataset.set_description({"preprocessing_batch": preprocessing_batch})
-    batches = dataset.split(by=preprocessing_batch)
+    batches = dataset.split(by="preprocessing_batch")
     batch_save_dirs = []
 
     for split_name, batch in batches.items():
