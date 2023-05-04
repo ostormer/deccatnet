@@ -148,7 +148,7 @@ def custom_turn_off_log(raw, verbose='ERROR'):
 def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> BaseConcatDataset:
     n_jobs = global_params['n_jobs']
     window_size = global_params['window_size']
-    save_dir = preproc_params['preproc_save_dir']
+    temp_save_dir = os.path.join(preproc_params['preprocess_root'], 'temp')
     # Drop too short recordings and uninteresting channels
     keep_ds = []
     print('Dropping short recordings and excluded channels:')
@@ -168,12 +168,12 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         Preprocessor(custom_turn_off_log),  # turn off verbose
         Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
     ]
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    if not os.path.exists(temp_save_dir):
+        os.makedirs(temp_save_dir)
     preprocess(concat_ds=concat_ds,  # preprocess is in place, doesn't return anything because overwrite=True
                preprocessors=preprocessors,
                n_jobs=n_jobs,
-               save_dir=save_dir,
+               save_dir=temp_save_dir,
                overwrite=True,
                )
     print("Done rescaling to microVolts")
@@ -193,7 +193,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
         start_offset_samples=0,
         stop_offset_samples=None,
         window_size_seconds=window_size,
-        drop_last_window=False,
+        drop_last_window=True,
         drop_bad_windows=True,
         reject=reject_dict,  # Peak-to-peak high rejection threshold within each window
         flat=flat_dict,  # Peak-to peak low rejection threshold
@@ -261,6 +261,12 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
                save_dir=save_dir,
                overwrite=True,
                )
+    # Delete temp save dir that the preprocess task has created a newer version
+    temp_save_dir = os.path.join(preproc_params['preprocess_root'], 'temp')
+    try:
+        shutil.rmtree(temp_save_dir)
+    except OSError:
+        os.remove(temp_save_dir)
 
     return concat_dataset
 
@@ -379,7 +385,7 @@ def _split_channels_parallel(
     concat_ds.save(save_dir, overwrite=True, offset=record_index * 100)
 
     if delete_step_1:
-        # The dir containing one preprocessed WindowsDataset and acompanying json files
+        # The dir containing one preprocessed WindowsDataset and accompanying json files
         step_1_dir = os.path.join(*os.path.split(windows_ds.windows.filename)[:-1])
         del windows_ds
         gc.collect()
@@ -465,7 +471,7 @@ def _preproc_window(ds_params, global_params, dataset=None):
         with open(os.path.join(cache_dir, 'raw_ds.pkl'), 'rb') as f:
             dataset = pickle.load(f)
             print('Done loading pickled raw dataset.')
-        if stop_idx is None:
+        if stop_idx is None or stop_idx > len(dataset.datasets):
             stop_idx = len(dataset.datasets)
         if len(dataset.datasets) > stop_idx - start_idx:
             dataset = dataset.split(by=range(start_idx, stop_idx))['0']
@@ -501,32 +507,17 @@ def _preproc_first(ds_params, global_params, dataset=None):
         with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'rb') as f:
             dataset = pickle.load(f)
             print('Done loading pickled windowed dataset.')
-    if stop_idx is None:
+    if stop_idx is None or stop_idx > len(dataset.datasets):
         stop_idx = len(dataset.datasets)
     if len(dataset.datasets) > stop_idx - start_idx:
         print(f"Cropping dataset to be between {start_idx} and {stop_idx}")
         dataset = dataset.split(by=range(start_idx, stop_idx))['0']
 
-    print("Keeping values from ")
     # Change channel names to common naming scheme for tuh_eeg
     common_naming, ch_mapping = create_channel_mapping()
     # Create preproc_save_dir
     if not os.path.exists(preproc_save_dir):
         os.makedirs(preproc_save_dir)
-    else:
-        # Delete all other folders
-        keep_dirs = set([str(i) for i in range(len(dataset.datasets))])
-        print(start_idx, stop_idx)
-        dirs_from_previous_step = set(os.listdir(preproc_save_dir))
-        dirs_to_delete = sorted(list(dirs_from_previous_step - keep_dirs))
-        print("Deleting following dirs as they are from before the preprocessing overwrote the others")
-        print(dirs_to_delete)
-        dataset = dataset.split(by=list(keep_dirs))['0']
-        for ds_dir in dirs_to_delete:
-            try:
-                shutil.rmtree(os.path.join(preproc_save_dir, ds_dir))
-            except OSError:
-                os.remove(os.path.join(preproc_save_dir, ds_dir))
 
     # Apply preprocessing step
     dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
@@ -591,7 +582,7 @@ def _preproc_split(ds_params, global_params, dataset=None):
             dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'],
                                           ids_to_load=ids_to_load)
         print('Done loading preprocessed dataset.')
-    if stop_idx is None:
+    if stop_idx is None or stop_idx > len(dataset.datasets):
         stop_idx = len(dataset.datasets)
     if len(dataset.datasets) > stop_idx - start_idx:
         dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
