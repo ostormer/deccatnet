@@ -123,14 +123,15 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
         ds = BaseDataset(raw, description=description, target_name=None)
         base_datasets.append(ds)
     concat_dataset = BaseConcatDataset(base_datasets)
+    reset_irrelevant_values(concat_dataset)
 
     print("Serializing braindecode dataset to free up memory...")
-    if not os.path.exists(ds_params['preproc_save_dir']):  # Create save dir
-        os.makedirs(os.path.join(ds_params['preprocess_root'], "raw_fif"))
-    concat_dataset.save(ds_params["preproc_save_dir"], overwrite=True)  # Save
-    concat_dataset = load_concat_dataset(path=ds_params["preproc_save_dir"], preload=False,
+    raw_fif_dir = os.path.join(ds_params['preprocess_root'], "raw_fif")
+    if not os.path.exists(raw_fif_dir):  # Create save dir
+        os.makedirs(raw_fif_dir)
+    concat_dataset.save(raw_fif_dir, overwrite=True)  # Save
+    concat_dataset = load_concat_dataset(path=raw_fif_dir, preload=False,
                                          n_jobs=global_params["n_jobs"])  # Reload
-    reset_irrelevant_values(concat_dataset)
     return concat_dataset
 
 
