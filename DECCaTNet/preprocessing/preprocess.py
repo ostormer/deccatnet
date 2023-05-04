@@ -532,7 +532,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
                            save_dir=batch_save_dir, n_jobs=n_jobs,
                            exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
         gc.collect()
-    
+
     # Delete temp save dir that the preprocessing task has created a newer version
     temp_save_dir = os.path.join(ds_params['preprocess_root'], 'temp')
     try:
@@ -591,6 +591,20 @@ def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
     dataset = BaseConcatDataset(orig_dataset.datasets)
     dataset.save(save_dir, overwrite=True)
     return idx, save_dir, ds_params
+
+
+def load_concat_ds_from_batched_dir(batched_root_dir: str, n_jobs=1) -> BaseConcatDataset:
+    """
+    Read concat dataset from dir containing dirs for each BaseConcatDataset made from a batch of 500,
+    which are made during _preproc_preprocess_windowed.
+    This function returns a single BaseConcatDataset, combining the previous split.
+    """
+    batch_dirs = os.listdir(batched_root_dir)
+    concat_datasets = []
+    for batch in batch_dirs:
+        concat_datasets.append(load_concat_dataset(
+            os.path.join(batched_root_dir, batch), preload=False, n_jobs=n_jobs))
+    return BaseConcatDataset(concat_datasets)
 
 
 def _preproc_split(ds_params, global_params, dataset=None):
