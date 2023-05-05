@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False
   FINE_TUNING: False
 
-  n_jobs: 12cd
+  n_jobs: 20
   random_state: null # remember null and not None
 
   n_channels: 3
@@ -28,7 +28,7 @@ preprocess:
     IS_FINE_TUNING_DS: False
 
     start_idx: 0
-    stop_idx: null # Which idx is the last to load? (null for all)
+    stop_idx: 1500 # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
@@ -64,7 +64,7 @@ preprocess:
     IS_FINE_TUNING_DS: False
 
     start_idx: 0
-    stop_idx: null  # Which idx is the last to load? (null for all)
+    stop_idx: 1500  # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
@@ -241,10 +241,10 @@ hyper_search:
   grace_period: 1 # minimum number of training iterations before validating.
   reduction_factor: 10 #
   num_samples: 1 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
-  max_report_frequency: 30
+  max_report_frequency: 120
 
   config:
-    n_channels: 'tune.grid_search([2,3,4,5,6,7])'
+    n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
     #batch_size: 'tune.choice([16,32,128])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
 
