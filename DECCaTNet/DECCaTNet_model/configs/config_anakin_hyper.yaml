@@ -121,7 +121,7 @@ preprocess:
     target_name: 'pathological'
 
     start_idx: 0
-    stop_idx: 10  # Which idx is the last to load? (null for all)
+    stop_idx: null  # Which idx is the last to load? (null for all)
     read_cache: 'none'  # needs to be none if new channels are excluded, else windows is acceptable
 
     bandpass_lo: 0.3
