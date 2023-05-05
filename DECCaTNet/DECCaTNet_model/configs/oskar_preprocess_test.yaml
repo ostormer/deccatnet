@@ -47,7 +47,7 @@ preprocess:
 
     start_idx: 0
     stop_idx: 50  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3

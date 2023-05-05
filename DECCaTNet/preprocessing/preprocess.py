@@ -671,7 +671,8 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
 
         ds_params['cache_dir'] = os.path.join(ds_params['preprocess_root'], 'pickles')
         ds_params['preproc_save_dir'] = os.path.join(ds_params['preprocess_root'], 'first_preproc')
-        ds_params['split_save_dir'] = os.path.join(ds_params['preprocess_root'], 'split')
+        ds_params['split_save_dir'] = os.path.join(
+            ds_params['preprocess_root'], f'split_{ds_params["channel_select_function"]}_{global_params["n_channels"]}')
 
         if not os.path.exists(ds_params["cache_dir"]):
             os.makedirs(ds_params["cache_dir"])
