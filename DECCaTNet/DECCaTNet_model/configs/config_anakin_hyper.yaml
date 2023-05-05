@@ -1,15 +1,15 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
-  HYPER_SEARCH: True
+  PREPROCESSING: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
   FINE_TUNING: False
 
   n_jobs: 50
   random_state: null # remember null and not None
 
-  n_channels: 3
+  n_channels: 1
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
   window_size: 20  # Window length in seconds
@@ -18,18 +18,18 @@ global:
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsized used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1'] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  datasets: ['tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
     ds_name: 'tuh_eeg'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_pre'
-    IS_FINE_TUNING_DS: False
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
     stop_idx: 500 # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -43,11 +43,11 @@ preprocess:
     ds_name: 'tuh_eeg_abnormal_eval'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/eval'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre'
-    IS_FINE_TUNING_DS: False
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -61,11 +61,11 @@ preprocess:
     ds_name: 'tuh_eeg_abnormal_train'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre'
-    IS_FINE_TUNING_DS: False
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
     stop_idx: 500  # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -79,11 +79,11 @@ preprocess:
     ds_name: 'seed'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_pre'
-    IS_FINE_TUNING_DS: False
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
@@ -98,11 +98,11 @@ preprocess:
     ds_name: 'bciciv_1'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/bciciv_1_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed'
-    IS_FINE_TUNING_DS: False
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
