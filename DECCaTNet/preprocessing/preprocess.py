@@ -692,3 +692,8 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         preproc_datasets.append(idx_list)
 
     return preproc_datasets
+
+
+def drop_channels(dataset, ds_params):
+    for ds in dataset.datasets:
+        ds.windows.drop_channels(ds_params["exclude_channels"], on_missing="ignore")
