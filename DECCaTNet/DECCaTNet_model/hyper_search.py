@@ -159,6 +159,8 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
 
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
 
+    dataset, _ = dataset.get_splits(all_params['hyper_search']['fine_tune_split'])
+
     train, valid = dataset.get_splits(params['train_split'])
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"],
