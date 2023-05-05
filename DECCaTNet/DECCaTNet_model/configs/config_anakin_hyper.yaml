@@ -25,11 +25,11 @@ preprocess:
     ds_name: 'tuh_eeg'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_pre'
-    IS_FINE_TUNING_DS: False
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
-    stop_idx: 500 # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    stop_idx: null # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
