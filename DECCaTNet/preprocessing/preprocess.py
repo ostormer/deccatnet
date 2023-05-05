@@ -556,11 +556,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     elif is_fine_tuning_ds:
         return None
     else:
-        concat_ds_batches = []
-        for batch_dir in batch_save_dirs:
-            concat_ds_batches.append(load_concat_dataset(batch_dir, preload=False, n_jobs=n_jobs))
-        preprocessed_concat_ds = BaseConcatDataset(concat_ds_batches)
-        return _preproc_split(ds_params, global_params, dataset=preprocessed_concat_ds)
+        return _preproc_split(ds_params, global_params)
 
 
 def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
@@ -619,12 +615,7 @@ def _preproc_split(ds_params, global_params, dataset=None):
 
     if dataset is None:
         print("Loading preprocessed dataset from file tree...")
-        if start_idx == 0 and stop_idx is None:
-            dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'])
-        else:
-            ids_to_load = list(range(start_idx, stop_idx))
-            dataset = load_concat_dataset(preproc_save_dir, preload=False, n_jobs=global_params['n_jobs'],
-                                          ids_to_load=ids_to_load)
+        dataset = load_concat_ds_from_batched_dir(preproc_save_dir, n_jobs=global_params['n_jobs'])
         print('Done loading preprocessed dataset.')
     if stop_idx is None or stop_idx > len(dataset.datasets):
         stop_idx = len(dataset.datasets)
