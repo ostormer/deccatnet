@@ -17,8 +17,8 @@ global:
   magic_constant: 13 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsized used for classification.
 
-  #datasets: ['tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  datasets: ['tuh_eeg',  'tuh_eeg_abnormal_train', 'seed', 'bciciv_1'] # which datasets should be preprocessed
+  #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1'] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
+  datasets: ['tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
@@ -28,7 +28,7 @@ preprocess:
     IS_FINE_TUNING_DS: False
 
     start_idx: 0
-    stop_idx: 200 # Which idx is the last to load? (null for all)
+    stop_idx: 500 # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
@@ -64,7 +64,7 @@ preprocess:
     IS_FINE_TUNING_DS: False
 
     start_idx: 0
-    stop_idx: 200  # Which idx is the last to load? (null for all)
+    stop_idx: 500  # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
