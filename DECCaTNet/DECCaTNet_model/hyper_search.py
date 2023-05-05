@@ -41,7 +41,7 @@ def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
     #ray.init(num_cpus=1)
-    ray.init(num_gpus=2,num_cpus=20)
+    ray.init(num_gpus=2)
     if hyper_prams['PRE_TRAINING']:
         mode = 'min'
         metric = 'val_loss'
