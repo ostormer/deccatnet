@@ -560,10 +560,14 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     #                              save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
     #                              exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
     # Next step, or return if fine-tuning set
-    if is_fine_tuning_ds:
-        return fix_preproc_paths(batch_save_dirs,copy.deepcopy(preproc_save_dir))
-    else:
-        return _preproc_split(ds_params, global_params)
+    try:
+        if is_fine_tuning_ds and ds_params['ACTUAL_FINE_TUNE']:
+            return fix_preproc_paths(batch_save_dirs,copy.deepcopy(preproc_save_dir))
+    except:
+        if is_fine_tuning_ds:
+            return None
+        else:
+            return _preproc_split(ds_params, global_params)
 
 def fix_preproc_paths(batch_save_dirs,preproc_save_dir):
     # temporaliy save somewhere else
