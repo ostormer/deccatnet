@@ -14,7 +14,7 @@ global:
   s_freq: 200
   window_size: 20  # Window length in seconds
   embedding_size: 40
-  magic_constant: 13 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
+  magic_constant: 22 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsized used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1'] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
