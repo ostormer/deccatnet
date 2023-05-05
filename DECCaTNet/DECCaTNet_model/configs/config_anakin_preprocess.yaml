@@ -1,66 +1,84 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
+  PREPROCESSING: True
   HYPER_SEARCH: False
   PRE_TRAINING: False
-  FINE_TUNING: True
+  FINE_TUNING: False
 
-  n_jobs: 4
+  n_jobs: 8
   random_state: null # remember null and not None
 
   n_channels: 3
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
-  window_size: 20  # Window length in seconds
-  embedding_size: 50
-  magic_constant: 13 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
-  # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsized used for classification.
+  window_size: 30  # Window length in seconds
+  embedding_size: 40
+  magic_constant: 49 #TODO find a way to fix this
 
-  datasets: ['tuh_eeg', 'tuh_eeg_abnormal'] # which datasets should be preprocessed
+  datasets: ['bciciv_1'] # which datasets should be preprocessed
+#  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1'] # which datasets should be preprocessed
 
 preprocess:
-  tuh_eeg_abnormal:  # This key must match one value in params_all['global']['datasets']
-    ds_name: 'tuh_eeg_abnormal'  # Must match key
-    dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
-    preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed'
-    IS_FINE_TUNING_DS: False
-
-    start_idx: 0
-    stop_idx: 10  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
-
-    bandpass_lo: 0.3
-    bandpass_hi: 80
-    scaling_factor: 1000000  # Scaling factor to convert to microVolts
-    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
-    reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: True
-    exclude_channels: []  # remember to comment out if not used
-
   tuh_eeg:
     ds_name: 'tuh_eeg'  # Must match key
-    dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg'
-    preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_preprocessed'
-    IS_FINE_TUNING_DS: False
+    dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_pre'
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
-    stop_idx: 10 # Which idx is the last to load? (null for all)
+    stop_idx: null # Which idx is the last to load? (null for all)
     read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
-    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
-    reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: True
+    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
+    exclude_channels: []  # remember to comment out if not used
+
+  tuh_eeg_abnormal_eval:  # This key must match one value in params_all['global']['datasets']
+    ds_name: 'tuh_eeg_abnormal_eval'  # Must match key
+    dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/eval'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre'
+    IS_FINE_TUNING_DS: True
+
+    start_idx: 0
+    stop_idx: null  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
+    exclude_channels: []  # remember to comment out if not used
+
+  tuh_eeg_abnormal_train:  # This key must match one value in params_all['global']['datasets']
+    ds_name: 'tuh_eeg_abnormal_train'  # Must match key
+    dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre'
+    IS_FINE_TUNING_DS: True
+
+    start_idx: 0
+    stop_idx: null  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
     exclude_channels: []  # remember to comment out if not used
 
   seed:
     ds_name: 'seed'  # Must match key
-    dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\SEED\seed_raw'
-    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\SEED\preprocessed'
-    IS_FINE_TUNING_DS: False
+    dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_raw'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_pre'
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -72,14 +90,14 @@ preprocess:
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: null  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: null  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: True
-    exclude_channels: [ ]  # remember to comment out if not used
+    DELETE_STEP_1: False
+    exclude_channels: []  # remember to comment out if not used
 
   bciciv_1:
     ds_name: 'bciciv_1'  # Must match key
-    dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\BCICIV_1\bciciv_1_raw'
-    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\BCICIV_1\preprocessed'
-    IS_FINE_TUNING_DS: False
+    dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/bciciv_1_raw'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed'
+    IS_FINE_TUNING_DS: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -91,17 +109,17 @@ preprocess:
     scaling_factor: 0.1  # Scaling factor to convert to microVolts
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (uV)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (uV)
-    DELETE_STEP_1: True
-    exclude_channels: [ ]  # remember to comment out if not used
+    DELETE_STEP_1: False
+    exclude_channels: []  # remember to comment out if not used
 
 
 pre_training:
-  datasets: ['tuh_eeg', 'tuh_eeg_abnormal']  # Which datasets to be used for pretraining
+  datasets: ['tuh_eeg', 'tuh_eeg_abnormal']
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 16
-  train_split: 0.1
+  train_split: 0.01
   SHUFFLE: True
   temperature: 1 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
@@ -143,7 +161,7 @@ fine_tuning:
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
 
-  REDO_PREPROCESS: False # Should atleats be done once to ensure that correct channels is kept
+  REDO_PREPROCESS: False # this must allways be true, as preprocessing always have to be done before pretraining.
   fine_tuning_preprocess:
     ds_name: 'tuh_eeg_abnormal'
     dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
@@ -159,7 +177,7 @@ fine_tuning:
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
-    reject_flat_threshold: 0.00001  # Reject windows flatter than this peak-to-peak (V)
+    reject_flat_threshold: 0.00000  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: True
     exclude_channels:
     - 'EEG 26-REF'
@@ -169,8 +187,8 @@ fine_tuning:
     - 'EEG 30-REF'
 
 encoder_params:
-  temporal_size: 50
-  spatial_size: 60
+  temporal_size: 40
+  spatial_size: 40
   CNN_dropout: 0.5
 
   n_encoder_heads: 10
@@ -190,14 +208,7 @@ hyper_search:
   FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
-
-  pre_train_split: 1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
-  #however all data should necessearli be used for pre_training
-
   max_t: 10
-  grace_period: 1
-  reduction_factor: 10
-  num_samples: 2
 
   config:
     n_channels: 'tune.grid_search([2,3,4,5])'
@@ -210,3 +221,5 @@ hyper_search:
     l2: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
     lr: 'tune.loguniform(1e-4, 1e-1)'
     batch_size: 'tune.choice([2, 4, 8, 16])'
+
+# TODO: avoid preprocessing every time.

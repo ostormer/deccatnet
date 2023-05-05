@@ -1,0 +1,18 @@
+========= Beginning preprocessing pipeline for bciciv_1 =========
+BCICIV_1 is only implemented for pretraining
+  0%|          | 0/14 [00:00<?, ?it/s]  7%|▋         | 1/14 [00:00<00:12,  1.03it/s] 14%|█▍        | 2/14 [00:01<00:11,  1.04it/s] 21%|██▏       | 3/14 [00:02<00:09,  1.17it/s] 29%|██▊       | 4/14 [00:03<00:08,  1.15it/s] 36%|███▌      | 5/14 [00:04<00:08,  1.12it/s] 43%|████▎     | 6/14 [00:05<00:07,  1.11it/s] 50%|█████     | 7/14 [00:06<00:05,  1.18it/s] 57%|█████▋    | 8/14 [00:06<00:04,  1.24it/s] 64%|██████▍   | 9/14 [00:07<00:03,  1.28it/s] 71%|███████▏  | 10/14 [00:08<00:03,  1.31it/s] 79%|███████▊  | 11/14 [00:09<00:02,  1.24it/s] 86%|████████▌ | 12/14 [00:09<00:01,  1.31it/s] 93%|█████████▎| 13/14 [00:10<00:00,  1.33it/s]100%|██████████| 14/14 [00:11<00:00,  1.35it/s]100%|██████████| 14/14 [00:11<00:00,  1.24it/s]
+Serializing braindecode dataset to free up memory...
+Traceback (most recent call last):
+  File "main_anakin_pre.py", line 24, in <module>
+    run('config_anakin_preprocess')
+  File "main_anakin_pre.py", line 16, in run
+    pre.run_preprocess(params, global_params)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/preprocessing/preprocess.py", line 678, in run_preprocess
+    idx_list = _read_raw(ds_params, global_params)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/preprocessing/preprocess.py", line 447, in _read_raw
+    dataset = ds_load_func(ds_params, global_params)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/preprocessing/load_dataset.py", line 130, in load_raw_bciciv_1
+    concat_dataset.save(ds_params["preproc_save_dir"], overwrite=True)  # Save
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/braindecode/datasets/base.py", line 534, in save
+    path_contents = os.listdir(path)
+FileNotFoundError: [Errno 2] No such file or directory: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/first_preproc'

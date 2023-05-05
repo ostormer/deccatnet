@@ -16,7 +16,7 @@ global:
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
-  datasets: ['seed']
+  datasets: ['tuh_eeg']
 
 
 preprocess:
@@ -36,7 +36,7 @@ preprocess:
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (uV)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (uV)
-    DELETE_STEP_1: True
+    DELETE_STEP_1: False
     exclude_channels: []  # remember to comment out if not used
 
   tuh_eeg:
@@ -55,7 +55,7 @@ preprocess:
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (uV)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (uV)
-    DELETE_STEP_1: True
+    DELETE_STEP_1: False
     exclude_channels: []  # remember to comment out if not used
 
   seed:
@@ -74,7 +74,7 @@ preprocess:
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: null  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: null  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: True
+    DELETE_STEP_1: False
     exclude_channels: []  # remember to comment out if not used
 
   bciciv_1:
@@ -93,7 +93,7 @@ preprocess:
     scaling_factor: 0.1  # Scaling factor to convert to microVolts
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (uV)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (uV)
-    DELETE_STEP_1: True
+    DELETE_STEP_1: False
     exclude_channels: [ ]  # remember to comment out if not used
 
 

@@ -16,6 +16,12 @@ excluded_tuh = sorted([
     'SUPPR', 'IBI', 'PHOTIC-REF', 'BURSTS', 'ECG EKG-REF', 'PULSE RATE', 'RESP ABDOMEN-REF', 'EEG RESP1-REF',
     'EEG RESP2-REF'])
 
+
+def reset_irrelevant_values(concat_ds):
+    for ds in concat_ds.datasets:
+        ds.raw.set_meas_date(0)
+
+
 def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
     root_dir = ds_params['dataset_root']
     start_idx = ds_params['start_idx']
@@ -27,14 +33,11 @@ def load_raw_tuh_eeg(ds_params, global_params) -> BaseConcatDataset:
         recording_ids = None
 
     dataset = tuh.TUH(root_dir, n_jobs=global_params['n_jobs'], recording_ids=recording_ids)
-    for i,ds in enumerate(dataset.datasets):
-        for channel in excluded_tuh:
-            try:
-                ds.raw.drop_channels(channel)
-            except:
-                pass
-                #print(f'ValueError: Channel(s){channel} most likely not found in raw file number: {i}')
+    for ds in dataset.datasets:
+        ds.raw.drop_channels(excluded_tuh, on_missing='ignore')
+    reset_irrelevant_values(dataset)
     return dataset
+
 
 def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
     root_dir = ds_params['dataset_root']
@@ -48,13 +51,10 @@ def load_raw_tuh_eeg_abnormal(ds_params, global_params) -> BaseConcatDataset:
 
     dataset = tuh.TUHAbnormal(root_dir, recording_ids=recording_ids, n_jobs=global_params['n_jobs'],
                               target_name='pathological')
-    for i,ds in enumerate(dataset.datasets):
+    for ds in dataset.datasets:
         for channel in excluded_tuh:
-            try:
-                ds.raw.drop_channels(channel)
-            except:
-                pass
-                #print(f'ValueError: Channel(s){channel} most likely not found in raw file number: {i}')
+            ds.raw.drop_channels(channel, on_missing='ignore')
+    reset_irrelevant_values(dataset)
     return dataset
 
 
@@ -66,15 +66,16 @@ def load_raw_seed(ds_params, global_params, drop_non_eeg=True) -> BaseConcatData
     file_paths = glob.glob(os.path.join(root_dir, '**/*.cnt'), recursive=True)
     file_paths = file_paths[start_idx:stop_idx]  # Keep only wanted part of dataset
     base_datasets = []
-    for file_path in tqdm(file_paths):
+    for file_path in tqdm(file_paths, miniters=len(file_paths) / 50):
         raw = mne.io.read_raw_cnt(file_path, verbose='INFO', preload=False)
         if drop_non_eeg:
-            raw.drop_channels(['M1', 'M2', 'VEO', 'HEO'])
+            raw.drop_channels(['M1', 'M2', 'VEO', 'HEO'], on_missing='ignore')
         description = {"file_path": file_path}
         ds = BaseDataset(raw, description=description, target_name=None)
         base_datasets.append(ds)
 
     dataset = BaseConcatDataset(base_datasets)
+    reset_irrelevant_values(dataset)
     return dataset
 
 
@@ -122,16 +123,23 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
         ds = BaseDataset(raw, description=description, target_name=None)
         base_datasets.append(ds)
     concat_dataset = BaseConcatDataset(base_datasets)
-    print("Serializing braindecode dataset to free up memory...")
-    concat_dataset.save(ds_params["preproc_save_dir"], overwrite=True)
-    concat_dataset = load_concat_dataset(path=ds_params["preproc_save_dir"], preload=False, n_jobs=global_params["n_jobs"])
+    reset_irrelevant_values(concat_dataset)
 
+    print("Serializing braindecode dataset to free up memory...")
+    raw_fif_dir = os.path.join(ds_params['preprocess_root'], "raw_fif")
+    if not os.path.exists(raw_fif_dir):  # Create save dir
+        os.makedirs(raw_fif_dir)
+    concat_dataset.save(raw_fif_dir, overwrite=True)  # Save
+    concat_dataset = load_concat_dataset(path=raw_fif_dir, preload=False,
+                                         n_jobs=global_params["n_jobs"])  # Reload
     return concat_dataset
 
 
 load_func_dict = {
     'tuh_eeg': load_raw_tuh_eeg,
     'tuh_eeg_abnormal': load_raw_tuh_eeg_abnormal,
+    'tuh_eeg_abnormal_train': load_raw_tuh_eeg_abnormal,
+    'tuh_eeg_abnormal_eval': load_raw_tuh_eeg_abnormal,
     'seed': load_raw_seed,
     'bciciv_1': load_raw_bciciv_1,
 }
