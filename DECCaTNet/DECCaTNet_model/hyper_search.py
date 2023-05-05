@@ -1,5 +1,6 @@
 import ast
 import copy
+import math
 import os
 import pickle
 import time
@@ -67,9 +68,12 @@ def hyper_search(all_params, global_params):
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
             max_report_frequency=hyper_prams['max_report_frequency'])
-
+    if global_params['n_cpu']>0:
+        trainable = tune.with_resources(hyper_search_train,resources={'gpu':1, 'cpu':math.floor(global_params['n_jobs']/global_params['n_cpu'])})
+    else:
+        trainable = tune.with_resources(hyper_search_train, resources={'gpu': 1, 'cpu': math.floor(global_params['n_jobs']/5)})
     result = tune.run(
-        partial(hyper_search_train, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
+        partial(trainable, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
                 global_params=copy.deepcopy(global_params)),
         config=configs,
         num_samples=hyper_prams['num_samples'],
