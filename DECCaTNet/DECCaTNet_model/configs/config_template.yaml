@@ -2,9 +2,9 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: False
+  HYPER_SEARCH: True
   PRE_TRAINING: False
-  FINE_TUNING: True
+  FINE_TUNING: False
 
   n_jobs: 4
   random_state: null # remember null and not None
@@ -27,15 +27,15 @@ preprocess:
     IS_FINE_TUNING_DS: False
 
     start_idx: 0
-    stop_idx: 10  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    stop_idx: 20  # Which idx is the last to load? (null for all)
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
-    reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: True
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
     exclude_channels: []  # remember to comment out if not used
 
   tuh_eeg:
@@ -45,15 +45,15 @@ preprocess:
     IS_FINE_TUNING_DS: False
 
     start_idx: 0
-    stop_idx: 10 # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    stop_idx: 20 # Which idx is the last to load? (null for all)
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
-    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
-    reject_flat_threshold: 0.000001  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: True
+    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
     exclude_channels: []  # remember to comment out if not used
 
   seed:
@@ -94,6 +94,30 @@ preprocess:
     DELETE_STEP_1: True
     exclude_channels: [ ]  # remember to comment out if not used
 
+  tuh_eeg_abnormal_finetune:
+    ds_name: 'tuh_eeg_abnormal'
+    dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
+    preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune'
+    IS_FINE_TUNING_DS: True
+    target_name: 'pathological'
+
+    start_idx: 0
+    stop_idx: 10  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # needs to be none if new channels are excluded, else windows is acceptable
+
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 0.00001  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
+    exclude_channels:
+      - 'EEG 26-REF'
+      - 'EEG 27-REF'
+      - 'EEG 28-REF'
+      - 'EEG 29-REF'
+      - 'EEG 30-REF'
+
 
 pre_training:
   datasets: ['tuh_eeg', 'tuh_eeg_abnormal']  # Which datasets to be used for pretraining
@@ -101,7 +125,7 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 16
-  train_split: 0.1
+  train_split: 0.8
   SHUFFLE: True
   temperature: 1 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
@@ -121,7 +145,7 @@ pre_training:
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
-  ds_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune/pickles/windowed_ds.pkl'
+  ds_path: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune/pickles/windowed_ds.pkl'
   encoder_path: 'models/encoder_test'
 
   n_classes: 2
@@ -143,7 +167,7 @@ fine_tuning:
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
 
-  REDO_PREPROCESS: False # Should atleats be done once to ensure that correct channels is kept
+  REDO_PREPROCESS: False # Should atleats be done once to ensure that correct channels is kept, not done in hypersearch
   fine_tuning_preprocess:
     ds_name: 'tuh_eeg_abnormal'
     dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
@@ -160,7 +184,7 @@ fine_tuning:
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
     reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 0.00001  # Reject windows flatter than this peak-to-peak (V)
-    DELETE_STEP_1: True
+    DELETE_STEP_1: False
     exclude_channels:
     - 'EEG 26-REF'
     - 'EEG 27-REF'
@@ -186,18 +210,18 @@ downstream_params:
 
 hyper_search:
   PERFORM_PREPROCESS: False
-  PREPROCESS: True # wether you need correct paths when there is changes to preprocess but they are already loeaded
-  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have
+  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
-  pre_train_split: 1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
-  max_t: 10
-  grace_period: 1
-  reduction_factor: 10
-  num_samples: 2
+  max_t: 10 # maximum training iteration before validation
+  grace_period: 1 # minimum number of training iterations before validating.
+  reduction_factor: 10 #
+  num_samples: 1 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
+  max_report_frequency: 30
 
   config:
     n_channels: 'tune.grid_search([2,3,4,5])'
@@ -210,3 +234,11 @@ hyper_search:
     l2: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
     lr: 'tune.loguniform(1e-4, 1e-1)'
     batch_size: 'tune.choice([2, 4, 8, 16])'
+
+
+# Checklist running hyperparamsearch:
+# - All pre_training datasets preprocessed with delete_Step_1=False
+# - Fine_tuning dataset preprocessed togheter with other datasets
+# - Change to preproc in all pre_training datasets and remove fine_tuning dataset
+# - Run hyper_search, if first time with channels or channel_selection method, PERFORM_PREPROCESS must be true
+# - If not first or not changes to channels or channel_selection, run without PERFORM_PREPROCESS

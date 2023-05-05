@@ -1,3 +1,4 @@
+import copy
 import gc
 import itertools
 import os
@@ -515,17 +516,24 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
 
     # Split next step to save number of open files
     ds_index = list(range(len(dataset.datasets)))
-    preprocessing_batch = [i // 500 for i in ds_index]
+    max_batch_size = 500
+    preprocessing_batch = [i // max_batch_size for i in ds_index]
     dataset.set_description({"preprocessing_batch": preprocessing_batch})
     batches = dataset.split(by="preprocessing_batch")
     batch_save_dirs = []
 
+    # Check Folder is exists or Not
+    if os.path.exists(preproc_save_dir):
+        # Delete Folder code
+        shutil.rmtree(preproc_save_dir)
+
     for split_name, batch in batches.items():
+
         batch_save_dir = os.path.join(preproc_save_dir, split_name)
         # Create preproc_save_dir
         if not os.path.exists(batch_save_dir):
             os.makedirs(batch_save_dir)
-        batch_save_dirs.append(batch_save_dir)
+        batch_save_dirs.append(os.path.join(preproc_save_dir + '_temp', split_name))
         # Apply preprocessing step
         preprocess_signals(concat_dataset=batch, mapping=ch_mapping,
                            ch_naming=common_naming, preproc_params=ds_params,
@@ -540,6 +548,8 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     except OSError:
         os.remove(temp_save_dir)
 
+
+
     # # Create preproc_save_dir
     # if not os.path.exists(preproc_save_dir):
     #     os.makedirs(preproc_save_dir)
@@ -550,14 +560,28 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     #                              save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
     #                              exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
     # Next step, or return if fine-tuning set
-    if is_fine_tuning_ds and not global_params['HYPER_SEARCH']:
-        # return
-        return None
-    elif is_fine_tuning_ds:
-        return None
+    if is_fine_tuning_ds:
+        return fix_preproc_paths(batch_save_dirs,copy.deepcopy(preproc_save_dir))
     else:
         return _preproc_split(ds_params, global_params)
 
+def fix_preproc_paths(batch_save_dirs,preproc_save_dir):
+    # temporaliy save somewhere else
+    shutil.move(preproc_save_dir, preproc_save_dir + '_temp')
+    # recreate preproc_save dir
+    os.mkdir(preproc_save_dir)
+
+    offset = 0
+    for save_dir in batch_save_dirs:
+        files_in_batch = os.listdir(save_dir)
+        for file in files_in_batch:
+            shutil.move(os.path.join(save_dir,file),os.path.join(preproc_save_dir,str(int(file)+offset)))
+        # update offset
+        offset += len(files_in_batch)
+
+    # delete preproc temp
+    shutil.rmtree(preproc_save_dir + '_temp')
+    return None
 
 def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
     """
@@ -632,7 +656,7 @@ def _preproc_split(ds_params, global_params, dataset=None):
                                  channel_split_func=_make_adjacent_groups, overwrite=True,
                                  delete_step_1=ds_params["DELETE_STEP_1"])
 
-    with open(os.path.join(cache_dir, 'split_idx_list.pkl'), 'wb') as f:
+    with open(os.path.join(cache_dir, f'{global_params["channel_select_function"]}_{global_params["n_channels"]}'+'split_idx_list.pkl'), 'wb') as f:
         pickle.dump(idx_list, f)
 
     return idx_list
@@ -672,7 +696,7 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         ds_params['cache_dir'] = os.path.join(ds_params['preprocess_root'], 'pickles')
         ds_params['preproc_save_dir'] = os.path.join(ds_params['preprocess_root'], 'first_preproc')
         ds_params['split_save_dir'] = os.path.join(
-            ds_params['preprocess_root'], f'split_{ds_params["channel_select_function"]}_{global_params["n_channels"]}')
+            ds_params['preprocess_root'], f'split_{global_params["channel_select_function"]}_{global_params["n_channels"]}')
 
         if not os.path.exists(ds_params["cache_dir"]):
             os.makedirs(ds_params["cache_dir"])

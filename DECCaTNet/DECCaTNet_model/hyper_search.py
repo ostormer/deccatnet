@@ -48,7 +48,7 @@ def hyper_search(all_params, global_params):
             metric=metric,
             mode=mode,
             max_t=hyper_prams['max_t'],
-            grace_period=hyper_prams['grace_period'],  # TODO comment what this does and all other params
+            grace_period=hyper_prams['grace_period'],
             reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
@@ -60,7 +60,7 @@ def hyper_search(all_params, global_params):
             metric=metric,
             mode=mode,
             max_t=hyper_prams['max_t'],
-            grace_period=hyper_prams['grace_period'],  # TODO comment what this does and all other params
+            grace_period=hyper_prams['grace_period'],
             reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
@@ -91,49 +91,14 @@ def make_correct_config(hyper_params, all_params, global_params):
         config[key] = eval(hyper_params['config'][key])
     return config
 
-
-def update_paths(config, all_params, global_params, change_on):
-    for dataset in global_params['datasets']:
-        all_params['preprocess'][dataset]['preprocess_root'] = all_params['preprocess'][dataset][
-                                                                   'preprocess_root'] + '_' + change_on + '_' + str(
-            config[
-                change_on])
-    all_params['fine_tuning']['fine_tuning_preprocess']['preprocess_root'] = \
-        all_params['fine_tuning']['fine_tuning_preprocess']['preprocess_root'] + '_' + change_on + '_' + str(
-            config[change_on])
-    all_params['fine_tuning']['ds_path'] = all_params['fine_tuning']['fine_tuning_preprocess'][
-                                               'preprocess_root'] + '/pickles/windowed_ds.pkl'
-    return all_params
-
-
-def update_model_paths(config, all_params, change_on, global_params):
-    # all datasets are chosen correctly, however selecting the correct model for encoding is not yet done.
-    # for example: finding correct pretraining parameters for rpetraining loss
-    # when testing for something in the final model, it is important that the correct encoder is chosen
-    # when testing for something in the encoder, it is impo
-    # will be called only when we pretrain and fine_tune, if only fine_tune not called
-    # and if only pre_train not called. When we pre_train and fine_tune, we change on numerous different things
-    # want to change encoder save path and dont need to do this as we will only
-    # pretrain and fine_tune: will not change anything in fine_tune, doesnt need change
-    # preprocess, pretrain and fine_tune: will change file names, but all changes is in preprocess, so no
-    # need to change anything in pre
-
-    pass
-
-
 def hyper_search_train(config, hyper_params=None, all_params=None, global_params=None):
     # check for global params in config
     for key in global_params:
         if key in config:
             global_params[key] = config[key]
-    if hyper_params['PREPROCESS']:
-        # should change names for preprocessing, only n_channels and channel_selection which can be changed
-        if 'n_channels' in config:
-            all_params = update_paths(config, copy.deepcopy(all_params), global_params, 'n_channels')
-        if 'channel_select_function' in config:
-            all_params = update_paths(config, copy.deepcopy(all_params), global_params, 'channel_select_function')
     if hyper_params['PERFORM_PREPROCESS']:
         pre.run_preprocess(all_params, global_params)
+
     if hyper_params['FINE_AND_PRE']:
         for key in all_params['pre_training']:
             if key in config:
@@ -154,12 +119,10 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
 
 def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     params = all_params['fine_tuning']
+    print('=================== START FINE-TUNING IN HYPER-SEARCH ====================')
 
     if params['REDO_PREPROCESS']:
-        new_params = copy.deepcopy(all_params)
-        new_params['preprocess'] = params['fine_tuning_preprocess']
-
-        run_preprocess(new_params, global_params, fine_tuning=True)
+        print('It is not allowed to REDO_PREPROCESS when running HYPERSEARCH, skipping')
 
     idx = []
     # we need, idx, paths and dataset_params
@@ -287,9 +250,9 @@ def pre_train_hypersearch(all_params=None, global_params=None):
     datasets_dict = {}
     for dataset in pretrain_datasets:
         preprocess_root = preprocess_params[dataset]['preprocess_root']
-        with open(os.path.join(preprocess_root, 'pickles', 'split_idx_list.pkl'), 'rb') as fid:
+        with open(os.path.join(preprocess_root, 'pickles', f'{global_params["channel_select_function"]}_{global_params["n_channels"]}'+'split_idx_list.pkl'), 'rb') as fid:
             pre_train_ids = pickle.load(fid)
-        datasets_dict[dataset] = (os.path.join(preprocess_root, 'split'), pre_train_ids)
+        datasets_dict[dataset] = (os.path.join(preprocess_root, f'split_{global_params["channel_select_function"]}_{global_params["n_channels"]}'), pre_train_ids)
 
     dataset = ConcatPathDataset(datasets_dict, all_params, global_params)
 
@@ -313,7 +276,7 @@ def pre_train_hypersearch(all_params=None, global_params=None):
     if not os.path.exists(save_dir_model):
         os.makedirs(save_dir_model)
 
-    dataset = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
+    dataset,_ = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
     # load dataset
     train_set, val_set = dataset.get_splits(train_split)
 

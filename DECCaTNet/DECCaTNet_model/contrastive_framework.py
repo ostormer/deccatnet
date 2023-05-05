@@ -371,9 +371,9 @@ def pre_train_model(all_params, global_params):
     datasets_dict = {}
     for dataset in pretrain_datasets:
         preprocess_root = preprocess_params[dataset]['preprocess_root']
-        with open(os.path.join(preprocess_root, 'pickles', 'split_idx_list.pkl'), 'rb') as fid:
+        with open(os.path.join(preprocess_root, 'pickles', f'{global_params["channel_select_function"]}_{global_params["n_channels"]}'+'split_idx_list.pkl'), 'rb') as fid:
             pre_train_ids = pickle.load(fid)
-        datasets_dict[dataset] = (os.path.join(preprocess_root, 'split'), pre_train_ids)
+        datasets_dict[dataset] = (os.path.join(preprocess_root, f'split_{global_params["channel_select_function"]}_{global_params["n_channels"]}'), pre_train_ids)
 
     dataset = ConcatPathDataset(datasets_dict, all_params, global_params)
 
@@ -398,7 +398,7 @@ def pre_train_model(all_params, global_params):
         os.makedirs(save_dir_model)
 
     if global_params['HYPER_SEARCH']:
-        dataset = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
+        dataset,_ = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
 
     # load dataset
     train_set, val_set = dataset.get_splits(train_split)
