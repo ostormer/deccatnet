@@ -16,19 +16,20 @@ global:
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
 
-  datasets: ['bciciv_1'] # which datasets should be preprocessed
-#  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1'] # which datasets should be preprocessed
+#  datasets: ['bciciv_1'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
     ds_name: 'tuh_eeg'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_pre'
-    IS_FINE_TUNING_DS: True
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -42,11 +43,12 @@ preprocess:
     ds_name: 'tuh_eeg_abnormal_eval'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/eval'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre'
-    IS_FINE_TUNING_DS: True
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -60,11 +62,12 @@ preprocess:
     ds_name: 'tuh_eeg_abnormal_train'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre'
-    IS_FINE_TUNING_DS: True
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -78,11 +81,12 @@ preprocess:
     ds_name: 'seed'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_pre'
-    IS_FINE_TUNING_DS: True
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
@@ -97,11 +101,12 @@ preprocess:
     ds_name: 'bciciv_1'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/bciciv_1_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed'
-    IS_FINE_TUNING_DS: True
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
     bandpass_lo: 0.3
