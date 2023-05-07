@@ -251,8 +251,6 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
-    # if preproc_params['IS_FINE_TUNING_DS']:
-    #    preprocessors.append(Preprocessor('equalize_channels', copy=False))
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -290,18 +288,23 @@ def get_window_len(ds, window_len):
     return diff.to_numpy()
 
 
-def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_channels, channel_split_func=None,
-                      overwrite=False, delete_step_1=False) -> 'list[tuple[int, int]]':
+# def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_channels, channel_split_func=None,
+#                       overwrite=False, delete_step_1=False)
+def split_by_channels(windowed_concat_ds: BaseConcatDataset, batch_number: int, ds_params, global_params
+                      ) -> 'list[tuple[int, int]]':
+    channel_split_func: str = global_params['channel_select_function']
+    split_save_dir = ds_params['split_save_dir']
+    n_channels = global_params['n_channels']
+    delete_step_1 = ds_params['DELETE_STEP_1']
     if channel_split_func is None:
-        channel_split_func = _make_adjacent_groups
+        channel_split_func = "adjacent_groups"
+    channel_split_func: callable = string_to_channel_split_func[channel_split_func]
     # Create save_dir for channel split dataset
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    if not overwrite:
-        _check_save_dir_empty(save_dir)
+    if not os.path.exists(split_save_dir):
+        os.makedirs(split_save_dir)
     # Delete old contents of save_dir
-    for files in os.listdir(save_dir):
-        path = os.path.join(save_dir, files)
+    for files in os.listdir(split_save_dir):
+        path = os.path.join(split_save_dir, files)
         try:
             shutil.rmtree(path)
         except OSError:
@@ -321,7 +324,8 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_ch
 
     # Not parallelized equivalent of the above
     idx_n_windows = [
-        _split_channels_parallel(windows_ds, i, save_dir, n_channels, channel_split_func, delete_step_1)
+        _split_channels_parallel(windows_ds, i, batch_number, split_save_dir, n_channels, channel_split_func,
+                                 delete_step_1)
         for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets),
                                   miniters=len(windowed_concat_ds.datasets) / 100, maxinterval=300)
     ]
@@ -345,6 +349,7 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, save_dir: str, n_ch
 def _split_channels_parallel(
         windows_ds: WindowsDataset,
         record_index: int,
+        batch_number: int,
         save_dir: str,
         n_channels: int,
         channel_split_func,
@@ -362,6 +367,7 @@ def _split_channels_parallel(
         list[int]: _description_
     """
     mne.set_log_level(verbose='ERROR')
+    offset = (500 * batch_number + record_index) * 100
     epochs = windows_ds.windows
 
     channel_selections = channel_split_func(epochs.ch_names, n_channels=n_channels)
@@ -379,7 +385,7 @@ def _split_channels_parallel(
         ds.set_description({"channels": channels})
         windows_ds_list.append(ds)
     concat_ds = BaseConcatDataset(windows_ds_list)
-    concat_ds.save(save_dir, overwrite=True, offset=record_index * 100)
+    concat_ds.save(save_dir, overwrite=True, offset=offset)
 
     if delete_step_1:
         # The dir containing one preprocessed WindowsDataset and accompanying json files
@@ -389,7 +395,7 @@ def _split_channels_parallel(
         shutil.rmtree(step_1_dir)
 
     indexes = list(
-        range(record_index * 100, record_index * 100 + len(windows_ds_list)))
+        range(offset, offset + len(windows_ds_list)))
     return indexes, channel_n_windows
 
 
@@ -494,7 +500,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     n_jobs = global_params['n_jobs']
     preproc_save_dir = ds_params['preproc_save_dir']
     cache_dir = ds_params['cache_dir']
-    is_fine_tuning_ds = ds_params['IS_FINE_TUNING_DS']
+    stop_after_preproc_step = ds_params['STOP_AFTER_PREPROC']
     try:
         exclude_channels = ds_params["exclude_channels"]
     except KeyError:
@@ -548,28 +554,17 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     except OSError:
         os.remove(temp_save_dir)
 
-
-
-    # # Create preproc_save_dir
-    # if not os.path.exists(preproc_save_dir):
-    #     os.makedirs(preproc_save_dir)
-    #
-    # # Apply preprocessing step
-    # dataset = preprocess_signals(concat_dataset=dataset, mapping=ch_mapping,
-    #                              ch_naming=common_naming, preproc_params=ds_params,
-    #                              save_dir=preproc_save_dir, n_jobs=global_params['n_jobs'],
-    #                              exclude_channels=exclude_channels, s_freq=global_params['s_freq'])
-    # Next step, or return if fine-tuning set
     try:
-        if is_fine_tuning_ds and ds_params['ACTUAL_FINE_TUNE']:
-            return fix_preproc_paths(batch_save_dirs,copy.deepcopy(preproc_save_dir))
+        if stop_after_preproc_step and ds_params['IS_FINE_TUNING_DS']:
+            return fix_preproc_paths(batch_save_dirs, copy.deepcopy(preproc_save_dir))
     except:
-        if is_fine_tuning_ds:
+        if stop_after_preproc_step:
             return None
         else:
             return _preproc_split(ds_params, global_params)
 
-def fix_preproc_paths(batch_save_dirs,preproc_save_dir):
+
+def fix_preproc_paths(batch_save_dirs, preproc_save_dir):
     # temporaliy save somewhere else
     shutil.move(preproc_save_dir, preproc_save_dir + '_temp')
     # recreate preproc_save dir
@@ -579,13 +574,14 @@ def fix_preproc_paths(batch_save_dirs,preproc_save_dir):
     for save_dir in batch_save_dirs:
         files_in_batch = os.listdir(save_dir)
         for file in files_in_batch:
-            shutil.move(os.path.join(save_dir,file),os.path.join(preproc_save_dir,str(int(file)+offset)))
+            shutil.move(os.path.join(save_dir, file), os.path.join(preproc_save_dir, str(int(file) + offset)))
         # update offset
         offset += len(files_in_batch)
 
     # delete preproc temp
     shutil.rmtree(preproc_save_dir + '_temp')
     return None
+
 
 def _save_fine_tuning_ds(ds_params, global_params, orig_dataset=None):
     """
@@ -641,28 +637,47 @@ def _preproc_split(ds_params, global_params, dataset=None):
     split_save_dir = ds_params['split_save_dir']
     cache_dir = ds_params['cache_dir']
 
-    if dataset is None:
-        print("Loading preprocessed dataset from file tree...")
-        dataset = load_concat_ds_from_batched_dir(preproc_save_dir, n_jobs=global_params['n_jobs'])
-        print('Done loading preprocessed dataset.')
-    if stop_idx is None or stop_idx > len(dataset.datasets):
-        stop_idx = len(dataset.datasets)
-    if len(dataset.datasets) > stop_idx - start_idx:
-        dataset = dataset.split(by=list(range(start_idx, stop_idx)))['0']
-
-    if ds_params["IS_FINE_TUNING_DS"]:  # Return loaded and possibly cut dataset
-        return dataset
+    batch_dirs = os.listdir(preproc_save_dir)
+    # Calculate preprocessed ds length, which is max stop_idx value
+    preproc_ds_length = (len(batch_dirs) - 1) * 500 + len(os.listdir(os.path.join(preproc_save_dir, batch_dirs[-1])))
+    if stop_idx is None or stop_idx > preproc_ds_length:
+        stop_idx = preproc_ds_length
 
     if not os.path.exists(split_save_dir):
         os.makedirs(split_save_dir)
 
-    idx_list = split_by_channels(dataset, save_dir=split_save_dir, n_channels=global_params['n_channels'],
-                                 channel_split_func=_make_adjacent_groups, overwrite=True,
-                                 delete_step_1=ds_params["DELETE_STEP_1"])
+    last_batch_to_load = (stop_idx - 1) // 500
+    next_batch = start_idx // 500
+    idx_list = []
+    print("Splitting into channel groups divided into batches of 500 files:")
+    while next_batch <= last_batch_to_load:
+        print(f"Splitting batch {next_batch} of {last_batch_to_load}")
+        batch_dir_path = os.path.join(preproc_save_dir, batch_dirs[next_batch])
+        if next_batch == start_idx // 500:  # First batch:
+            first_file = start_idx % 500
+        else:  # All other batches
+            first_file = 0
+        stop_file = len(os.listdir(batch_dir_path))
+        if next_batch == last_batch_to_load:  # Last batch
+            stop_file = stop_idx % 500
+            if stop_file == 0:
+                stop_file = 500
+        # All boundaries are corrected and set, load BaseConcatDataset
+        concat_ds = load_concat_dataset(batch_dir_path, preload=False, ids_to_load=list(range(first_file, stop_file)))
 
-    with open(os.path.join(cache_dir, f'{global_params["channel_select_function"]}_{global_params["n_channels"]}'+'split_idx_list.pkl'), 'wb') as f:
+        batch_idx_list = split_by_channels(concat_ds, next_batch, ds_params, global_params)
+        idx_list.extend(batch_idx_list)
+        next_batch += 1
+    print("Done splitting all batches")
+
+    with open(
+            os.path.join(
+                cache_dir,
+                f'{global_params["channel_select_function"]}_{global_params["n_channels"]}' + 'split_idx_list.pkl'
+            ), 'wb') as f:
         pickle.dump(idx_list, f)
 
+    print("Done pickling idx_list used by PathDataset. Done preprocessing dataset!")
     return idx_list
 
 
@@ -682,7 +697,7 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
     preproc_datasets = []
 
     for dataset_name in datasets:
-        print(f"========= Beginning preprocessing pipeline for {dataset_name} =========")
+        print(f"\n========= Beginning preprocessing pipeline for {dataset_name} =========")
         ds_params = params_all['preprocess'][dataset_name]
 
         assert dataset_name in load_func_dict.keys(), \
@@ -700,7 +715,8 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         ds_params['cache_dir'] = os.path.join(ds_params['preprocess_root'], 'pickles')
         ds_params['preproc_save_dir'] = os.path.join(ds_params['preprocess_root'], 'first_preproc')
         ds_params['split_save_dir'] = os.path.join(
-            ds_params['preprocess_root'], f'split_{global_params["channel_select_function"]}_{global_params["n_channels"]}')
+            ds_params['preprocess_root'],
+            f'split_{global_params["channel_select_function"]}_{global_params["n_channels"]}')
 
         if not os.path.exists(ds_params["cache_dir"]):
             os.makedirs(ds_params["cache_dir"])
