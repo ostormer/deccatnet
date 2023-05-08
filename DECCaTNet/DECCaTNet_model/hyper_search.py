@@ -82,7 +82,8 @@ def hyper_search(all_params, global_params):
         num_samples=hyper_prams['num_samples'],
         scheduler=scheduler,
         progress_reporter=reporter,
-        local_dir='../tune_results'
+        local_dir='../tune_results',
+        verbose= 1
     )
     best_trial = result.get_best_trial(metric=metric,mode=mode)
     print("Best trial config: {}".format(best_trial.config))
