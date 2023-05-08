@@ -2,8 +2,8 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: Truecd model
-  PRE_TRAINING: False
+  HYPER_SEARCH: False
+  PRE_TRAINING: True
   FINE_TUNING: False
 
   n_gpu: 2
@@ -161,7 +161,7 @@ pre_training:
   save_freq: 1
   batch_print_freq: 100
   save_dir_model: 'models' # directory which you wish to store your model to
-  model_file_name: 'test' # Name of your model
+  model_file_name: 'test_anakin' # Name of your model
   TIME_PROCESS: False
 
   augmentation:
@@ -172,7 +172,7 @@ fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
   ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre_finetune'
-  encoder_path: '/models/encoder_test'
+  encoder_path: '/models/encoder_test_anakin'
 
   n_classes: 2
 
