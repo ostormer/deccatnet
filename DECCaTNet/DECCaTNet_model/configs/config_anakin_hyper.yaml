@@ -10,7 +10,7 @@ global:
   n_jobs: 50
   random_state: null # remember null and not None
 
-  n_channels: 1
+  n_channels: 2
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
   window_size: 20  # Window length in seconds
@@ -151,7 +151,7 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 64
-  train_split: 0.8
+  train_split: 0.01
   SHUFFLE: True
   temperature: 0.8 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
