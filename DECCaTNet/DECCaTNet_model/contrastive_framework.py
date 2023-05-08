@@ -298,7 +298,7 @@ def validate_epoch(model, val_loader, device, loss_func):
     print('================ VALIDATING EPOCH IN pre_training ====================')
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
-        for aug_1, aug_2, sample in val_loader:
+        for aug_1, aug_2, sample in tqdm(val_loader):
             # transfer to GPU or CUDA
             x1, x2 = aug_1.to(device), aug_2.to(device)
             # send through model and projector, asssume not splitted for now
@@ -448,8 +448,8 @@ def pre_train_model(all_params, global_params):
                                                   "temp_encoder" + str(epoch + 1) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
         losses.append(epoch_loss)
-        val_loss = validate_epoch(model, val_loader, device, loss_func)
-        val_losses.append(val_loss)
+        #val_loss = validate_epoch(model, val_loader, device, loss_func)
+        #val_losses.append(val_loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)
