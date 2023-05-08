@@ -1,5 +1,5 @@
 /.idea/
-#/models
+/models
 /src/
 /datasets/
 !/datasets/Download_links.md
