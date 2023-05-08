@@ -5,7 +5,7 @@ import os
 import pickle
 import time
 from ray.experimental.tqdm_ray import tqdm
-
+import logging
 import numpy as np
 import pandas as pd
 import torch
@@ -79,6 +79,8 @@ def hyper_search(all_params, global_params):
             n_jobs = 1
         trainable = tune.with_resources(hyper_search_train, resources={'cpu': n_jobs})
 
+    # Try t fix noisy logging
+    ray.init(configure_logging=True, logging_level=logging.ERROR)
     configs['log_level'] = 'ERROR'
 
     result = tune.run(
@@ -91,6 +93,7 @@ def hyper_search(all_params, global_params):
         local_dir='../tune_results',
         verbose=2,
     )
+
     best_trial = result.get_best_trial(metric=metric,mode=mode)
     print("Best trial config: {}".format(best_trial.config))
     print("Best trial final validation loss: {}".format(
