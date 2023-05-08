@@ -93,7 +93,6 @@ def hyper_search(all_params, global_params):
         progress_reporter=reporter,
         local_dir='../tune_results',
         verbose=2,
-        RAY_DEDUP_LOGS=0
     )
 
     best_trial = result.get_best_trial(metric=metric,mode=mode)
