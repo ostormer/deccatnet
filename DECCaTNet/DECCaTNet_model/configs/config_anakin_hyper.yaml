@@ -241,14 +241,14 @@ hyper_search:
   FINE_TUNING: False
 
   fine_tune_split: 0.01 # how much avaible data should be used for fine_tuning
-  pre_train_split: 0.1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
   max_t: 10 # maximum training iteration before validation
   grace_period: 1 # minimum number of training iterations before validating.
   reduction_factor: 2 #
   num_samples: 1 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
-  max_report_frequency: 30
+  max_report_frequency: 120
 
   config:
     n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'

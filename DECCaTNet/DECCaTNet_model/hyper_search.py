@@ -43,7 +43,6 @@ from ray.util import inspect_serializability
 def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
-    #ray.init(log_to_driver=False)
     #ray.init(num_cpus=1)
     #ray.init(num_gpus=2)
     if hyper_prams['PRE_TRAINING']:
@@ -90,7 +89,7 @@ def hyper_search(all_params, global_params):
         scheduler=scheduler,
         progress_reporter=reporter,
         local_dir='../tune_results',
-        verbose=3,
+        verbose=2,
     )
     best_trial = result.get_best_trial(metric=metric,mode=mode)
     print("Best trial config: {}".format(best_trial.config))

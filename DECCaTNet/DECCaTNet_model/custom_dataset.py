@@ -123,9 +123,9 @@ class FineTunePathDataset(Dataset):
         file_name_patterns = ['{}-raw.fif', '{}-epo.fif']
         fif_name_pattern = file_name_patterns[0] if self.is_raw else file_name_patterns[1]
         # fif file name is different than folder name
-        fif_file_path = [file for file in os.listdir(sub_dir) if file.endswith('.fif')][0]
-        print(fif_file_path)
-        #fif_file_path = os.path.join(sub_dir, fif_file_name)
+        fif_file_name = [file for file in os.listdir(sub_dir) if file.endswith('.fif')][0]
+
+        fif_file_path = os.path.join(sub_dir, fif_file_name)
 
         signals = _load_signals(fif_file_path, self.preload, self.is_raw)
         if window_order:
