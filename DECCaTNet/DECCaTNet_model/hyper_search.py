@@ -164,6 +164,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     n_folds = params['n_folds']
 
     # im thinking load one window
+    print('=============== LOADING ONE WINDOW IN FINE_TUNE =====================')
     ds_channel_order = dataset.__getitem__(0, window_order=True)
 
     for i in range(len(idx)):
@@ -172,7 +173,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
         #     changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
         #                enumerate(window_order)]
             # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
-        #assert window_order == ds_channel_order, f'{window_order} \n {ds_channel_order}' # TODO fix assertion
+        assert window_order == ds_channel_order, f'{window_order} \n {ds_channel_order}' # TODO fix assertion
 
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
 
