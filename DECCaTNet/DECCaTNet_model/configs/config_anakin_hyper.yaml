@@ -172,7 +172,7 @@ fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
   ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre_finetune'
-  encoder_path: 'models/encoder_test'
+  encoder_path: '/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/models/encoder_test'
 
   n_classes: 2
 
