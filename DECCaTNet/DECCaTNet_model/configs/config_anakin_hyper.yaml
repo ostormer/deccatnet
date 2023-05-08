@@ -156,7 +156,7 @@ pre_training:
   temperature: 0.8 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
   weight_decay: 0.01
-  max_epochs: 10
+  max_epochs: 4
 
   save_freq: 5
   batch_print_freq: 100

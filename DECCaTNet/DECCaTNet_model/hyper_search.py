@@ -43,6 +43,7 @@ from ray.util import inspect_serializability
 def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
+    ray.init(log_to_driver=False)
     #ray.init(num_cpus=1)
     #ray.init(num_gpus=2)
     if hyper_prams['PRE_TRAINING']:
@@ -56,7 +57,8 @@ def hyper_search(all_params, global_params):
             reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
-            metric_columns=["val_loss", "train_loss", "training_iteration"])
+            metric_columns=["val_loss", "train_loss", "training_iteration"],
+            max_report_frequency=hyper_prams['max_report_frequency'])
     else:
         mode = 'max'
         metric = 'val_acc'
@@ -77,6 +79,9 @@ def hyper_search(all_params, global_params):
         if n_jobs == 0:
             n_jobs = 1
         trainable = tune.with_resources(hyper_search_train, resources={'cpu': n_jobs})
+
+    configs['log_level'] = 'ERROR'
+
     result = tune.run(
         tune.with_parameters(trainable, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
                 global_params=copy.deepcopy(global_params)),
@@ -85,7 +90,7 @@ def hyper_search(all_params, global_params):
         scheduler=scheduler,
         progress_reporter=reporter,
         local_dir='../tune_results',
-        verbose= 0,
+        verbose= 1,
     )
     best_trial = result.get_best_trial(metric=metric,mode=mode)
     print("Best trial config: {}".format(best_trial.config))
