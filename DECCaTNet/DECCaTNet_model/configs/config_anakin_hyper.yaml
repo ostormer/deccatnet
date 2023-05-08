@@ -2,8 +2,8 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: False
-  PRE_TRAINING: True
+  HYPER_SEARCH: True
+  PRE_TRAINING: Flase
   FINE_TUNING: False
 
   n_gpu: 2
