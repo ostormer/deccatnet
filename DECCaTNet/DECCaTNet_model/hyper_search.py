@@ -83,7 +83,7 @@ def hyper_search(all_params, global_params):
     ray.init(configure_logging=True, logging_level=logging.ERROR)
     #configs['RAY_DEDUP_LOGS'] = 0
     configs['log_level'] = 'ERROR'
-    os.environ['RAY_DEDUP_LOGS'] = 0
+    os.environ['RAY_DEDUP_LOGS'] = '0'
 
     result = tune.run(
         tune.with_parameters(trainable, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
