@@ -9,7 +9,7 @@ global:
   n_jobs: 14
   random_state: null # remember null and not None
 
-  n_channels: 3
+  n_channels: 2
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
   window_size: 30  # Window length in seconds
