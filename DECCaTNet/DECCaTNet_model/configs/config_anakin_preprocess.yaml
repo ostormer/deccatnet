@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False
   FINE_TUNING: False
 
-  n_jobs: 8
+  n_jobs: 14
   random_state: null # remember null and not None
 
   n_channels: 3
@@ -16,7 +16,7 @@ global:
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
 
-#  datasets: ['bciciv_1'] # which datasets should be preprocessed
+
   datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1'] # which datasets should be preprocessed
 
 preprocess:

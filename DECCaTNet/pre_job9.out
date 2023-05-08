@@ -1,18 +1,87 @@
 ========= Beginning preprocessing pipeline for bciciv_1 =========
 BCICIV_1 is only implemented for pretraining
-  0%|          | 0/14 [00:00<?, ?it/s]  7%|▋         | 1/14 [00:00<00:12,  1.03it/s] 14%|█▍        | 2/14 [00:01<00:11,  1.04it/s] 21%|██▏       | 3/14 [00:02<00:09,  1.17it/s] 29%|██▊       | 4/14 [00:03<00:08,  1.15it/s] 36%|███▌      | 5/14 [00:04<00:08,  1.12it/s] 43%|████▎     | 6/14 [00:05<00:07,  1.11it/s] 50%|█████     | 7/14 [00:06<00:05,  1.18it/s] 57%|█████▋    | 8/14 [00:06<00:04,  1.24it/s] 64%|██████▍   | 9/14 [00:07<00:03,  1.28it/s] 71%|███████▏  | 10/14 [00:08<00:03,  1.31it/s] 79%|███████▊  | 11/14 [00:09<00:02,  1.24it/s] 86%|████████▌ | 12/14 [00:09<00:01,  1.31it/s] 93%|█████████▎| 13/14 [00:10<00:00,  1.33it/s]100%|██████████| 14/14 [00:11<00:00,  1.35it/s]100%|██████████| 14/14 [00:11<00:00,  1.24it/s]
+  0%|          | 0/14 [00:00<?, ?it/s]  7%|▋         | 1/14 [00:00<00:12,  1.01it/s] 14%|█▍        | 2/14 [00:01<00:11,  1.05it/s] 21%|██▏       | 3/14 [00:02<00:09,  1.14it/s] 29%|██▊       | 4/14 [00:03<00:08,  1.11it/s] 36%|███▌      | 5/14 [00:04<00:08,  1.08it/s] 43%|████▎     | 6/14 [00:05<00:08,  1.05s/it] 50%|█████     | 7/14 [00:06<00:06,  1.03it/s] 57%|█████▋    | 8/14 [00:07<00:05,  1.11it/s] 64%|██████▍   | 9/14 [00:08<00:04,  1.17it/s] 71%|███████▏  | 10/14 [00:08<00:03,  1.21it/s] 79%|███████▊  | 11/14 [00:09<00:02,  1.16it/s] 86%|████████▌ | 12/14 [00:10<00:01,  1.23it/s] 93%|█████████▎| 13/14 [00:11<00:00,  1.25it/s]100%|██████████| 14/14 [00:12<00:00,  1.27it/s]100%|██████████| 14/14 [00:12<00:00,  1.15it/s]
 Serializing braindecode dataset to free up memory...
-Traceback (most recent call last):
-  File "main_anakin_pre.py", line 24, in <module>
-    run('config_anakin_preprocess')
-  File "main_anakin_pre.py", line 16, in run
-    pre.run_preprocess(params, global_params)
-  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/preprocessing/preprocess.py", line 678, in run_preprocess
-    idx_list = _read_raw(ds_params, global_params)
-  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/preprocessing/preprocess.py", line 447, in _read_raw
-    dataset = ds_load_func(ds_params, global_params)
-  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/preprocessing/load_dataset.py", line 130, in load_raw_bciciv_1
-    concat_dataset.save(ds_params["preproc_save_dir"], overwrite=True)  # Save
-  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/braindecode/datasets/base.py", line 534, in save
-    path_contents = os.listdir(path)
-FileNotFoundError: [Errno 2] No such file or directory: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/first_preproc'
+Loading concat dataset from /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif, preload=False
+  0%|          | 0/14 [00:00<?, ?it/s] 57%|█████▋    | 8/14 [00:00<00:00, 25.27it/s]100%|██████████| 14/14 [00:00<00:00, 44.13it/s]Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/1/1-raw.fif...
+Isotrak not found
+    Range : 0 ... 2384533 =      0.000 ...  2384.533 secs
+Ready.
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/0/0-raw.fif...
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/4/4-raw.fif...
+Isotrak not found
+    Range : 0 ... 2469699 =      0.000 ...  2469.699 secs
+Ready.
+Isotrak not found
+    Range : 0 ... 2435019 =      0.000 ...  2435.019 secs
+Ready.
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/3/3-raw.fif...
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/2/2-raw.fif...
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/8/8-raw.fif...
+Isotrak not found
+Isotrak not found
+    Range : 0 ... 1904734 =      0.000 ...  1904.734 secs
+Isotrak not found
+Ready.
+    Range : 0 ... 1906019 =      0.000 ...  1906.019 secs
+Ready.
+    Range : 0 ... 2333645 =      0.000 ...  2333.645 secs
+Ready.
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/9/9-raw.fif...
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/6/6-raw.fif...
+Isotrak not found
+    Range : 0 ... 1905939 =      0.000 ...  1905.939 secs
+Ready.
+Isotrak not found
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/5/5-raw.fif...
+    Range : 0 ... 1905498 =      0.000 ...  1905.498 secs
+Ready.
+Isotrak not found
+    Range : 0 ... 2450948 =      0.000 ...  2450.948 secs
+Ready.
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/10/10-raw.fif...
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/7/7-raw.fif...
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/11/11-raw.fif...
+Isotrak not found
+    Range : 0 ... 1905939 =      0.000 ...  1905.939 secs
+Ready.
+Isotrak not found
+    Range : 0 ... 2392259 =      0.000 ...  2392.259 secs
+Ready.
+Isotrak not found
+    Range : 0 ... 1759139 =      0.000 ...  1759.139 secs
+Ready.
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/12/12-raw.fif...
+Isotrak not found
+    Range : 0 ... 1903294 =      0.000 ...  1903.294 secs
+Ready.
+Opening raw data file /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/raw_fif/13/13-raw.fif...
+Isotrak not found
+    Range : 0 ... 1906079 =      0.000 ...  1906.079 secs
+Ready.
+
+Loaded 14 files.
+Start selecting samples with duration over 30 sec
+Windowing dataset...
+Dropping short recordings and excluded channels:
+Kept  14 recordings
+Rescaling to microVolts...
+Applying preprocessors to dataset:
+  0%|          | 0/14 [00:00<?, ?it/s]100%|██████████| 14/14 [00:00<00:00, 14283.69it/s]Reading 0 ... 1904734  =      0.000 ...  1904.734 secs...
+Reading 0 ... 2469699  =      0.000 ...  2469.699 secs...
+Reading 0 ... 2384533  =      0.000 ...  2384.533 secs...
+Reading 0 ... 2333645  =      0.000 ...  2333.645 secs...
+Reading 0 ... 2435019  =      0.000 ...  2435.019 secs...
+Reading 0 ... 1905498  =      0.000 ...  1905.498 secs...
+Reading 0 ... 2450948  =      0.000 ...  2450.948 secs...
+Reading 0 ... 1905939  =      0.000 ...  1905.939 secs...
+
+Loading concat dataset from /lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed/temp, preload=False
+  0%|          | 0/14 [00:00<?, ?it/s] 21%|██▏       | 3/14 [00:00<00:00, 24.37it/s] 43%|████▎     | 6/14 [00:00<00:00, 23.26it/s] 64%|██████▍   | 9/14 [00:00<00:00, 24.56it/s] 86%|████████▌ | 12/14 [00:00<00:00, 17.26it/s]100%|██████████| 14/14 [00:00<00:00, 20.22it/s]
+Done rescaling to microVolts
+Splitting dataset into windows:
+  0%|          | 0/14 [00:00<?, ?it/s]100%|██████████| 14/14 [00:00<00:00, 13139.46it/s]
+Dropping all recordings with 0 good windows...
+Kept 14 recordings
+Applying preprocessors to dataset:
+  0%|          | 0/14 [00:00<?, ?it/s]100%|██████████| 14/14 [00:00<00:00, 17570.39it/s]
