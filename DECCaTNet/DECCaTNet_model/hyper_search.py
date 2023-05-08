@@ -197,15 +197,8 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    try:
-        model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
-    except:
-        assert all_params['hyper_search']['FINE_TUNING'] == True, (
-            'assertion failed as this should only be accsessible when only finetuning')
-        all_params['fine_tuning'][
-            'encoder_path'] = 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/DECCaTNet/' + \
-                              all_params['fine_tuning']['encoder_path']
-        model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
+
+    model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
     if torch.cuda.is_available():
         model.cuda()
