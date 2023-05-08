@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
-  HYPER_SEARCH: True
+  PREPROCESSING: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
   FINE_TUNING: False
 
@@ -19,14 +19,14 @@ global:
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1'] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  datasets: ['tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1','tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
     ds_name: 'tuh_eeg'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_pre'
-    IS_FINE_TUNING_DS: True
+    IS_FINE_TUNING_DS: False
     STOP_AFTER_PREPROC: True
 
     start_idx: 0
@@ -46,11 +46,11 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/eval'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: False
+    STOP_AFTER_PREPROC: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -65,11 +65,11 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: False
+    STOP_AFTER_PREPROC: True
 
     start_idx: 0
     stop_idx: 500  # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -84,7 +84,7 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_pre'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: False
+    STOP_AFTER_PREPROC: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -104,7 +104,7 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/bciciv_1_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: False
+    STOP_AFTER_PREPROC: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -124,7 +124,7 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre_finetune'
     IS_FINE_TUNING_DS: True
-    STOP_AFTER_PREPROC: True
+    STOP_AFTER_PREPROC: False
     target_name: 'pathological'
 
     start_idx: 0
@@ -235,10 +235,10 @@ downstream_params:
   dropout_2: 0.3
 
 hyper_search:
-  PERFORM_PREPROCESS: False
+  PERFORM_PREPROCESS: True
   FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
   PRE_TRAINING: False # only used when you only do pre_training
-  FINE_TUNING: True
+  FINE_TUNING: False
 
   fine_tune_split: 0.01 # how much avaible data should be used for fine_tuning
   pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
@@ -265,7 +265,7 @@ hyper_search:
 
 
 # Checklist running hyperparamsearch:
-# - All pre_training datasets preprocessed with delete_Step_1=False and is FINE_TUNING_DS = TRUE
+# - All pre_training datasets preprocessed with delete_Step_1=False and is stop after preproc or something = TRUE
 # - Fine_tuning dataset preprocessed togheter with other datasets
 # - Change to preproc and FINE_TUNING_DS = False in all pre_training datasets and remove fine_tuning dataset
 # - Run hyper_search, if first time with channels or channel_selection method, PERFORM_PREPROCESS must be true
