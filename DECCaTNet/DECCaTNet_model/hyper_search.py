@@ -136,7 +136,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     # we need, idx, paths and dataset_params
     path = all_params['fine_tuning']['ds_path']
     # get splits path by first getting windows path and then removing last object
-    preproc_path = os.path.join(*Path(path).parts[:-2], 'first_preproc')
+    preproc_path = os.path.join(path, 'first_preproc')
     indexes = os.listdir(preproc_path)
     for i in indexes:
         sub_dir = os.path.join(preproc_path, str(i))
