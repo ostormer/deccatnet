@@ -81,7 +81,7 @@ def hyper_search(all_params, global_params):
 
     # Try t fix noisy logging
     ray.init(configure_logging=True, logging_level=logging.ERROR)
-    #configs['RAY_DEDUP_LOGS'] = 0
+    configs['RAY_DEDUP_LOGS'] = 0
     configs['log_level'] = 'ERROR'
     os.environ['RAY_DEDUP_LOGS'] = '0'
 

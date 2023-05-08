@@ -237,8 +237,8 @@ downstream_params:
 hyper_search:
   PERFORM_PREPROCESS: False
   FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
-  PRE_TRAINING: True # only used when you only do pre_training
-  FINE_TUNING: False
+  PRE_TRAINING: False # only used when you only do pre_training
+  FINE_TUNING: True
 
   fine_tune_split: 0.01 # how much avaible data should be used for fine_tuning
   pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
