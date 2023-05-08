@@ -4,6 +4,7 @@ import math
 import os
 import pickle
 import time
+from ray.experimental.tqdm_ray import tqdm
 
 import numpy as np
 import pandas as pd
@@ -12,7 +13,6 @@ import torch.nn as nn
 import torch.nn.functional as fn
 from sklearn.model_selection import KFold
 from torch.utils.data import SubsetRandomSampler
-from tqdm import tqdm
 import pickle as pkl
 import torchplot as plt
 from pathlib import Path
@@ -32,7 +32,9 @@ from ray.air import session
 
 from DECCaTNet_model.contrastive_framework import ContrastiveLoss, train_epoch, validate_epoch
 from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
-from DECCaTNet_model.fine_tuning import train_epoch, validate_epoch, FineTuneNet
+from DECCaTNet_model.fine_tuning import train_epoch as train_epoch_fine
+from DECCaTNet_model.fine_tuning import validate_epoch as validate_epoch_fine
+from DECCaTNet_model.fine_tuning impor FineTuneNet
 from ray.util import inspect_serializability
 
 
@@ -224,10 +226,10 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
                 early_stop=None):
     for epoch in range(epochs):
         print(f'============== HYPER SEARCH FINE-TUNING EPOCH: {epoch} of {epochs}==========================')
-        train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
+        train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
                                                                        optimizer)
 
-        val_loss, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
+        val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func)
 
         session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
                         'val_acc': correct_eval_preds / num_eval_preds})
@@ -247,9 +249,9 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
 
         for epoch in range(epochs):
             print('epoch number: ', epoch, 'of: ', epochs)
-            train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
+            train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
                                                                            optimizer)
-            val_loss, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
+            val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func)
 
             session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
                             'val_acc': correct_eval_preds / num_eval_preds})  # , checkpoint=checkpoint)

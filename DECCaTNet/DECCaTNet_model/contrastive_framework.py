@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as fn
 import torchplot as plt
 from DECCaTNet_model.custom_dataset import ConcatPathDataset
-from tqdm import tqdm
+from ray.experimental.tqdm_ray import tqdm
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
 
@@ -239,7 +239,7 @@ def train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_
     counter = 0  # counter for batch print.
     # start traning by looping through batches
     start_time = time.thread_time()
-    for aug_1, aug_2, sample in train_loader:
+    for aug_1, aug_2, sample in tqdm(train_loader):
         batch_time = time.thread_time()
         # transfer to GPU or CUDA
         x1, x2 = aug_1.to(device), aug_2.to(device)
