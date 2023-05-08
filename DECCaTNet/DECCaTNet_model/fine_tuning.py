@@ -141,7 +141,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
     correct_train_preds = 0
     num_train_preds = 0
 
-    for x, y in train_loader:
+    for x, y in tqdm(train_loader):
         y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])  # TODO check what shape of target should be
         # y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
@@ -180,7 +180,7 @@ def validate_epoch(model, val_loader, device, loss_func):
     val_loss = 0
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
-        for x, y in val_loader:
+        for x, y in tqdm(val_loader):
             y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])
             # y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)
