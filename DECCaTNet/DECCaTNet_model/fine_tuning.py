@@ -53,11 +53,14 @@ class FineTuneNet(nn.Module):
         self.n_classes = params["n_classes"]
 
         self.encoder = Encoder(all_params['encoder_params'], global_params)
+
+        print('=======================================',self.encoder_path)
         if torch.cuda.is_available():
             self.encoder.load_state_dict(torch.load(self.encoder_path))
         else:
             self.encoder.load_state_dict(torch.load(self.encoder_path,map_location=torch.device('cpu'))) # saved in the hyperparameter tuning itself.
-        self.encoder.requires_grad_(False)  # TODO what does this do?
+
+        self.encoder.requires_grad_(False)  # TODO Doesnt train the encoder during fine_tuning. (good for something i guess)
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
         self.out_layer_2 = all_params['downstream_params']['out_layer_2']
