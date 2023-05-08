@@ -81,7 +81,7 @@ def hyper_search(all_params, global_params):
 
     # Try t fix noisy logging
     ray.init(configure_logging=True, logging_level=logging.ERROR)
-    configs['RAY_DEDUP_LOGS'] = 0
+    #configs['RAY_DEDUP_LOGS'] = 0
     configs['log_level'] = 'ERROR'
 
     result = tune.run(
@@ -93,6 +93,7 @@ def hyper_search(all_params, global_params):
         progress_reporter=reporter,
         local_dir='../tune_results',
         verbose=2,
+        RAY_DEDUP_LOGS=0
     )
 
     best_trial = result.get_best_trial(metric=metric,mode=mode)
@@ -169,7 +170,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     # im thinking load one window
     ds_channel_order = dataset.__getitem__(0, window_order=True)
 
-    for i in range(len(idx)):
+    for i in range(math.floor(len(idx)*all_params['hyper_search']['fine_tune_split'])):
         window_order = dataset.__getitem__(i, window_order=True)
         # if not window_order == ds_channel_order:
         #     changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
