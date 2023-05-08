@@ -234,12 +234,12 @@ class ContrastiveLossGPT(nn.Module):
 def train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func, time_process, batch_print_freq,
                 time_names, batch_size):
     model.train()  # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
-    print('epoch number: ', epoch + 1, 'of: ', max_epochs)
+    print(f'============= PRE-TRAIN EPOCH NUMBER: {epoch+1} of {max_epochs} =====================')
     epoch_loss = 0
     counter = 0  # counter for batch print.
     # start traning by looping through batches
     start_time = time.thread_time()
-    for aug_1, aug_2, sample in tqdm(train_loader, position=0, leave=True):
+    for aug_1, aug_2, sample in train_loader:
         batch_time = time.thread_time()
         # transfer to GPU or CUDA
         x1, x2 = aug_1.to(device), aug_2.to(device)
@@ -295,9 +295,10 @@ def train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_
 def validate_epoch(model, val_loader, device, loss_func):
     val_steps = 0
     val_loss = 0
+    print('================ VALIDATING EPOCH IN pre_training ====================')
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
-        for aug_1, aug_2, sample in tqdm(val_loader, position=0, leave=True):
+        for aug_1, aug_2, sample in val_loader:
             # transfer to GPU or CUDA
             x1, x2 = aug_1.to(device), aug_2.to(device)
             # send through model and projector, asssume not splitted for now
@@ -487,7 +488,7 @@ def pre_train_model(all_params, global_params):
 
         }, outfile)
 
-    print('Traning Done!!')
+    print('=============== DONE PRE-TRAINING in contraste_frameowrk =====================')
 
 
 def plot_avgs(avg_train_losses, avg_train_accs, avg_val_accs, plot_series_name, save_path):

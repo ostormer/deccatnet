@@ -141,7 +141,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
     correct_train_preds = 0
     num_train_preds = 0
 
-    for x, y in tqdm(train_loader, position=0, leave=True):
+    for x, y in train_loader:
         y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])  # TODO check what shape of target should be
         # y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
@@ -174,12 +174,13 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
 
 
 def validate_epoch(model, val_loader, device, loss_func):
+    print('============================ RUNNING VALIDATION EPOCH ============================')
     correct_eval_preds = 0
     num_eval_preds = 0
     val_loss = 0
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
-        for x, y in tqdm(val_loader, position=0, leave=True):
+        for x, y in val_loader:
             y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])
             # y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)
@@ -213,8 +214,9 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
     train_acc = []
     val_acc = []
     test_acc = []
+    print('=========================== TRAINING MODEL IN fine_tuning ===========================')
     for epoch in range(epochs):
-        print('epoch number: ', epoch, 'of: ', epochs)
+        print('================== epoch number: ', epoch, 'of: ', epochs, ' in fine_tuning =========================')
         train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
                                                                        optimizer)
 
@@ -247,8 +249,9 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
     train_acc = []
     val_acc = []
     test_acc = []
+    print('=================================== PERFORMING K-FOLD-TRAINING in fine_tuning =============================')
 
-    for fold, (train_idx, val_idx) in tqdm(enumerate(folds.split(np.arange(len(dataset)))), position=0, leave=True):
+    for fold, (train_idx, val_idx) in enumerate(folds.split(np.arange(len(dataset)))):
         print(f'Fold {fold + 1}')
 
         train_sampler = SubsetRandomSampler(train_idx)
@@ -423,7 +426,7 @@ def run_fine_tuning(all_params, global_params, test_set=None):
         }, outfile)
         # TODO: remeber that some datasets (Abnormal/Normal) is already splitted, guessing this is implemented by Oskar.
 
-        print("Training done")
+        print("================ FINE-TUNING DONE in fine_tuning =========================")
 
 
 def get_window_len(ds):

@@ -165,7 +165,7 @@ pre_training:
   TIME_PROCESS: False
 
   augmentation:
-    noise_probability: 0
+    noise_probability: 0 # TODO fix such that this is possible to add to a config file.
 
 
 fine_tuning:
