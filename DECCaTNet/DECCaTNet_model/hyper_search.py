@@ -41,6 +41,7 @@ from ray.util import inspect_serializability
 def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
+    ray.init(log_to_driver=False)
     #ray.init(num_cpus=1)
     #ray.init(num_gpus=2)
     if hyper_prams['PRE_TRAINING']:
