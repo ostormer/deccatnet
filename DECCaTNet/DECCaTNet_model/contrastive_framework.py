@@ -448,8 +448,8 @@ def pre_train_model(all_params, global_params):
                                                   "temp_encoder" + str(epoch + 1) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
         losses.append(epoch_loss)
-        #val_loss = validate_epoch(model, val_loader, device, loss_func)
-        #val_losses.append(val_loss)
+        val_loss = validate_epoch(model, val_loader, device, loss_func)
+        val_losses.append(val_loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)
