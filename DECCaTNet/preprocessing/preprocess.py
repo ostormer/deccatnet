@@ -241,6 +241,7 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
 
     preprocessors = [
         Preprocessor(custom_turn_off_log),  # turn off verbose
+        Preprocessor('drop_channels', ch_names=exclude_channels, on_missing='ignore'),
         # set common reference for all
         Preprocessor('set_eeg_reference', ref_channels='average', ch_type='eeg'),
         # rename to common naming convention
