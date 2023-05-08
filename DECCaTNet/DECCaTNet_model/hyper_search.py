@@ -43,7 +43,6 @@ from ray.util import inspect_serializability
 def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
-    ray.init(log_to_driver=False)
     #ray.init(num_cpus=1)
     #ray.init(num_gpus=2)
     if hyper_prams['PRE_TRAINING']:
@@ -72,7 +71,7 @@ def hyper_search(all_params, global_params):
             metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
             max_report_frequency=hyper_prams['max_report_frequency'])
     if global_params['n_gpu']>0:
-        trainable = tune.with_resources(hyper_search_train,resources={'gpu':0.5, 'cpu':math.floor(global_params['n_jobs']/(2*global_params['n_gpu'])),"accelerator_type:V100": 1})
+        trainable = tune.with_resources(hyper_search_train,resources={'gpu':0.5, 'cpu':math.floor(global_params['n_jobs']/(2*global_params['n_gpu'])),"accelerator_type:V100": 0.25})
     else:
         n_jobs = math.floor(global_params['n_jobs']/5)
         if n_jobs == 0:
@@ -86,7 +85,8 @@ def hyper_search(all_params, global_params):
         scheduler=scheduler,
         progress_reporter=reporter,
         local_dir='../tune_results',
-        verbose= 1
+        verbose= 1,
+        log_to_driver = False
     )
     best_trial = result.get_best_trial(metric=metric,mode=mode)
     print("Best trial config: {}".format(best_trial.config))
