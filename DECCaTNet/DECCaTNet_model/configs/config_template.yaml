@@ -6,6 +6,7 @@ global:
   PRE_TRAINING: False
   FINE_TUNING: False
 
+  n_gpu: 0
   n_jobs: 4
   random_state: null # remember null and not None
 
