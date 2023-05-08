@@ -14,10 +14,10 @@ def run(config_path_name):
     with open(config_path, 'r') as fid:
         params = yaml.safe_load(fid)
     global_params = params['global']
-    if global_params['HYPER_SEARCH']:
-        hs.hyper_search(params,global_params)
     if global_params['PREPROCESSING']:
         pre.run_preprocess(params,global_params)
+    if global_params['HYPER_SEARCH']:
+        hs.hyper_search(params,global_params)
     if global_params['PRE_TRAINING']:
         cf.pre_train_model(params,global_params)
     if global_params['FINE_TUNING']:

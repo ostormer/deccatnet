@@ -554,14 +554,12 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     except OSError:
         os.remove(temp_save_dir)
 
-    try:
-        if stop_after_preproc_step and ds_params['IS_FINE_TUNING_DS']:
-            return fix_preproc_paths(batch_save_dirs, copy.deepcopy(preproc_save_dir))
-    except:
-        if stop_after_preproc_step:
-            return None
-        else:
-            return _preproc_split(ds_params, global_params)
+    if ds_params['IS_FINE_TUNING_DS']:
+        return fix_preproc_paths(batch_save_dirs, copy.deepcopy(preproc_save_dir))
+    if stop_after_preproc_step:
+        return None
+    else:
+        return _preproc_split(ds_params, global_params)
 
 
 def fix_preproc_paths(batch_save_dirs, preproc_save_dir):
