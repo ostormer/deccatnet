@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
-  HYPER_SEARCH: False
+  PREPROCESSING: False
+  HYPER_SEARCH: True
   PRE_TRAINING: False
   FINE_TUNING: False
 
