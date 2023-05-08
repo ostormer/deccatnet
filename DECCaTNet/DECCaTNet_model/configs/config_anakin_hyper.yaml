@@ -2,8 +2,8 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: True
-  PRE_TRAINING: False
+  HYPER_SEARCH: False
+  PRE_TRAINING: True
   FINE_TUNING: False
 
   n_gpu: 2
@@ -151,14 +151,14 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 64
-  train_split: 0.1
+  train_split: 0.05
   SHUFFLE: True
   temperature: 0.8 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
   weight_decay: 0.01
   max_epochs: 2
 
-  save_freq: 5
+  save_freq: 1
   batch_print_freq: 100
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
