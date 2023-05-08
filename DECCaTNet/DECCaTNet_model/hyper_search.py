@@ -80,7 +80,8 @@ def hyper_search(all_params, global_params):
         trainable = tune.with_resources(hyper_search_train, resources={'cpu': n_jobs})
 
     # Try t fix noisy logging
-    ray.init(configure_logging=True, logging_level=logging.ERROR,RAY_DEDUP_LOGS=0)
+    ray.init(configure_logging=True, logging_level=logging.ERROR)
+    configs['RAY_DEDUP_LOGS'] = 0
     configs['log_level'] = 'ERROR'
 
     result = tune.run(
