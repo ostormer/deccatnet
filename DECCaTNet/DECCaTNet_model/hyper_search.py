@@ -34,7 +34,7 @@ from DECCaTNet_model.contrastive_framework import ContrastiveLoss, train_epoch, 
 from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
 from DECCaTNet_model.fine_tuning import train_epoch as train_epoch_fine
 from DECCaTNet_model.fine_tuning import validate_epoch as validate_epoch_fine
-from DECCaTNet_model.fine_tuning impor FineTuneNet
+from DECCaTNet_model.fine_tuning import FineTuneNet
 from ray.util import inspect_serializability
 
 
