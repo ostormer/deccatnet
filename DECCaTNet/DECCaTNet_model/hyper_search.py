@@ -58,6 +58,14 @@ def hyper_search(all_params, global_params):
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             metric_columns=["val_loss", "train_loss", "training_iteration"],
             max_report_frequency=hyper_prams['max_report_frequency'])
+    elif hyper_prams['PERFORM_PREPROCESS']:
+        scheduler = ASHAScheduler(
+            max_t=hyper_prams['max_t'],
+            grace_period=hyper_prams['grace_period'],
+            reduction_factor=hyper_prams['reduction_factor'])
+        reporter = CLIReporter(
+            # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
+            max_report_frequency=hyper_prams['max_report_frequency'])
     else:
         mode = 'max'
         metric = 'val_acc'
