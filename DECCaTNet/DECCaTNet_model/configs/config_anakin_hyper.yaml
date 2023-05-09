@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
-  HYPER_SEARCH: False
+  PREPROCESSING: False
+  HYPER_SEARCH: True
   PRE_TRAINING: False
   FINE_TUNING: False
 
@@ -19,7 +19,7 @@ global:
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1',] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  datasets: ['tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
+  datasets: ['seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
@@ -30,7 +30,7 @@ preprocess:
     STOP_AFTER_PREPROC: False
 
     start_idx: 0
-    stop_idx: 500 # Which idx is the last to load? (null for all)
+    stop_idx: 400 # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
@@ -65,11 +65,11 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: True
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
-    stop_idx: 500  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    stop_idx: 400  # Which idx is the last to load? (null for all)
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
