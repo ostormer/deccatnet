@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
-  HYPER_SEARCH: False
+  PREPROCESSING: False
+  HYPER_SEARCH: True
   PRE_TRAINING: False
   FINE_TUNING: False
 
@@ -19,7 +19,7 @@ global:
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1',] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  datasets: ['tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
+  datasets: ['seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
@@ -27,11 +27,11 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_pre'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: True
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
-    stop_idx: null # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    stop_idx: 500 # Which idx is the last to load? (null for all)
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -46,11 +46,11 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/eval'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: True
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'peproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -84,7 +84,7 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/SEED/seed_pre'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: True
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -104,7 +104,7 @@ preprocess:
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/bciciv_1_raw'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/bciciv_1/preprocessed'
     IS_FINE_TUNING_DS: False
-    STOP_AFTER_PREPROC: True
+    STOP_AFTER_PREPROC: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -251,8 +251,8 @@ hyper_search:
   max_report_frequency: 120
 
   config:
-    n_channels: 'tune.grid_search([2])'
-    #n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
+    #n_channels: 'tune.grid_search([2])'
+    n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
     #batch_size: 'tune.choice([16,32,128])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
 
