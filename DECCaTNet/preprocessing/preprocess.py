@@ -638,8 +638,10 @@ def _preproc_split(ds_params, global_params, dataset=None):
 
 
     batch_dirs = sorted(os.listdir(preproc_save_dir))
-    print(f'Debugging, preproc_save dir is: {preproc_save_dir}')
-    print(f'Debugging, bathc dirs is: {batch_dirs}')
+
+    # print(f'Debugging, preproc_save dir is: {preproc_save_dir}')
+    # print(f'Debugging, bathc dirs is: {batch_dirs}')
+
     # Calculate preprocessed ds length, which is max stop_idx value
     preproc_ds_length = (len(batch_dirs) - 1) * 500 + len(os.listdir(os.path.join(preproc_save_dir, batch_dirs[-1])))
     if stop_idx is None or stop_idx > preproc_ds_length:

@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
-  HYPER_SEARCH: True
+  PREPROCESSING: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
   FINE_TUNING: False
 
@@ -19,7 +19,7 @@ global:
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1',] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  datasets: ['seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
@@ -265,8 +265,8 @@ hyper_search:
 
 
 # Checklist running hyperparamsearch:
-# - All pre_training datasets preprocessed with delete_Step_1=False and is stop after preproc or something = TRUE
+# - All pre_training datasets preprocessed with delete_Step_1=False and is stop after preproc= TRUE
 # - Fine_tuning dataset preprocessed togheter with other datasets
-# - Change to preproc and FINE_TUNING_DS = False in all pre_training datasets and remove fine_tuning dataset
+# - Change to preproc and stop after preproc = False in all pre_training datasets and remove fine_tuning dataset
 # - Run hyper_search, if first time with channels or channel_selection method, PERFORM_PREPROCESS must be true
 # - If not first or not changes to channels or channel_selection, run without PERFORM_PREPROCESS
