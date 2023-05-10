@@ -150,16 +150,16 @@ pre_training:
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
-  batch_size: 64
+  batch_size: 128
   train_split: 0.8
   SHUFFLE: True
   temperature: 0.8 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
   weight_decay: 0.01
-  max_epochs: 2
+  max_epochs: 25
 
-  save_freq: 1
-  batch_print_freq: 100
+  save_freq: 10
+  batch_print_freq: 10000
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'test_anakin' # Name of your model
   TIME_PROCESS: False
@@ -177,9 +177,9 @@ fine_tuning:
   n_classes: 2
 
   batch_size: 64
-  max_epochs: 10
-  lr_rate: 0.01
-  weight_decay: 0.005
+  max_epochs: 50
+  lr_rate: 0.1
+  weight_decay: 0.01
   train_split: 0.8
   SHUFFLE: True
 
@@ -240,15 +240,15 @@ hyper_search:
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
-  fine_tune_split: 0.01 # how much avaible data should be used for fine_tuning
-  pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  fine_tune_split: 0.2 # how much avaible data should be used for fine_tuning
+  pre_train_split: 0.5 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
   max_t: 100 # maximum training iteration before validation
-  grace_period: 10 # minimum number of training iterations before validating.
-  reduction_factor: 0 #
+  grace_period: 30 # minimum number of training iterations before validating.
+  reduction_factor: 1 # TODO: remember commented out
   num_samples: 1 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
-  max_report_frequency: 120
+  max_report_frequency: 240
 
   config:
     #n_channels: 'tune.grid_search([2])'
