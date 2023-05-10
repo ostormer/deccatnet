@@ -2,8 +2,8 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: True
-  PRE_TRAINING: False
+  HYPER_SEARCH: False
+  PRE_TRAINING: True
   FINE_TUNING: False
 
   n_gpu: 2
@@ -162,7 +162,7 @@ pre_training:
   batch_print_freq: 100
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'test_anakin' # Name of your model
-  TIME_PROCESS: False
+  TIME_PROCESS: True
 
   augmentation:
     noise_probability: 0 # TODO fix such that this is possible to add to a config file.
