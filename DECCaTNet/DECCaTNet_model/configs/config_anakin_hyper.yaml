@@ -162,7 +162,7 @@ pre_training:
   batch_print_freq: 100
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'test_anakin' # Name of your model
-  TIME_PROCESS: True
+  TIME_PROCESS: False
 
   augmentation:
     noise_probability: 0 # TODO fix such that this is possible to add to a config file.
@@ -244,9 +244,9 @@ hyper_search:
   pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
-  max_t: 10 # maximum training iteration before validation
-  grace_period: 1 # minimum number of training iterations before validating.
-  reduction_factor: 2 #
+  max_t: 100 # maximum training iteration before validation
+  grace_period: 10 # minimum number of training iterations before validating.
+  reduction_factor: 0 #
   num_samples: 1 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
   max_report_frequency: 120
 
