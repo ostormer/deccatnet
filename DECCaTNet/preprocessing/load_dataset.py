@@ -66,7 +66,7 @@ def load_raw_seed(ds_params, global_params, drop_non_eeg=True) -> BaseConcatData
     file_paths = glob.glob(os.path.join(root_dir, '**/*.cnt'), recursive=True)
     file_paths = file_paths[start_idx:stop_idx]  # Keep only wanted part of dataset
     base_datasets = []
-    for file_path in tqdm(file_paths, miniters=len(file_paths) / 50):
+    for file_path in tqdm(file_paths, miniters=len(file_paths) / 25, maxinterval=600):
         raw = mne.io.read_raw_cnt(file_path, verbose='INFO', preload=False)
         if drop_non_eeg:
             raw.drop_channels(['M1', 'M2', 'VEO', 'HEO'], on_missing='ignore')
@@ -91,7 +91,7 @@ def load_raw_bciciv_1(ds_params, global_params) -> BaseConcatDataset:
     file_paths = file_paths[start_idx:stop_idx]  # Keep only wanted part of dataset
 
     base_datasets = []
-    for file_path in tqdm(file_paths):
+    for file_path in tqdm(file_paths, miniters=len(file_paths) / 25, maxinterval=600):
         mat = loadmat(file_path)
         raw_nfo = mat['nfo']
         # Create info object
