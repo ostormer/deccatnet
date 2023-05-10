@@ -550,7 +550,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
         # Create preproc_save_dir
         if not os.path.exists(batch_save_dir):
             os.makedirs(batch_save_dir)
-        batch_save_dirs.append(os.path.join(preproc_save_dir + '_temp', split_name))
+        batch_save_dirs.append(os.path.join(preproc_save_dir, split_name))
         # Apply preprocessing step
         preprocess_signals(concat_dataset=batch, mapping=ch_mapping,
                            ch_naming=common_naming, preproc_params=ds_params,
@@ -579,6 +579,7 @@ def fix_preproc_paths(batch_save_dirs, preproc_save_dir):
     # recreate preproc_save dir
     os.mkdir(preproc_save_dir)
 
+    batch_save_dirs = [os.path.join(preproc_save_dir + "_temp", batch) for batch in batch_save_dirs]
     offset = 0
     for save_dir in batch_save_dirs:
         files_in_batch = os.listdir(save_dir)
@@ -658,6 +659,8 @@ def _preproc_split(ds_params, global_params):
 
     if ds_params['IS_FINE_TUNING_DS'] and ds_params['STOP_AFTER_PREPROC']:
         fix_preproc_paths(batch_dirs, preproc_save_dir)
+        print("Fixed paths, not splitting since this is a finetune set")
+        return
 
     if not os.path.exists(split_save_dir):
         os.makedirs(split_save_dir)
