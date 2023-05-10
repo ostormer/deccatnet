@@ -155,10 +155,15 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     print('Dropping short recordings and excluded channels:')
 
     exclude_ch = preproc_params['exclude_channels']
+    include_ch = preproc_params['include_channels']
+
     for ds in concat_ds.datasets:
         if ds.raw.n_times * ds.raw.info['sfreq'] >= window_size:
+            if len(include_ch) > 0 and len(ds.raw.ch_names) < len(include_ch):
+                continue  # Drop recording, it is missing required channels
             keep_ds.append(ds)
         ds.raw.drop_channels(exclude_ch, on_missing='ignore')
+
     print(f'Kept  {len(keep_ds)} recordings')
     concat_ds = BaseConcatDataset(keep_ds)
 
