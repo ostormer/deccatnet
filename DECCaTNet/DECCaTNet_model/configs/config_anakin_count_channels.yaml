@@ -18,7 +18,7 @@ global:
 
 
   # datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1'] # which datasets should be preprocessed
-  datasets: [ 'tuh_eeg_abnormal_finetune', tuh_eeg_abnormal_eval] # which datasets should be preprocessed
+  datasets: [tuh_eeg_abnormal_eval] # which datasets should be preprocessed
 
 
 preprocess:
@@ -134,7 +134,7 @@ preprocess:
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # needs to be none if new channels are excluded, else windows is acceptable
+    read_cache: 'preproc'  # needs to be none if new channels are excluded, else windows is acceptable
 
     bandpass_lo: 0.3
     bandpass_hi: 80

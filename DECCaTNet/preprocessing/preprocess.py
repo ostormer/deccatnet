@@ -537,7 +537,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     preprocessing_batch = [i // max_batch_size for i in ds_index]
     dataset.set_description({"preprocessing_batch": preprocessing_batch})
     batches = dataset.split(by="preprocessing_batch")
-    batch_save_dirs = []
+    batch_names = []
 
     # Check Folder is exists or Not
     if os.path.exists(preproc_save_dir):
@@ -550,7 +550,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
         # Create preproc_save_dir
         if not os.path.exists(batch_save_dir):
             os.makedirs(batch_save_dir)
-        batch_save_dirs.append(os.path.join(preproc_save_dir, split_name))
+        batch_names.append(split_name)
         # Apply preprocessing step
         preprocess_signals(concat_dataset=batch, mapping=ch_mapping,
                            ch_naming=common_naming, preproc_params=ds_params,
@@ -566,22 +566,22 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
         os.remove(temp_save_dir)
 
     if ds_params['IS_FINE_TUNING_DS']:
-        return fix_preproc_paths(batch_save_dirs, preproc_save_dir)
+        return fix_preproc_paths(batch_names, preproc_save_dir)
     if stop_after_preproc_step:
         return None
     else:
         return _preproc_split(ds_params, global_params)
 
 
-def fix_preproc_paths(batch_save_dirs, preproc_save_dir):
+def fix_preproc_paths(batch_names, preproc_save_dir):
     # temporaliy save somewhere else
     shutil.move(preproc_save_dir, preproc_save_dir + '_temp')
     # recreate preproc_save dir
     os.mkdir(preproc_save_dir)
 
-    batch_save_dirs = [os.path.join(preproc_save_dir + "_temp", batch) for batch in batch_save_dirs]
+    batch_names = [preproc_save_dir + '_temp/' + batch for batch in batch_names]
     offset = 0
-    for save_dir in batch_save_dirs:
+    for save_dir in batch_names:
         files_in_batch = os.listdir(save_dir)
         for file in files_in_batch:
             shutil.move(os.path.join(save_dir, file), os.path.join(preproc_save_dir, str(int(file) + offset)))
