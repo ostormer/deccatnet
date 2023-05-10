@@ -1,4 +1,4 @@
-import copy
+import gc
 import gc
 import itertools
 import os
@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import mne
 from braindecode.datasets import BaseConcatDataset, WindowsDataset
-from braindecode.datautil.serialization import _check_save_dir_empty, load_concat_dataset
+from braindecode.datautil.serialization import load_concat_dataset
 from braindecode.preprocessing import create_fixed_length_windows, Preprocessor, preprocess
 
 """
@@ -153,10 +153,8 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     # Drop too short recordings and uninteresting channels
     keep_ds = []
     print('Dropping short recordings and excluded channels:')
-    try:
-        exclude_ch = preproc_params['exclude_channels']
-    except IndexError:
-        exclude_ch = []
+
+    exclude_ch = preproc_params['exclude_channels']
     for ds in concat_ds.datasets:
         if ds.raw.n_times * ds.raw.info['sfreq'] >= window_size:
             keep_ds.append(ds)
@@ -237,6 +235,11 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
     if exclude_channels is None:
         exclude_channels = []
     mne.set_log_level('ERROR')
+
+    for ch in exclude_channels:
+        assert ch not in preproc_params['include_channels'], \
+            f'Channel {ch} both included an excluded, error in config'
+
     ch_naming = sorted(list(set(ch_naming) - set(exclude_channels)))
 
     preprocessors = [
@@ -246,12 +249,17 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor('set_eeg_reference', ref_channels='average', ch_type='eeg'),
         # rename to common naming convention
         # Preprocessor(rename_channels, mapping=mapping, apply_on_array=False),
-        Preprocessor('pick_channels', ch_names=ch_naming, ordered=False),  # keep wanted channels
+        # Preprocessor('pick_channels', ch_names=ch_naming, ordered=True),  # keep wanted channels
         # Resample
         Preprocessor('resample', sfreq=s_freq),
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
+
+    if len(preproc_params['include_channels'] > 0):
+        # Include_channels acts as a whitelist
+        picker = Preprocessor('pick_channels', ch_names=preproc_params['include_channels'], ordered=True)
+        preprocessors.insert(1, picker)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -502,10 +510,7 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     preproc_save_dir = ds_params['preproc_save_dir']
     cache_dir = ds_params['cache_dir']
     stop_after_preproc_step = ds_params['STOP_AFTER_PREPROC']
-    try:
-        exclude_channels = ds_params["exclude_channels"]
-    except KeyError:
-        exclude_channels = []
+    exclude_channels = ds_params["exclude_channels"]
 
     if dataset is None:
         print("Loading pickled windowed dataset...")
@@ -670,12 +675,13 @@ def _preproc_split(ds_params, global_params):
         concat_ds = load_concat_dataset(batch_dir_path, preload=False, ids_to_load=list(range(first_file, stop_file)))
 
         if ds_params['IS_FINE_TUNING_DS'] or ds_params['STOP_AFTER_PREPROC']:
-            for ds in dataset.datasets:
+            for ds in concat_ds.datasets:
                 channels = tuple(ds.windows.ch_names)
                 if channels not in channel_lists.keys():
                     channel_lists[channels] = 1
                 else:
                     channel_lists[channels] += 1
+            next_batch += 1
             continue
 
         batch_idx_list = split_by_channels(concat_ds, next_batch, ds_params, global_params)
@@ -726,6 +732,16 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         channel_select_function = global_params["channel_select_function"]
         assert channel_select_function in string_to_channel_split_func.keys(), \
             f"{channel_select_function} is not a valid channel selection function"
+        try:
+            exclude_channels = ds_params["exclude_channels"]
+        except KeyError:
+            exclude_channels = []
+        ds_params['exclude_channels'] = exclude_channels
+        try:
+            include_channels = ds_params["include_channels"]
+        except KeyError:
+            include_channels = []
+        ds_params["include_channels"] = include_channels
 
         ds_params['cache_dir'] = os.path.join(ds_params['preprocess_root'], 'pickles')
         ds_params['preproc_save_dir'] = os.path.join(ds_params['preprocess_root'], 'first_preproc')
@@ -757,6 +773,7 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
 def drop_channels(dataset, ds_params):
     for ds in dataset.datasets:
         ds.windows.drop_channels(ds_params["exclude_channels"], on_missing="ignore")
+
 
 def check_finetune_channels(dataset):
     channel_lists = {}
