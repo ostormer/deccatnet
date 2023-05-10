@@ -168,7 +168,7 @@ pre_training:
   batch_print_freq: 5
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
-  TIME_PROCESS: False
+  TIME_PROCESS: True
 
   augmentation:
     noise_probability: 0
