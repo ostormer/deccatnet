@@ -206,7 +206,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     all_params_2 = copy.deepcopy(all_params)
     to_join = os.getcwd()
     all_params_2['fine_tuning']['encoder_path'] = os.path.join(to_join, all_params_2['fine_tuning']['encoder_path'])
-
+    print(f'================== current working dir {to_join}======================')
     print(all_params_2['fine_tuning']['encoder_path'], f"this is what it should be {os.path.join(to_join, all_params_2['fine_tuning']['encoder_path'])}")
     model = FineTuneNet(channel_groups, ds_channel_order, all_params_2, global_params)
     #model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params) # TODO remove this change
