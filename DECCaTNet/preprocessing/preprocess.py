@@ -565,8 +565,8 @@ def _preproc_preprocess_windowed(ds_params, global_params, dataset=None):
     except OSError:
         os.remove(temp_save_dir)
 
-    # if ds_params['IS_FINE_TUNING_DS']:
-    #     return fix_preproc_paths(batch_save_dirs, copy.deepcopy(preproc_save_dir))
+    if ds_params['IS_FINE_TUNING_DS']:
+        return fix_preproc_paths(batch_save_dirs, preproc_save_dir)
     if stop_after_preproc_step:
         return None
     else:
@@ -656,6 +656,9 @@ def _preproc_split(ds_params, global_params):
     if stop_idx is None or stop_idx > preproc_ds_length:
         stop_idx = preproc_ds_length
 
+    if ds_params['IS_FINE_TUNING_DS'] and ds_params['STOP_AFTER_PREPROC']:
+        fix_preproc_paths(batch_dirs, preproc_save_dir)
+
     if not os.path.exists(split_save_dir):
         os.makedirs(split_save_dir)
 
@@ -663,7 +666,6 @@ def _preproc_split(ds_params, global_params):
     next_batch = start_idx // 500
     idx_list = []
     print("Splitting into channel groups divided into batches of 500 files:")
-    channel_lists = {}
     while next_batch <= last_batch_to_load:
         print(f"Splitting batch {next_batch} of {last_batch_to_load}")
         batch_dir_path = os.path.join(preproc_save_dir, batch_dirs[next_batch])
@@ -679,22 +681,10 @@ def _preproc_split(ds_params, global_params):
         # All boundaries are corrected and set, load BaseConcatDataset
         concat_ds = load_concat_dataset(batch_dir_path, preload=False, ids_to_load=list(range(first_file, stop_file)))
 
-        if ds_params['IS_FINE_TUNING_DS'] or ds_params['STOP_AFTER_PREPROC']:
-            for ds in concat_ds.datasets:
-                channels = tuple(ds.windows.ch_names)
-                if channels not in channel_lists.keys():
-                    channel_lists[channels] = 1
-                else:
-                    channel_lists[channels] += 1
-            next_batch += 1
-            continue
-
         batch_idx_list = split_by_channels(concat_ds, next_batch, ds_params, global_params)
         idx_list.extend(batch_idx_list)
         next_batch += 1
     print("Done splitting all batches")
-    for channels in channel_lists:
-        print(f"length: {len(channels)}, number of files: {channel_lists[channels]}, \n {channels}\n")
 
     with open(
             os.path.join(
