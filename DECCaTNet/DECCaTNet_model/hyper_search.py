@@ -44,6 +44,7 @@ from ray.util import inspect_serializability
 def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
+
     #ray.init(num_cpus=1)
     #ray.init(num_gpus=2)
     if hyper_prams['PRE_TRAINING']:
@@ -71,8 +72,8 @@ def hyper_search(all_params, global_params):
             metric=metric,
             mode=mode,
             max_t=hyper_prams['max_t'],
-            grace_period=hyper_prams['grace_period'],
-            reduction_factor=hyper_prams['reduction_factor'])
+            grace_period=hyper_prams['grace_period'],)
+            #reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
