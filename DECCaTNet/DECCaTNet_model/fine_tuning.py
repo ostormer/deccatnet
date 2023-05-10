@@ -54,6 +54,8 @@ class FineTuneNet(nn.Module):
 
         self.encoder = Encoder(all_params['encoder_params'], global_params)
 
+        print(f'=============== debugging, this is encoder path {self.encoder_path} ==============')
+
         if torch.cuda.is_available():
             self.encoder.load_state_dict(torch.load(self.encoder_path))
         else:

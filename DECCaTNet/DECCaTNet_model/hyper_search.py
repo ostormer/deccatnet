@@ -203,6 +203,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
     try:
         model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
     except:
