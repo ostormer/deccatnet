@@ -636,7 +636,6 @@ def _preproc_split(ds_params, global_params, dataset=None):
     split_save_dir = ds_params['split_save_dir']
     cache_dir = ds_params['cache_dir']
 
-
     batch_dirs = sorted(os.listdir(preproc_save_dir))
 
     # print(f'Debugging, preproc_save dir is: {preproc_save_dir}')
@@ -646,6 +645,10 @@ def _preproc_split(ds_params, global_params, dataset=None):
     preproc_ds_length = (len(batch_dirs) - 1) * 500 + len(os.listdir(os.path.join(preproc_save_dir, batch_dirs[-1])))
     if stop_idx is None or stop_idx > preproc_ds_length:
         stop_idx = preproc_ds_length
+
+    if ds_params['IS_FINE_TUNING_DS'] or ds_params['STOP_AFTER_PREPROC']:
+        check_finetune_channels(dataset)
+        return
 
     if not os.path.exists(split_save_dir):
         os.makedirs(split_save_dir)
@@ -746,3 +749,14 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
 def drop_channels(dataset, ds_params):
     for ds in dataset.datasets:
         ds.windows.drop_channels(ds_params["exclude_channels"], on_missing="ignore")
+
+def check_finetune_channels(dataset):
+    channel_lists = {}
+    for ds in dataset.datasets:
+        channels = tuple(ds.windows.ch_names)
+        if channels not in channel_lists.keys():
+            channel_lists[channels] = 1
+        else:
+            channel_lists[channels] += 1
+    for channels in channel_lists:
+        print(f"length: {len(channels)}, number of files: {channel_lists[channels]}, \n {channels}\n")
