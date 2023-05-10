@@ -151,7 +151,7 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 64
-  train_split: 0.05
+  train_split: 0.8
   SHUFFLE: True
   temperature: 0.8 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
@@ -240,8 +240,8 @@ hyper_search:
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
-  fine_tune_split: 0.1 # how much avaible data should be used for fine_tuning
-  pre_train_split: 0.1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  fine_tune_split: 0.01 # how much avaible data should be used for fine_tuning
+  pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
   max_t: 10 # maximum training iteration before validation
