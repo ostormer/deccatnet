@@ -204,7 +204,7 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     all_params_2 = copy.deepcopy(all_params)
-    to_join = os.getcwd()
+    to_join = str(os.getcwd())
     all_params_2['fine_tuning']['encoder_path'] = os.path.join(to_join, all_params_2['fine_tuning']['encoder_path'])
     print(f'================== current working dir {to_join}======================')
     print(all_params_2['fine_tuning']['encoder_path'], f"this is what it should be {os.path.join(to_join, all_params_2['fine_tuning']['encoder_path'])}")
