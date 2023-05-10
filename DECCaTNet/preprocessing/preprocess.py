@@ -261,7 +261,7 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
 
-    if len(preproc_params['include_channels'] > 0):
+    if len(preproc_params['include_channels']) > 0:
         # Include_channels acts as a whitelist
         picker = Preprocessor('pick_channels', ch_names=preproc_params['include_channels'], ordered=True)
         preprocessors.insert(1, picker)
