@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False
   FINE_TUNING: False
 
-  TQDM: False
+  TQDM: True # want to disable tqdm or not
 
   n_gpu: 2
   n_jobs: 50
