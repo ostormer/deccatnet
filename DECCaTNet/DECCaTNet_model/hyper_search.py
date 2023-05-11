@@ -101,6 +101,7 @@ def hyper_search(all_params, global_params):
         progress_reporter=reporter,
         local_dir='../tune_results',
         verbose=2,
+        disable_tqdm=global_params['TQDM']
     )
 
     best_trial = result.get_best_trial(metric=metric,mode=mode)
