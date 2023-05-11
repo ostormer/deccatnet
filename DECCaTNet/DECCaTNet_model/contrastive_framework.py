@@ -10,8 +10,8 @@ import torch.nn as nn
 import torch.nn.functional as fn
 import torchplot as plt
 from DECCaTNet_model.custom_dataset import ConcatPathDataset
-from ray.experimental.tqdm_ray import tqdm
-
+# from ray.experimental.tqdm_ray import tqdm
+from tqdm import tqdm
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
 
 """

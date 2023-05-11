@@ -7,7 +7,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import SubsetRandomSampler
-from ray.experimental.tqdm_ray import tqdm
+# from ray.experimental.tqdm_ray import tqdm
+from tqdm import tqdm
 from sklearn.model_selection import KFold
 import os
 import pickle as pkl
