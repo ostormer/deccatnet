@@ -251,7 +251,7 @@ hyper_search:
   max_t: 100 # maximum training iteration before validation
   grace_period: 10 # minimum number of training iterations before validating.
   reduction_factor: 2 # TODO: remember commented out
-  num_samples: 1 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
+  num_samples: 20 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
   config:
