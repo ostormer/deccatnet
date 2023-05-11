@@ -78,7 +78,7 @@ def hyper_search(all_params, global_params):
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
             max_report_frequency=hyper_prams['max_report_frequency'])
-    if global_params['n_gpu']>0:
+    if global_params['n_gpu']>0:F
         trainable = tune.with_resources(hyper_search_train,resources={'gpu':0.45, 'cpu':math.floor(global_params['n_jobs']/(2*global_params['n_gpu'])),"accelerator_type:V100": 0.21})
     else:
         n_jobs = math.floor(global_params['n_jobs']/5)
@@ -232,30 +232,30 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
                         test_loader, device,
                         loss_func,
                         optimizer, validate_test,
-                        n_folds)
+                        n_folds,disable=global_params['TQDM'])
     else:
         train_model(epochs, model, train_loader,
                     val_loader, test_loader,
                     device,
                     loss_func, optimizer,
-                    validate_test)
+                    validate_test,disable=global_params['TQDM'])
 
 
 def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,
-                early_stop=None):
+                early_stop=None,disable=False):
     for epoch in range(epochs):
         print(f'============== HYPER SEARCH FINE-TUNING EPOCH: {epoch} of {epochs}==========================')
         train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
-                                                                       optimizer)
+                                                                       optimizer,disable=disable)
 
-        val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func)
+        val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
 
         session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
                         'val_acc': correct_eval_preds / num_eval_preds})
 
 
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
-                    n_folds, early_stop=None, random_state=422):
+                    n_folds, early_stop=None, random_state=422,disable=False):
     folds = KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
     print('========================== STARTED K-FOLD-TRAINING ====================================')
     for fold, (train_idx, val_idx) in enumerate(folds.split(np.arange(len(dataset)))):
@@ -269,8 +269,8 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
         for epoch in range(epochs):
             print('epoch number: ', epoch, 'of: ', epochs)
             train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
-                                                                           optimizer)
-            val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func)
+                                                                           optimizer,disable=disable)
+            val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
 
             session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
                             'val_acc': correct_eval_preds / num_eval_preds})  # , checkpoint=checkpoint)
@@ -342,8 +342,8 @@ def pre_train_hypersearch(all_params=None, global_params=None):
     for epoch in range(max_epochs):
         print(f'========== Epoch nr {epoch} of {max_epochs} =======================')
         model, counter, epoch_loss = train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func,
-                                                 time_process, batch_print_freq, time_names, batch_size)
-        val_loss = validate_epoch(model, val_loader, device, loss_func)
+                                                 time_process, batch_print_freq, time_names, batch_size,disable=global_params['TQDM'])
+        val_loss = validate_epoch(model, val_loader, device, loss_func,disable=global_params['TQDM'])
 
         losses.append(epoch_loss)
         val_losses.append(val_loss)

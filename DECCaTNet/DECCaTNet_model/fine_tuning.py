@@ -140,13 +140,13 @@ def n_correct_preds(y_pred, y):
     return num_correct, num_total
 
 
-def train_epoch(model, train_loader, device, loss_func, optimizer):
+def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     model.train()  # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
     train_loss = 0
     correct_train_preds = 0
     num_train_preds = 0
 
-    for x, y in tqdm(train_loader):
+    for x, y in tqdm(train_loader,disable=disable):
         y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])  # TODO check what shape of target should be
         # y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
@@ -178,14 +178,14 @@ def train_epoch(model, train_loader, device, loss_func, optimizer):
     return train_loss, correct_train_preds, num_train_preds
 
 
-def validate_epoch(model, val_loader, device, loss_func):
+def validate_epoch(model, val_loader, device, loss_func,disable):
     print('============================ RUNNING VALIDATION EPOCH ============================')
     correct_eval_preds = 0
     num_eval_preds = 0
     val_loss = 0
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
-        for x, y in tqdm(val_loader):
+        for x, y in tqdm(val_loader, disable=disable):
             y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])
             # y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)

@@ -232,14 +232,14 @@ class ContrastiveLossGPT(nn.Module):
 
 
 def train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func, time_process, batch_print_freq,
-                time_names, batch_size):
+                time_names, batch_size, disable=False):
     model.train()  # tells Pytorch Backend that model is trained (for example set dropout and have correct batchNorm)
     print(f'============= PRE-TRAIN EPOCH NUMBER: {epoch+1} of {max_epochs} =====================')
     epoch_loss = 0
     counter = 0  # counter for batch print.
     # start traning by looping through batches
     start_time = time.thread_time()
-    for aug_1, aug_2, sample in tqdm(train_loader):
+    for aug_1, aug_2, sample in tqdm(train_loader, disable=disable):
         batch_time = time.thread_time()
         # transfer to GPU or CUDA
         x1, x2 = aug_1.to(device), aug_2.to(device)
@@ -292,13 +292,13 @@ def train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_
     return model, counter, epoch_loss / counter
 
 
-def validate_epoch(model, val_loader, device, loss_func):
+def validate_epoch(model, val_loader, device, loss_func, disable):
     val_steps = 0
     val_loss = 0
     print('================ VALIDATING EPOCH IN pre_training ====================')
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
-        for aug_1, aug_2, sample in tqdm(val_loader):
+        for aug_1, aug_2, sample in tqdm(val_loader,disable=disable):
             # transfer to GPU or CUDA
             x1, x2 = aug_1.to(device), aug_2.to(device)
             # send through model and projector, asssume not splitted for now
@@ -435,7 +435,7 @@ def pre_train_model(all_params, global_params):
     # iterative traning loop
     for epoch in range(max_epochs):
         model, counter, epoch_loss = train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func,
-                                                 time_process, batch_print_freq, time_names, batch_size)
+                                                 time_process, batch_print_freq, time_names, batch_size,disable=global_params['TQDM'])
         # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
         # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
@@ -448,7 +448,7 @@ def pre_train_model(all_params, global_params):
                                                   "temp_encoder" + str(epoch + 1) + "_" + model_file_name)
             torch.save(model.encoder.state_dict(), temp_save_path_encoder)
         losses.append(epoch_loss)
-        val_loss = validate_epoch(model, val_loader, device, loss_func)
+        val_loss = validate_epoch(model, val_loader, device, loss_func,disable=global_params['TQDM'])
         val_losses.append(val_loss)
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
