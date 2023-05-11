@@ -249,8 +249,8 @@ hyper_search:
   #however all data should necessearli be used for pre_training
 
   max_t: 100 # maximum training iteration before validation
-  grace_period: 30 # minimum number of training iterations before validating.
-  reduction_factor: 1 # TODO: remember commented out
+  grace_period: 10 # minimum number of training iterations before validating.
+  reduction_factor: 2 # TODO: remember commented out
   num_samples: 1 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
