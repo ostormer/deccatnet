@@ -247,7 +247,7 @@ hyper_search:
   FINE_TUNING: False
 
   fine_tune_split: 0.1 # how much avaible data should be used for fine_tuning
-  pre_train_split: 0.5 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
   max_t: 100 # maximum training iteration before validation
