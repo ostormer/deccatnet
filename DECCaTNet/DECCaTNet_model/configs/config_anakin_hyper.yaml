@@ -158,7 +158,7 @@ pre_training:
   temperature: 0.8 # må endres
   learning_rate: 0.1 # må endres
   weight_decay: 0.01 # må endres
-  max_epochs: 30
+  max_epochs: 100
 
   save_freq: 10
   batch_print_freq: 10000
@@ -247,12 +247,12 @@ hyper_search:
   FINE_TUNING: False
 
   fine_tune_split: 0.1 # how much avaible data should be used for fine_tuning
-  pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  pre_train_split: 0.4 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
   max_t: 100 # maximum training iteration before validation
-  grace_period: 10 # minimum number of training iterations before validating.
-  reduction_factor: 2 # TODO: remember commented out
+  grace_period: 4 # minimum number of training iterations before validating.
+  reduction_factor: 3 # TODO: remember commented out
   num_samples: 20 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
@@ -263,10 +263,10 @@ hyper_search:
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
     #batch_size: 'tune.choice([16,32,128])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
-    batch_size: 'tune.choice([16,32,128])' # (100,1000)
-    temperature: 'tune.loguniform(0.1,1)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
+    batch_size: 'tune.choice([128,256,524])' # (100,1000)
+    temperature: 'tune.loguniform(0.01,0.2)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
     learning_rate: 'tune.loguniform(1e-4, 1e-1)' #(1e-4, 1e-1)
-    weight_decay: 'tune.loguniform(1e-5, 1e-2)' # (1e-4,1e-1)
+    weight_decay: 'tune.loguniform(1e-4, 1e-1)' # (1e-4,1e-1)
 
 
   inspiration:
