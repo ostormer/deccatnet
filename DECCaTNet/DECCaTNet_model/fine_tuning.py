@@ -63,7 +63,7 @@ class FineTuneNet(nn.Module):
         else:
             self.encoder.load_state_dict(torch.load(self.encoder_path,map_location=torch.device('cpu'))) # saved in the hyperparameter tuning itself.
 
-        self.encoder.requires_grad_(False)  # TODO Doesnt train the encoder during fine_tuning. (good for something i guess)
+        self.encoder.requires_grad_(all_params['encoder_params']['FREEZE_ENCODER'])  # TODO Doesnt train the encoder during fine_tuning. (good for something i guess)
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
         self.out_layer_2 = all_params['downstream_params']['out_layer_2']

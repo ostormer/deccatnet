@@ -152,12 +152,12 @@ pre_training:
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
-  batch_size: 128
+  batch_size: 128 # må endres, kanskje lettes å forkalre at man fastsetter.
   train_split: 0.8
   SHUFFLE: True
-  temperature: 0.8 # Temperature of normalized temperature contrastive loss
-  learning_rate: 0.1
-  weight_decay: 0.01
+  temperature: 0.8 # må endres
+  learning_rate: 0.1 # må endres
+  weight_decay: 0.01 # må endres
   max_epochs: 30
 
   save_freq: 10
@@ -167,7 +167,7 @@ pre_training:
   TIME_PROCESS: False
 
   augmentation:
-    noise_probability: 0 # TODO fix such that this is possible to add to a config file.
+    noise_probability: 0.1 # # kan endres hvis tid.
 
 
 fine_tuning:
@@ -178,17 +178,17 @@ fine_tuning:
 
   n_classes: 2
 
-  batch_size: 64
+  batch_size: 64 # kan endres
   max_epochs: 30
-  lr_rate: 0.1
-  weight_decay: 0.01
+  lr_rate: 0.1 # kan endres
+  weight_decay: 0.01 # kan endres
   train_split: 0.8
   SHUFFLE: True
 
   PERFORM_KFOLD: False # should be false when hyperparametersearching,
   n_folds: 5
 
-  early_stopper: #params for early stopper implementation
+  early_stopper: #params for early stopper implementation, not used in hyper_search
     patience: 4
     min_delta: 0.1
 
@@ -221,20 +221,22 @@ fine_tuning:
     - 'EEG 30-REF'
 
 encoder_params:
-  temporal_size: 50
-  spatial_size: 60
-  CNN_dropout: 0.5
+  temporal_size: 40 # kan endres, men kan også bare følge conformer
+  spatial_size: 40 # kan endres, men kan også bare følge conformer
+  CNN_dropout: 0.5 # følger conformer
 
-  n_encoder_heads: 10
+  FREEZE_ENCODER: False # If False: dont fine-tune encoder. If True, fine-tune encoder.
+
+  n_encoder_heads: 8
   n_encoder_layers: 6
 
-  latent_space_size: 64
+  latent_space_size: 128 # size of projection to contrastive loss
 
 downstream_params:
   out_layer_1: 256
   out_layer_2: 64
-  dropout_1: 0.5
-  dropout_2: 0.3
+  dropout_1: 0.4
+  dropout_2: 0.2
 
 hyper_search:
   REMOVE_TQDM: True
@@ -261,10 +263,10 @@ hyper_search:
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
     #batch_size: 'tune.choice([16,32,128])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
-    batch_size: 'tune.choice([16,32,128])'
-    temperature: 'tune.loguniform(0.1,1)' # Temperature of normalized temperature contrastive loss
-    learning_rate: 'tune.loguniform(1e-4, 1e-1)'
-    weight_decay: 'tune.loguniform(1e-5, 1e-2)'
+    batch_size: 'tune.choice([16,32,128])' # (100,1000)
+    temperature: 'tune.loguniform(0.1,1)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
+    learning_rate: 'tune.loguniform(1e-4, 1e-1)' #(1e-4, 1e-1)
+    weight_decay: 'tune.loguniform(1e-5, 1e-2)' # (1e-4,1e-1)
 
 
   inspiration:

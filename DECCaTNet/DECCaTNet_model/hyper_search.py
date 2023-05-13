@@ -27,6 +27,7 @@ from ray import tune
 import ray
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
+from ray.tune.schedulers import HyperBandForBOHB
 from ray.tune.schedulers import FIFOScheduler
 from functools import partial
 from ray.air import session
@@ -50,11 +51,10 @@ def hyper_search(all_params, global_params):
     if hyper_prams['PRE_TRAINING']:
         mode = 'min'
         metric = 'val_loss'
-        scheduler = ASHAScheduler(
+        scheduler = HyperBandForBOHB(
             metric=metric,
             mode=mode,
             max_t=hyper_prams['max_t'],
-            grace_period=hyper_prams['grace_period'],
             reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
@@ -68,11 +68,10 @@ def hyper_search(all_params, global_params):
     else:
         mode = 'max'
         metric = 'val_acc'
-        scheduler = ASHAScheduler(
+        scheduler = HyperBandForBOHB(
             metric=metric,
             mode=mode,
             max_t=hyper_prams['max_t'],
-            grace_period=hyper_prams['grace_period'],
             reduction_factor=hyper_prams['reduction_factor'])
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
