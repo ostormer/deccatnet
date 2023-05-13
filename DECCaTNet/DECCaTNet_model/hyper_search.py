@@ -101,7 +101,7 @@ def hyper_search(all_params, global_params):
         progress_reporter=reporter,
         local_dir='../tune_results',
         verbose=2,
-        search_alc=TuneBOHB()
+        search_alg=TuneBOHB()
     )
 
     best_trial = result.get_best_trial(metric=metric,mode=mode)
