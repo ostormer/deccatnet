@@ -76,8 +76,8 @@ def select_params(param: dict):
         value = param[key]
         if isinstance(value, tuple):
             if isinstance(value[0], float) or isinstance(value[1], float):
-                value_1 = random.randint(value[0] * 10, value[
-                    1] * 10) / 10  # some values are float with one decimal, but can go around this by multiplying by 10
+                value_1 = random.randint(value[0] * 100, value[
+                    1] * 100) / 100  # some values are float with one decimal, but can go around this by multiplying by 10
             elif isinstance(value[0], torch.Tensor):
                 if isinstance(value[0][0].item(), float):
                     value_1 = torch.Tensor(
