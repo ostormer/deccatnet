@@ -30,6 +30,7 @@ from ray.tune.schedulers import ASHAScheduler
 from ray.tune.schedulers import HyperBandForBOHB
 from ray.tune.schedulers import FIFOScheduler
 from functools import partial
+from ray.tune.search.bohb import TuneBOHB
 from ray.air import session
 
 from DECCaTNet_model.contrastive_framework import ContrastiveLoss, train_epoch, validate_epoch
@@ -100,6 +101,7 @@ def hyper_search(all_params, global_params):
         progress_reporter=reporter,
         local_dir='../tune_results',
         verbose=2,
+        search_alc=TuneBOHB()
     )
 
     best_trial = result.get_best_trial(metric=metric,mode=mode)
