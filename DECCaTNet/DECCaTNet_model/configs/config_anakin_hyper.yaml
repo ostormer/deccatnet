@@ -8,7 +8,7 @@ global:
 
   TQDM: True # want to disable tqdm or not
 
-  n_gpu: 2
+  n_gpu: 1
   n_jobs: 50
   random_state: null # remember null and not None
 
