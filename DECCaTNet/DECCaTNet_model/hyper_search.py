@@ -20,6 +20,7 @@ from pathlib import Path
 import DECCaTNet_model.contrastive_framework as cf
 import preprocessing.preprocess as pre
 import DECCaTNet_model.fine_tuning as fn
+from ray.air.checkpoint import Checkpoint
 
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
 from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset, FineTunePathDataset
@@ -251,8 +252,9 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
 
         val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
 
+        checkpoint = Checkpoint.from_dict({"epoch": epoch})
         session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
-                        'val_acc': correct_eval_preds / num_eval_preds})
+                        'val_acc': correct_eval_preds / num_eval_preds},checkpoint=checkpoint)
 
 
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
@@ -273,8 +275,9 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
                                                                            optimizer,disable=disable)
             val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
 
+            checkpoint = Checkpoint.from_dict({"epoch": epoch})
             session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
-                            'val_acc': correct_eval_preds / num_eval_preds})  # , checkpoint=checkpoint)
+                            'val_acc': correct_eval_preds / num_eval_preds}, checkpoint=checkpoint)
 
 
 def pre_train_hypersearch(all_params=None, global_params=None):
