@@ -239,12 +239,10 @@ downstream_params:
   dropout_2: 0.2
 
 hyper_search:
-  REMOVE_TQDM: True
-
   PERFORM_PREPROCESS: False
   FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
-  PRE_TRAINING: True # only used when you only do pre_training
-  FINE_TUNING: False
+  PRE_TRAINING: False # only used when you only do pre_training
+  FINE_TUNING: True
 
   fine_tune_split: 0.1 # how much avaible data should be used for fine_tuning
   pre_train_split: 0.4 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
@@ -263,9 +261,8 @@ hyper_search:
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
     #batch_size: 'tune.choice([16,32,128])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
-    batch_size: 'tune.choice([128,256,524])' # (100,1000)
+    batch_size: 'tune.choice([64,128,256,524])' # (100,1000)
     temperature: 'tune.loguniform(0.01,0.2)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
-    learning_rate: 'tune.loguniform(1e-4, 1e-1)' #(1e-4, 1e-1)
     weight_decay: 'tune.loguniform(1e-4, 1e-1)' # (1e-4,1e-1)
 
 
