@@ -250,13 +250,13 @@ def preprocess_signals(concat_dataset: BaseConcatDataset, mapping, ch_naming, pr
     preprocessors = [
         Preprocessor(custom_turn_off_log),  # turn off verbose
         Preprocessor('drop_channels', ch_names=exclude_channels, on_missing='ignore'),
-        # set common reference for all
-        Preprocessor('set_eeg_reference', ref_channels='average', ch_type='eeg'),
         # rename to common naming convention
         # Preprocessor(rename_channels, mapping=mapping, apply_on_array=False),
         # Preprocessor('pick_channels', ch_names=ch_naming, ordered=True),  # keep wanted channels
         # Resample
         Preprocessor('resample', sfreq=s_freq),
+        # set common reference for all
+        Preprocessor('set_eeg_reference', ref_channels='average', ch_type='eeg'),
         # Bandpass filter
         Preprocessor('filter', l_freq=preproc_params["bandpass_lo"], h_freq=preproc_params["bandpass_hi"]),
     ]
