@@ -152,11 +152,11 @@ pre_training:
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
-  batch_size: 128 # må endres, kanskje lettes å forkalre at man fastsetter.
+  batch_size: 256 # må endres, kanskje lettes å forkalre at man fastsetter.
   train_split: 0.8
   SHUFFLE: True
-  temperature: 0.8 # må endres
-  learning_rate: 0.1 # må endres
+  temperature: 0.03 # må endres
+  learning_rate: 0.008 # må endres
   weight_decay: 0.01 # må endres
   max_epochs: 100
 
