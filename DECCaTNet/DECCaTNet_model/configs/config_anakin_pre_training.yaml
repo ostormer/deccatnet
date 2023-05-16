@@ -230,7 +230,7 @@ encoder_params:
   n_encoder_heads: 8
   n_encoder_layers: 6
 
-  latent_space_size: 128 # size of projection to contrastive loss
+  latent_space_size: 256 # size of projection to contrastive loss
 
 downstream_params:
   out_layer_1: 256
