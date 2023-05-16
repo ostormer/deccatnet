@@ -223,7 +223,7 @@ fine_tuning:
 encoder_params:
   temporal_size: 40 # kan endres, men kan også bare følge conformer
   spatial_size: 40 # kan endres, men kan også bare følge conformer
-  CNN_dropout: 0.5 # følger conformer
+  CNN_dropout: 0.3 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
 
   FREEZE_ENCODER: False # If False: dont fine-tune encoder. If True, fine-tune encoder.
 
