@@ -70,12 +70,12 @@ class Convolution(nn.Module):
         x = self.spatial(x)
         #print(f'after temporal and spatial {x.shape}')
         x = self.pooling(x)
-        print(f'after pooling {x.shape}')
+        #print(f'after pooling {x.shape}')
         x = self.dropout(x)
         x = self.projector(x)
         #print(f'after projector shape {x.shape}')
         x = self.rearrange(x)
-        print(f'output shape from Convolution {x.shape}') # this is what we essentially need.
+        #print(f'output shape from Convolution {x.shape}') # this is what we essentially need.
 
         return x
 
