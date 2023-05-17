@@ -1,9 +1,9 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
+  PREPROCESSING: False
   HYPER_SEARCH: False
-  PRE_TRAINING: False
+  PRE_TRAINING: True
   FINE_TUNING: False
 
   TQDM: True # want to disable tqdm or not
