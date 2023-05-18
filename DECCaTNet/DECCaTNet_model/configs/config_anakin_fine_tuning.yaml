@@ -2,13 +2,13 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: False
-  PRE_TRAINING: True
+  HYPER_SEARCH: True
+  PRE_TRAINING: False
   FINE_TUNING: False
 
   TQDM: True # want to disable tqdm or not
 
-  n_gpu: 1
+  n_gpu: 2
   n_jobs: 50
   random_state: null # remember null and not None
 
@@ -244,14 +244,14 @@ hyper_search:
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: True
 
-  fine_tune_split: 0.1 # how much avaible data should be used for fine_tuning
+  fine_tune_split: 0.4 # how much avaible data should be used for fine_tuning
   pre_train_split: 0.4 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
   max_t: 100 # maximum training iteration before validation
-  grace_period: 4 # minimum number of training iterations before validating.
+  grace_period: 10 # minimum number of training iterations before validating.
   reduction_factor: 2 # TODO: remember commented out
-  num_samples: 20 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
+  num_samples: 25 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
   config:
@@ -260,9 +260,9 @@ hyper_search:
     #weight_decay: 'tune.loguniform(1e-5, 1e-2)'
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
     #batch_size: 'tune.choice([16,32,128])'
-    #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
+    learning_rate: 'tune.loguniform(1e-4, 1e-1)'
     batch_size: 'tune.choice([64,128,256,524])' # (100,1000)
-    temperature: 'tune.loguniform(0.01,0.2)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
+    #temperature: 'tune.loguniform(0.01,0.2)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
     weight_decay: 'tune.loguniform(1e-4, 1e-1)' # (1e-4,1e-1)
 
 

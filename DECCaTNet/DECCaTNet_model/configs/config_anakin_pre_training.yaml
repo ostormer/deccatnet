@@ -228,7 +228,7 @@ encoder_params:
   FREEZE_ENCODER: False # If False: dont fine-tune encoder. If True, fine-tune encoder.
 
   n_encoder_heads: 8
-  n_encoder_layers: 6
+  n_encoder_layers: 6 # actually supposed to be 8 TODO:
 
   latent_space_size: 128 # size of projection to contrastive loss
 
