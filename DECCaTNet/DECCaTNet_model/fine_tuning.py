@@ -216,7 +216,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
-        plot_grad_flow(model.named_parameters())
+        plot_grad_flow(model.cpu().named_parameters())
         optimizer.step()
 
         correct, number = n_correct_preds(pred, y)
@@ -522,8 +522,8 @@ def plot_grad_flow(named_parameters):
     for n, p in named_parameters:
         if (p.requires_grad) and ("bias" not in n):
             layers.append(n)
-            ave_grads.append(p.cpu().grad.abs().mean())
-            max_grads.append(p.cpu().grad.abs().max())
+            ave_grads.append(p.grad.abs().mean())
+            max_grads.append(p.grad.abs().max())
     plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
     plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
     plt.hlines(0, 0, len(ave_grads) + 1, lw=2, color="k")
