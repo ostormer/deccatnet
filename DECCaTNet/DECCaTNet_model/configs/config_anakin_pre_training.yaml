@@ -235,8 +235,8 @@ encoder_params:
 downstream_params:
   out_layer_1: 256
   out_layer_2: 64
-  dropout_1: 0.4
-  dropout_2: 0.2
+  dropout_1: 0.2
+  dropout_2: 0.1
 
 hyper_search:
   PERFORM_PREPROCESS: False
