@@ -310,18 +310,15 @@ class EarlyStopper:
 
 def run_fine_tuning(all_params, global_params, test_set=None):
     params = all_params['fine_tuning']
-
+    print('=================== START FINE-TUNING ====================')
     if params['REDO_PREPROCESS']:
-        new_params = copy.deepcopy(all_params)
-        new_params['preprocess'] = params['fine_tuning_preprocess']
-
-        run_preprocess(new_params, global_params, fine_tuning=True)
+        print('It is not allowed to REDO_PREPROCESS when running HYPERSEARCH, skipping')
 
     idx = []
     # we need, idx, paths and dataset_params
     path = all_params['fine_tuning']['ds_path']
     # get splits path by first getting windows path and then removing last object
-    preproc_path = os.path.join(*Path(path).parts[:-2], 'first_preproc')
+    preproc_path = os.path.join(path, 'first_preproc')
     indexes = os.listdir(preproc_path)
     for i in indexes:
         sub_dir = os.path.join(preproc_path, str(i))
@@ -338,16 +335,18 @@ def run_fine_tuning(all_params, global_params, test_set=None):
     perform_k_fold = params['PERFORM_KFOLD']
     n_folds = params['n_folds']
 
+    dataset, _ = dataset.get_splits(all_params['hyper_search']['fine_tune_split'])
+
     # im thinking load one window
     ds_channel_order = dataset.__getitem__(0, window_order=True)
 
-    for i in range(len(idx)):
+    for i in range(math.floor(len(idx) * all_params['hyper_search']['fine_tune_split'])):
         window_order = dataset.__getitem__(i, window_order=True)
         # if not window_order == ds_channel_order:
         #     changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
         #                enumerate(window_order)]
-            # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
-        #assert window_order == ds_channel_order, f'{window_order} \n {ds_channel_order}' # TODO fix assertion
+        # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
+        # assert window_order == ds_channel_order, f'{window_order} \n {ds_channel_order}' # TODO fix assertion
 
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
 
