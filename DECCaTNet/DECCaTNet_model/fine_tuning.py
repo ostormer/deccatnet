@@ -81,7 +81,7 @@ class FineTuneNetSimple(nn.Module):
 
     def forward(self,X):
         #encoded = self.encoder(X)
-        print(X.shape)
+        #print(X.shape)
         return self.classifier(X)
 
 class FineTuneNet(nn.Module):
