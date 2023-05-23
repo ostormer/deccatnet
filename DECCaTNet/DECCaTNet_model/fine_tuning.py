@@ -215,7 +215,7 @@ def validate_epoch(model, val_loader, device, loss_func,disable):
 
 
 def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,
-                early_stop=None):
+                early_stop=None,disable=False):
     loss = []
     val_loss = []
     test_loss = []
@@ -226,7 +226,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
     for epoch in range(epochs):
         print('================== epoch number: ', epoch, 'of: ', epochs, ' in fine_tuning =========================')
         model, train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
-                                                                       optimizer)
+                                                                       optimizer,disable=disable)
 
         val_loss_out, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
 
@@ -401,7 +401,7 @@ def run_fine_tuning(all_params, global_params, test_set=None):
         loss, train_acc, val_loss, val_acc, test_loss, test_acc, model = train_model(epochs, model, train_loader,
                                                                                      val_loader, test_loader, device,
                                                                                      loss_func, optimizer,
-                                                                                     validate_test, early_stopper)
+                                                                                     validate_test, early_stopper,disable=global_params['TQDM'])
 
     # TODO: implement savinf parts of models underway in training
     # save function for final model
