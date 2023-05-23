@@ -218,7 +218,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         # update weights
         loss.backward()
         if count % 30 == 0:
-            plot_grad_flow(model.cpu().named_parameters())
+            plot_grad_flow(model.cpu().named_parameters(),count)
         model.cuda()
         optimizer.step()
 
@@ -513,7 +513,7 @@ def get_window_len(ds):
     return diff.to_numpy()
 
 
-def plot_grad_flow(named_parameters):
+def plot_grad_flow(named_parameters,count):
     '''Plots the gradients flowing through different layers in the net during training.
     Can be used for checking for possible gradient vanishing / exploding problems.
 
@@ -541,5 +541,5 @@ def plot_grad_flow(named_parameters):
                 Line2D([0], [0], color="b", lw=4),
                 Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
 
-    plt.savefig('plot_grad_flow.png')
+    plt.savefig('plot_grad_flow'+str(count)+'.png')
     print('saved png to file')
