@@ -6,6 +6,7 @@ import mne
 import numpy as np
 import torch
 import torch.nn as nn
+from matplotlib import pyplot as plt
 from torch.utils.data import SubsetRandomSampler
 # from ray.experimental.tqdm_ray import tqdm
 from tqdm import tqdm
