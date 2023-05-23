@@ -55,7 +55,7 @@ class FineTuneNetSimple(nn.Module):
         self.embedding_size = global_params["embedding_size"]
         self.n_classes = params["n_classes"]
 
-        #self.encoder = Encoder(all_params['encoder_params'], global_params)
+        self.encoder = Encoder(all_params['encoder_params'], global_params)
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
         self.out_layer_2 = all_params['downstream_params']['out_layer_2']
@@ -64,7 +64,7 @@ class FineTuneNetSimple(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(in_features=138000, out_features=int(self.embedding_size * self.magic)),
+            #nn.Linear(in_features=138000, out_features=int(self.embedding_size * self.magic)),
             nn.Linear(in_features=int(self.embedding_size * self.magic),
                       out_features=self.out_layer_1),
             nn.ReLU(),
@@ -80,9 +80,9 @@ class FineTuneNetSimple(nn.Module):
 
 
     def forward(self,X):
-        #encoded = self.encoder(X)
+        encoded = self.encoder(X)
         #print(X.shape)
-        return self.classifier(X)
+        return self.classifier(encoded)
 
 class FineTuneNet(nn.Module):
     def __init__(self, channel_groups, ds_channel_order, all_params, global_params):
@@ -219,7 +219,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
-        if count % 60 == 0:
+        if count % 3000 == 0:
             print(f'the obtained loss is {loss.item()} and we have the followinf predictions: {pred} for the followinf targets: {y}')
 
             plot_grad_flow(model.cpu().named_parameters(),count)
