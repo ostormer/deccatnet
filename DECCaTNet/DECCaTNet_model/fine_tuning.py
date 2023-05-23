@@ -74,7 +74,7 @@ class FineTuneNetSimple(nn.Module):
 
     def forward(self,X):
         encoded = self.encoder(X)
-        x = torch.permute(encoded,(1,0))
+        x = torch.permute(encoded,(0,2,1))
         print(f'x sin shaoe er {x.shape}')
         return self.classifier(x)
 
