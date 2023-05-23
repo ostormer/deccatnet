@@ -244,7 +244,7 @@ hyper_search:
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: True
 
-  fine_tune_split: 0.05 # how much avaible data should be used for fine_tuning
+  fine_tune_split: 0.5 # how much avaible data should be used for fine_tuning
   pre_train_split: 0.4 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
