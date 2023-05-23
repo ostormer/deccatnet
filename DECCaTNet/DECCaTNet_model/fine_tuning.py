@@ -92,7 +92,8 @@ class FineTuneNet(nn.Module):
             nn.Linear(in_features=self.out_layer_1, out_features=self.out_layer_2),
             nn.ReLU(),
             nn.Dropout(self.dropout_2),
-            nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
+            nn.Linear(in_features=self.out_layer_2, out_features=1),
+            #nn.Linear(in_features=self.out_layer_2, out_features=n_classes),
             # PrintLayer(),
             #nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
         )
@@ -136,7 +137,7 @@ class FineTuneNet(nn.Module):
 
 
 def n_correct_preds(y_pred, y):
-    #print(y_pred,y)
+    print(y_pred,y)
     #print(torch.argmax(y_pred,dim=1))
     num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
     num_total = len(y)
@@ -388,6 +389,7 @@ def run_fine_tuning(all_params, global_params, test_set=None):
         print("Moved model to CUDA")
 
     loss_func = nn.CrossEntropyLoss()
+    loss_func = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
 
