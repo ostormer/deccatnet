@@ -204,20 +204,19 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     num_train_preds = 0
     count = 0
     for x, y in tqdm(train_loader,disable=disable):
+        optimizer.zero_grad()
         count +=1
         #print(f'target variables before changign them {y}')
         y = torch.Tensor([ 1 if not elem else 0 for elem in y]).view(-1,1) # TODO: this is only works with n_classes = 2
         #print(f'target variables after changing: {y}')
         #y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
-        optimizer.zero_grad()
         # forward pass
         pred = model(x)
         # compute loss
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
-
         optimizer.step()
 
         correct, number = n_correct_preds(pred, y)
