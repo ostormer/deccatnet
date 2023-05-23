@@ -248,7 +248,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
                 early_stop=None,disable=False):
     for epoch in range(epochs):
         print(f'============== HYPER SEARCH FINE-TUNING EPOCH: {epoch} of {epochs}==========================')
-        train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
+        model, train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
                                                                        optimizer,disable=disable)
 
         val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
