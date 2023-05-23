@@ -223,20 +223,20 @@ fine_tuning:
 encoder_params:
   temporal_size: 40 # kan endres, men kan også bare følge conformer
   spatial_size: 40 # kan endres, men kan også bare følge conformer
-  CNN_dropout: 0.3 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
+  CNN_dropout: 0 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
 
   FREEZE_ENCODER: True # If False: dont fine-tune encoder. If True, fine-tune encoder during fine-tuning
 
   n_encoder_heads: 8
-  n_encoder_layers: 6
+  n_encoder_layers: 8
 
   latent_space_size: 128 # size of projection to contrastive loss
 
 downstream_params:
-  out_layer_1: 256
-  out_layer_2: 64
-  dropout_1: 0.4
-  dropout_2: 0.2
+  out_layer_1: 32
+  out_layer_2: 8
+  dropout_1: 0
+  dropout_2: 0
 
 hyper_search:
   PERFORM_PREPROCESS: False
