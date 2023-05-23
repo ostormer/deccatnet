@@ -225,7 +225,7 @@ encoder_params:
   spatial_size: 40 # kan endres, men kan også bare følge conformer
   CNN_dropout: 0.5 # følger conformer
 
-  FREEZE_ENCODER: False # If False: dont fine-tune encoder. If True, fine-tune encoder.
+  FREEZE_ENCODER: True # If False: dont fine-tune encoder. If True, fine-tune encoder. TODO: test what happens when encoder is not freezed.
 
   n_encoder_heads: 8
   n_encoder_layers: 6 # actually supposed to be 8 TODO:
