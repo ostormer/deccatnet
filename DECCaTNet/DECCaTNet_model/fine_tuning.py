@@ -151,9 +151,9 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
 
     for x, y in tqdm(train_loader,disable=disable):
         #print(f'target variables before changign them {y}')
-        y = torch.Tensor([ 1 if not elem else 0 for elem in y]) # This worsk as expected
+        y = torch.Tensor([ 1 if not elem else 0 for elem in y]) # This works as expected
         #print(f'target variables after changing: {y}')
-        # y = y.type(torch.LongTensor)
+        y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         # forward pass
