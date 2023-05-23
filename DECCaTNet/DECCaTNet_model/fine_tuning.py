@@ -136,8 +136,8 @@ class FineTuneNet(nn.Module):
 
 
 def n_correct_preds(y_pred, y):
-    print(y_pred,y)
-    print(torch.argmax(y_pred,dim=1))
+    #print(y_pred,y)
+    #print(torch.argmax(y_pred,dim=1))
     num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
     num_total = len(y)
     #print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
@@ -192,8 +192,8 @@ def validate_epoch(model, val_loader, device, loss_func,disable):
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
         for x, y in tqdm(val_loader, disable=disable):
-            y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])
-            # y = y.type(torch.LongTensor)
+            y = torch.Tensor([ 1 if not elem else 0 for elem in y])
+            y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)
             # get predictions
             pred = model(x)
