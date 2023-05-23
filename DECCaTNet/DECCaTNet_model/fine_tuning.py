@@ -71,8 +71,8 @@ class FineTuneNetSimple(nn.Module):
             nn.Linear(in_features=self.out_layer_1, out_features=self.out_layer_2),
             nn.ReLU(),
             nn.Dropout(self.dropout_2),
-            nn.Linear(in_features=self.out_layer_2, out_features=1),
-            # nn.Linear(in_features=self.out_layer_2, out_features=n_classes),
+            #nn.Linear(in_features=self.out_layer_2, out_features=1),
+            nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
             # PrintLayer(),
             # nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
         )
@@ -188,9 +188,9 @@ class FineTuneNet(nn.Module):
 def n_correct_preds(y_pred, y):
     #print(y_pred,y)
     #print(torch.argmax(y_pred,dim=1))
-    predicted_labels = (y_pred >= 0.5).long()
-    #num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
-    num_correct = (predicted_labels == y).float().sum().item()
+    #predicted_labels = (y_pred >= 0.5).long()
+    num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
+    #num_correct = (predicted_labels == y).float().sum().item()
     num_total = len(y)
     #print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
     # print(f'argmax pred {torch.argmax(y_pred, dim=1)} y {torch.argmax(y,dim=1)} results{torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)}')
@@ -204,19 +204,23 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     num_train_preds = 0
     count = 0
     for x, y in tqdm(train_loader,disable=disable):
-        optimizer.zero_grad()
         count +=1
         #print(f'target variables before changign them {y}')
         y = torch.Tensor([ 1 if not elem else 0 for elem in y]).view(-1,1) # TODO: this is only works with n_classes = 2
         #print(f'target variables after changing: {y}')
         #y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
         # forward pass
         pred = model(x)
         # compute loss
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
+        if count % 30 == 0:
+            plot_grad_flow(model.cpu().named_parameters(),count)
+            model.cuda()
+
         optimizer.step()
 
         correct, number = n_correct_preds(pred, y)
@@ -225,10 +229,6 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
 
         # track loss
         train_loss += loss.item()
-
-        if count % 30 == 0:
-            plot_grad_flow(model.cpu().named_parameters(),count)
-            model.cuda()
 
         # free up cuda memory
         del x
@@ -446,7 +446,7 @@ def run_fine_tuning(all_params, global_params, test_set=None):
 
     print(f'===== number of parameters in model {count_parameters(model)} =============')
 
-
+    loss_func = nn.BCEWithLogitsLoss()
     loss_func = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
