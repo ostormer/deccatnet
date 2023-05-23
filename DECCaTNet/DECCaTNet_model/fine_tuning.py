@@ -162,7 +162,6 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         # forward pass
         pred = model(x)
         # compute loss
-        print(pred, y)
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
@@ -390,7 +389,7 @@ def run_fine_tuning(all_params, global_params, test_set=None):
         print("Moved model to CUDA")
 
     loss_func = nn.CrossEntropyLoss()
-    loss_func = nn.BCELoss()
+    loss_func = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=weight_decay)  # TODO: check out betas for Adam and if Adam is the best choice
 
