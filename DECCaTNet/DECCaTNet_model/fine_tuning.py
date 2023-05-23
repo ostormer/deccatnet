@@ -217,9 +217,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
-        if count % 30 == 0:
-            plot_grad_flow(model.cpu().named_parameters(),count)
-        model.cuda()
+
         optimizer.step()
 
         correct, number = n_correct_preds(pred, y)
@@ -228,6 +226,10 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
 
         # track loss
         train_loss += loss.item()
+
+        if count % 30 == 0:
+            plot_grad_flow(model.cpu().named_parameters(),count)
+            model.cuda()
 
         # free up cuda memory
         del x
