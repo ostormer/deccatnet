@@ -59,6 +59,7 @@ class FineTuneNetSimple(nn.Module):
         self.dropout_2 = all_params['downstream_params']['dropout_2']
 
         self.classifier = nn.Sequential(
+            nn.Flatten(),
             nn.Linear(in_features=int(self.embedding_size * self.magic),
                       out_features=self.out_layer_1),
             nn.ReLU(),
@@ -74,10 +75,8 @@ class FineTuneNetSimple(nn.Module):
 
     def forward(self,X):
         encoded = self.encoder(X)
-        x = torch.permute(encoded,(1,2,0))
-        print(encoded.shape)
-        print(x.shape)
-        return self.classifier(x)
+
+        return self.classifier(encoded)
 
 class FineTuneNet(nn.Module):
     def __init__(self, channel_groups, ds_channel_order, all_params, global_params):
