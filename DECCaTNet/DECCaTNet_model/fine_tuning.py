@@ -23,6 +23,8 @@ import pandas as pd
 from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
 from .DECCaTNet_model import Encoder
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 class PrintLayer(nn.Module):
     def __init__(self):
@@ -72,6 +74,7 @@ class FineTuneNetSimple(nn.Module):
             # PrintLayer(),
             # nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
         )
+
 
     def forward(self,X):
         encoded = self.encoder(X)
@@ -433,6 +436,9 @@ def run_fine_tuning(all_params, global_params, test_set=None):
     if torch.cuda.is_available():
         model.cuda()
         print("Moved model to CUDA")
+
+    print(f'===== number of parameters in model {count_parameters(model)} =============')
+
 
     loss_func = nn.CrossEntropyLoss()
     loss_func = nn.BCEWithLogitsLoss()
