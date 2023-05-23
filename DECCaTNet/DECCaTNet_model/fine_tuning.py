@@ -73,6 +73,7 @@ class FineTuneNetSimple(nn.Module):
             nn.Dropout(self.dropout_2),
             #nn.Linear(in_features=self.out_layer_2, out_features=1),
             nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
+            nn.ReLU(),
             # PrintLayer(),
             # nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
         )
