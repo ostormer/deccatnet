@@ -272,7 +272,7 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
         val_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=val_sampler)
 
         for epoch in range(epochs):
-            print('epoch number: ', epoch, 'of: ', epochs)
+            print('epoch number in k_fold training: ', epoch, 'of: ', epochs)
             model,train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
                                                                            optimizer,disable=disable)
             val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
