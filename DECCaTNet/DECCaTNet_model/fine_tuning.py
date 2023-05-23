@@ -136,10 +136,10 @@ class FineTuneNet(nn.Module):
 
 
 def n_correct_preds(y_pred, y):
-    print(y_pred,y)
+    #print(y_pred,y)
     num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
     num_total = len(y)
-    print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
+    #print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
     # print(f'argmax pred {torch.argmax(y_pred, dim=1)} y {torch.argmax(y,dim=1)} results{torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)}')
     return num_correct, num_total
 
@@ -229,7 +229,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
         model, train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
                                                                        optimizer,disable=disable)
 
-        val_loss_out, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)
+        val_loss_out, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func,disable=disable)
 
         # calculate accuracies and losses and update
         loss.append(train_loss / len(train_loader))
