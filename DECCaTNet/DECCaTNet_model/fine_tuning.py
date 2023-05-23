@@ -217,6 +217,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         # update weights
         loss.backward()
         plot_grad_flow(model.cpu().named_parameters())
+        model.cuda()
         optimizer.step()
 
         correct, number = n_correct_preds(pred, y)
