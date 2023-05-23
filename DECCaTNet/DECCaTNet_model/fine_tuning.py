@@ -83,6 +83,7 @@ class FineTuneNet(nn.Module):
 
         # trans_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=8)
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
+        self.encoders = nn.ModuleList([self.encoder for i in range(len(self.channel_index_groups))])
 
         self.classifier = nn.Sequential(
             nn.Linear(in_features=int(self.embedding_size * self.n_channel_groups * self.magic),
@@ -121,9 +122,9 @@ class FineTuneNet(nn.Module):
         encoder_out = []
         # Run each group/pair of channels through the encoder
 
-        for group in channel_group_tensors:
+        for i,group in enumerate(channel_group_tensors):
             # print(f"Group shape: {group.shape}")
-            encoder_out.append(self.encoder(group))  # Encode group
+            encoder_out.append(self.encoders[i](group))  # Encode group
 
         # print(encoder_out[0].shape)
         X_encoded = torch.concat(encoder_out, dim=1)
