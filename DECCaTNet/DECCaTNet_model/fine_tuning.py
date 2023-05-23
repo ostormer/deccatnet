@@ -219,7 +219,8 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         loss = loss_func(pred, y)
         #print(f'the obtained loss is {loss.item()} and we have the followinf predictions: {pred} for the followinf targets: {y}')
         # update weights
-        loss.backward()
+        #loss.backward()
+        loss.backwards()
         if count % 60 == 0:
             plot_grad_flow(model.cpu().named_parameters(),count)
             model.cuda()
