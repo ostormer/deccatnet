@@ -59,7 +59,7 @@ class FineTuneNetSimple(nn.Module):
         self.dropout_2 = all_params['downstream_params']['dropout_2']
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=int(self.embedding_size * self.magic),
+            nn.Linear(in_features=int(1408),
                       out_features=self.out_layer_1),
             nn.ReLU(),
             nn.Dropout(self.dropout_1),
