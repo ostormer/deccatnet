@@ -206,7 +206,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     num_train_preds = 0
     count = 0
     for x, y in tqdm(train_loader,disable=disable):
-        count +=1
+
         #print(f'target variables before changign them {y}')
         y = torch.Tensor([ 1 if not elem else 0 for elem in y]) # TODO: this is only works with n_classes = 2
         #print(f'target variables after changing: {y}')
@@ -217,10 +217,11 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         pred = model(x)
         # compute loss
         loss = loss_func(pred, y)
-        #print(f'the obtained loss is {loss.item()} and we have the followinf predictions: {pred} for the followinf targets: {y}')
         # update weights
         loss.backward()
         if count % 60 == 0:
+            print(f'the obtained loss is {loss.item()} and we have the followinf predictions: {pred} for the followinf targets: {y}')
+
             plot_grad_flow(model.cpu().named_parameters(),count)
             model.cuda()
 
@@ -232,7 +233,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
 
         # track loss
         train_loss += loss.item()
-
+        count += 1
         # free up cuda memory
         del x
         del y
