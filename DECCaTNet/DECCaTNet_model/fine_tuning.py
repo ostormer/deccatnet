@@ -162,6 +162,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         # forward pass
         pred = model(x)
         # compute loss
+        print(pred.shape, y.shape)
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
