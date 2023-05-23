@@ -255,7 +255,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
 
         #checkpoint = Checkpoint.from_dict({"epoch": epoch})
 
-        session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
+        session.report({'val_loss': val_loss /num_eval_preds, 'train_loss': train_loss / num_train_preds,
                         'val_acc': correct_eval_preds / num_eval_preds})#,checkpoint=checkpoint)
 
 
