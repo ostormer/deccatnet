@@ -256,7 +256,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
         #checkpoint = Checkpoint.from_dict({"epoch": epoch})
 
         session.report({'val_loss': val_loss /num_eval_preds, 'train_loss': train_loss / num_train_preds,
-                        'val_acc': correct_eval_preds / num_eval_preds})#,checkpoint=checkpoint)
+                        'val_acc': correct_eval_preds / num_eval_preds, 'train_acc': correct_train_preds/num_train_preds})#,checkpoint=checkpoint)
 
 
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
