@@ -180,8 +180,8 @@ fine_tuning:
 
   batch_size: 64 # kan endres
   max_epochs: 30
-  lr_rate: 0.1 # kan endres
-  weight_decay: 0.01 # kan endres
+  lr_rate: 0.05 # kan endres
+  weight_decay: 0.03 # kan endres
   train_split: 0.8
   SHUFFLE: True
 

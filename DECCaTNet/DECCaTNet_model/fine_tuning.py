@@ -83,7 +83,7 @@ class FineTuneNet(nn.Module):
 
         # trans_layer = nn.TransformerEncoderLayer(d_model=1024, nhead=8)
         # self.transformer = nn.TransformerEncoder(encoder_layer=trans_layer, num_layers=6)
-        self.encoders = nn.ModuleList([self.encoder for i in range(len(self.channel_index_groups))])
+        self.encoders = nn.ModuleList([copy.deepcopy(self.encoder) for i in range(len(self.channel_index_groups))])
 
         self.classifier = nn.Sequential(
             nn.Linear(in_features=int(self.embedding_size * self.n_channel_groups * self.magic),
