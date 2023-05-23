@@ -178,7 +178,7 @@ fine_tuning:
 
   n_classes: 2
 
-  batch_size: 1 # kan endres
+  batch_size: 32 # kan endres
   max_epochs: 30
   lr_rate: 0.05 # kan endres
   weight_decay: 0.03 # kan endres
