@@ -150,9 +150,9 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     num_train_preds = 0
 
     for x, y in tqdm(train_loader,disable=disable):
-        print(f'target variables before changign them {y}')
-        y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y]) # TODO maybe error is here?
-        print(f'target variables after changing: {y}')
+        #print(f'target variables before changign them {y}')
+        y = torch.Tensor([ 1 if not elem else 0 for elem in y]) # This worsk as expected
+        #print(f'target variables after changing: {y}')
         # y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
