@@ -75,7 +75,7 @@ class FineTuneNetSimple(nn.Module):
             #nn.Linear(in_features=self.out_layer_2, out_features=1),
             nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
             # PrintLayer(),
-            nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
+            #nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
         )
 
 
@@ -208,9 +208,9 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     for x, y in tqdm(train_loader,disable=disable):
 
         #print(f'target variables before changign them {y}')
-        y = torch.Tensor([ 1 if not elem else 0 for elem in y]) # TODO: this is only works with n_classes = 2
+        y = torch.Tensor([ [0,1] if not elem else [1,0] for elem in y]) # TODO: this is only works with n_classes = 2
         #print(f'target variables after changing: {y}')
-        y = y.type(torch.LongTensor)
+        #y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         # forward pass
@@ -253,8 +253,8 @@ def validate_epoch(model, val_loader, device, loss_func,disable):
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
         for x, y in tqdm(val_loader, disable=disable):
-            y = torch.Tensor([ 1 if not elem else 0 for elem in y])
-            y = y.type(torch.LongTensor)
+            y = torch.Tensor([ [0,1] if not elem else [1,0] for elem in y])
+            #y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)
             # get predictions
             pred = model(x)
