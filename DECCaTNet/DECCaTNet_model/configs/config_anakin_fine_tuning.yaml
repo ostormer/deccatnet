@@ -233,10 +233,10 @@ encoder_params:
   latent_space_size: 128 # size of projection to contrastive loss
 
 downstream_params:
-  out_layer_1: 32
-  out_layer_2: 8
-  dropout_1: 0
-  dropout_2: 0
+  out_layer_1: 128
+  out_layer_2: 16
+  dropout_1: 0.1
+  dropout_2: 0.1
 
 hyper_search:
   PERFORM_PREPROCESS: False

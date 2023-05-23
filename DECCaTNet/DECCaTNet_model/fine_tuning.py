@@ -191,7 +191,8 @@ def n_correct_preds(y_pred, y):
     #print(y_pred,y)
     #print(torch.argmax(y_pred,dim=1))
     #predicted_labels = (y_pred >= 0.5).long()
-    num_correct = (torch.argmax(y_pred, dim=1) == torch.argmax(y, dim=1)).float().sum().item()
+    #num_correct = (torch.argmax(y_pred, dim=1) == torch.argmax(y, dim=1)).float().sum().item()
+    num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
     #num_correct = (predicted_labels == y).float().sum().item()
     num_total = len(y)
     #print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
@@ -208,9 +209,9 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     for x, y in tqdm(train_loader,disable=disable):
 
         #print(f'target variables before changign them {y}')
-        y = torch.Tensor([ [0,1] if not elem else [1,0] for elem in y]) # TODO: this is only works with n_classes = 2
+        y = torch.Tensor([ 0 if not elem else 1 for elem in y]) # TODO: this is only works with n_classes = 2
         #print(f'target variables after changing: {y}')
-        #y = y.type(torch.LongTensor)
+        y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
         # forward pass
@@ -221,7 +222,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         loss.backward()
         if count % 3000 == 0:
             print(f'the obtained loss is {loss.item()} and we have the followinf predictions: {pred} for the followinf targets: {y}')
-
+            print(f'resulting in prediction accuracy: {n_correct_preds(pred,y)}')
             plot_grad_flow(model.cpu().named_parameters(),count)
             model.cuda()
 
@@ -253,8 +254,8 @@ def validate_epoch(model, val_loader, device, loss_func,disable):
     with torch.no_grad():  # detach all gradients from tensors
         model.eval()  # tell model it is evaluation time
         for x, y in tqdm(val_loader, disable=disable):
-            y = torch.Tensor([ [0,1] if not elem else [1,0] for elem in y])
-            #y = y.type(torch.LongTensor)
+            y = torch.Tensor([ 0 if not elem else 1 for elem in y])
+            y = y.type(torch.LongTensor)
             x, y = x.to(device), y.to(device)
             # get predictions
             pred = model(x)
