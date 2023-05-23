@@ -74,7 +74,7 @@ class FineTuneNetSimple(nn.Module):
 
     def forward(self,X):
         encoded = self.encoder(X)
-        transposed = torch.transpose(encoded)
+        transposed = torch.transpose(encoded,0,1)
         print(transposed.shape)
         return self.classifier(transposed)
 
