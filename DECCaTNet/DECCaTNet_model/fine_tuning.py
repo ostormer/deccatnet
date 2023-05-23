@@ -176,7 +176,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     print('done with one train epoch')
     print(f'correct preds {correct_train_preds / num_train_preds}, loss: {train_loss / num_train_preds}')
 
-    return train_loss, correct_train_preds, num_train_preds
+    return model,train_loss, correct_train_preds, num_train_preds
 
 
 def validate_epoch(model, val_loader, device, loss_func,disable):
