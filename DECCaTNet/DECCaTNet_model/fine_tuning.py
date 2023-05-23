@@ -136,6 +136,7 @@ class FineTuneNet(nn.Module):
 
 
 def n_correct_preds(y_pred, y):
+    print(y_pred,y)
     num_correct = (torch.argmax(y_pred, dim=1) == torch.argmax(y, dim=1)).float().sum().item()
     num_total = len(y)
     print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
