@@ -74,7 +74,9 @@ class FineTuneNetSimple(nn.Module):
 
     def forward(self,X):
         encoded = self.encoder(X)
-        return self.classifier(torch.transpose(encoded,0,1))
+        transposed = torch.transpose(encoded)
+        print(transposed.shape)
+        return self.classifier(transposed)
 
 class FineTuneNet(nn.Module):
     def __init__(self, channel_groups, ds_channel_order, all_params, global_params):
