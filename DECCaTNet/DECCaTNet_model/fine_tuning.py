@@ -202,8 +202,9 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     train_loss = 0
     correct_train_preds = 0
     num_train_preds = 0
-
+    count = 0
     for x, y in tqdm(train_loader,disable=disable):
+        count +=1
         #print(f'target variables before changign them {y}')
         y = torch.Tensor([ 1 if not elem else 0 for elem in y]).view(-1,1) # TODO: this is only works with n_classes = 2
         #print(f'target variables after changing: {y}')
@@ -216,7 +217,8 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         loss = loss_func(pred, y)
         # update weights
         loss.backward()
-        plot_grad_flow(model.cpu().named_parameters())
+        if count % 30 == 0:
+            plot_grad_flow(model.cpu().named_parameters())
         model.cuda()
         optimizer.step()
 
