@@ -33,6 +33,48 @@ class PrintLayer(nn.Module):
         print(x.shape)
         return x
 
+class FineTuneNetSimple(nn.Module):
+    def __init__(self,channel_groups, ds_channel_order, all_params, global_params):
+        """
+            encoder_path
+            channel_group_size = 2
+            embedding_size
+            n_classes = 2
+            """
+        # self.patch_size = patch_size
+        super().__init__()
+        params = all_params['fine_tuning']
+
+        self.magic = global_params['magic_constant']
+        self.encoder_path = params["encoder_path"]
+
+        self.embedding_size = global_params["embedding_size"]
+        self.n_classes = params["n_classes"]
+
+        self.encoder = Encoder(all_params['encoder_params'], global_params)
+
+        self.out_layer_1 = all_params['downstream_params']['out_layer_1']
+        self.out_layer_2 = all_params['downstream_params']['out_layer_2']
+        self.dropout_1 = all_params['downstream_params']['dropout_1']
+        self.dropout_2 = all_params['downstream_params']['dropout_2']
+
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=int(self.embedding_size * self.magic),
+                      out_features=self.out_layer_1),
+            nn.ReLU(),
+            nn.Dropout(self.dropout_1),
+            nn.Linear(in_features=self.out_layer_1, out_features=self.out_layer_2),
+            nn.ReLU(),
+            nn.Dropout(self.dropout_2),
+            nn.Linear(in_features=self.out_layer_2, out_features=1),
+            # nn.Linear(in_features=self.out_layer_2, out_features=n_classes),
+            # PrintLayer(),
+            # nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
+        )
+
+    def forward(self,X):
+        encoded = self.encoder(X)
+        return self.classifier(encoded)
 
 class FineTuneNet(nn.Module):
     def __init__(self, channel_groups, ds_channel_order, all_params, global_params):
@@ -378,14 +420,14 @@ def run_fine_tuning(all_params, global_params, test_set=None):
         all_params_2 = copy.deepcopy(all_params)
         to_join = str(os.getcwd())
         all_params_2['fine_tuning']['encoder_path'] = to_join + '/' + all_params_2['fine_tuning']['encoder_path']
-        model = FineTuneNet(channel_groups, ds_channel_order, all_params_2, global_params)
+        model = FineTuneNetSimple(channel_groups, ds_channel_order, all_params_2, global_params)
     except:
         assert all_params['hyper_search']['FINE_TUNING'] == True, (
             'assertion failed as this should only be accsessible when only finetuning')
         all_params['fine_tuning'][
             'encoder_path'] = '/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/' + \
                               all_params['fine_tuning']['encoder_path']
-        model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
+        model = FineTuneNetSimple(channel_groups, ds_channel_order, all_params, global_params)
 
     if torch.cuda.is_available():
         model.cuda()
