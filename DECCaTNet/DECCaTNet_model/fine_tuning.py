@@ -143,7 +143,7 @@ def n_correct_preds(y_pred, y):
     #num_correct = (torch.argmax(y_pred, dim=1) == y).float().sum().item()
     num_correct = (predicted_labels == y).float().sum().item()
     num_total = len(y)
-    print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
+    #print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
     # print(f'argmax pred {torch.argmax(y_pred, dim=1)} y {torch.argmax(y,dim=1)} results{torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)}')
     return num_correct, num_total
 
