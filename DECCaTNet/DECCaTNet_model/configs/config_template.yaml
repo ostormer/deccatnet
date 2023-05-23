@@ -207,7 +207,7 @@ encoder_params:
   n_encoder_heads: 10
   n_encoder_layers: 6
 
-  latent_space_size: 256
+  latent_space_size: 128
 
 downstream_params:
   out_layer_1: 256

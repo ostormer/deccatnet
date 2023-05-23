@@ -137,6 +137,7 @@ class FineTuneNet(nn.Module):
 def n_correct_preds(y_pred, y):
     num_correct = (torch.argmax(y_pred, dim=1) == torch.argmax(y, dim=1)).float().sum().item()
     num_total = len(y)
+    print(f'checking that n_correct_preds work: {y_pred} and y: {y}, gives num correct {num_correct}')
     # print(f'argmax pred {torch.argmax(y_pred, dim=1)} y {torch.argmax(y,dim=1)} results{torch.argmax(y_pred, dim=1) == torch.argmax(y,dim=1)}')
     return num_correct, num_total
 
@@ -148,7 +149,9 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
     num_train_preds = 0
 
     for x, y in tqdm(train_loader,disable=disable):
-        y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y])  # TODO check what shape of target should be
+        print(f'target variables before changign them {y}')
+        y = torch.Tensor([[0, 1] if not elem else [1, 0] for elem in y]) # TODO maybe error is here?
+        print(f'target variables after changing: {y}')
         # y = y.type(torch.LongTensor)
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
@@ -221,7 +224,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
     print('=========================== TRAINING MODEL IN fine_tuning ===========================')
     for epoch in range(epochs):
         print('================== epoch number: ', epoch, 'of: ', epochs, ' in fine_tuning =========================')
-        train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
+        model, train_loss, correct_train_preds, num_train_preds = train_epoch(model, train_loader, device, loss_func,
                                                                        optimizer)
 
         val_loss_out, correct_eval_preds, num_eval_preds = validate_epoch(model, val_loader, device, loss_func)

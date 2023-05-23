@@ -2,9 +2,9 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
-  FINE_TUNING: False
+  FINE_TUNING: True
 
   TQDM: True # want to disable tqdm or not
 
