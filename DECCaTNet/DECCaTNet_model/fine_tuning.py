@@ -55,7 +55,7 @@ class FineTuneNetSimple(nn.Module):
         self.embedding_size = global_params["embedding_size"]
         self.n_classes = params["n_classes"]
 
-        self.encoder = Encoder(all_params['encoder_params'], global_params)
+        #self.encoder = Encoder(all_params['encoder_params'], global_params)
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
         self.out_layer_2 = all_params['downstream_params']['out_layer_2']
@@ -64,6 +64,7 @@ class FineTuneNetSimple(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
+            nn.Linear(in_features=138000, out_features=int(self.embedding_size * self.magic)),
             nn.Linear(in_features=int(self.embedding_size * self.magic),
                       out_features=self.out_layer_1),
             nn.ReLU(),
