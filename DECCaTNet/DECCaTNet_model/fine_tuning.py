@@ -73,7 +73,6 @@ class FineTuneNetSimple(nn.Module):
             nn.Dropout(self.dropout_2),
             #nn.Linear(in_features=self.out_layer_2, out_features=1),
             nn.Linear(in_features=self.out_layer_2, out_features=self.n_classes),
-            nn.ReLU(),
             # PrintLayer(),
             # nn.LogSoftmax(-1) # dont need this as we use cross entropy loss
         )
@@ -216,6 +215,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         pred = model(x)
         # compute loss
         loss = loss_func(pred, y)
+        print(f'the obtained loss is {loss.item()} and we have the followinf predictions: {pred} for the followinf targets: {y}')
         # update weights
         loss.backward()
         if count % 30 == 0:
