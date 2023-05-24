@@ -48,8 +48,8 @@ def hyper_search(all_params, global_params):
     hyper_prams = all_params['hyper_search']
     configs = make_correct_config(hyper_prams, all_params, global_params)
 
-    #ray.init(num_cpus=1)
-    #ray.init(num_gpus=2)
+    # ray.init(num_cpus=1)
+    # ray.init(num_gpus=2)
     if hyper_prams['PRE_TRAINING']:
         mode = 'min'
         metric = 'val_loss'
@@ -79,10 +79,11 @@ def hyper_search(all_params, global_params):
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
             max_report_frequency=hyper_prams['max_report_frequency'])
-    if global_params['n_gpu']>0:
-        trainable = tune.with_resources(hyper_search_train,resources={'gpu':0.45, 'cpu':math.floor(global_params['n_jobs']/(2*global_params['n_gpu'])),"accelerator_type:V100": 0.21})
+    if global_params['n_gpu'] > 0:
+        trainable = tune.with_resources(hyper_search_train, resources={'gpu': 0.45, 'cpu': math.floor(
+            global_params['n_jobs'] / (2 * global_params['n_gpu'])), "accelerator_type:V100": 0.21})
     else:
-        n_jobs = math.floor(global_params['n_jobs']/5)
+        n_jobs = math.floor(global_params['n_jobs'] / 5)
         if n_jobs == 0:
             n_jobs = 1
         trainable = tune.with_resources(hyper_search_train, resources={'cpu': n_jobs})
@@ -95,24 +96,24 @@ def hyper_search(all_params, global_params):
 
     result = tune.run(
         tune.with_parameters(trainable, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
-                global_params=copy.deepcopy(global_params)),
+                             global_params=copy.deepcopy(global_params)),
         config=configs,
         num_samples=hyper_prams['num_samples'],
         scheduler=scheduler,
         progress_reporter=reporter,
         local_dir='../tune_results',
         verbose=2,
-        search_alg=TuneBOHB(metric=metric,mode=mode),
-        #reuse_actors=False
+        search_alg=TuneBOHB(metric=metric, mode=mode),
+        # reuse_actors=False
     )
 
-    best_trial = result.get_best_trial(metric=metric,mode=mode)
+    best_trial = result.get_best_trial(metric=metric, mode=mode)
     print("Best trial config: {}".format(best_trial.config))
     print("Best trial final validation loss: {}".format(
         best_trial.last_result["val_loss"]))
     if mode == 'max':
         print("Best trial final validation accuracy: {}".format(
-        best_trial.last_result["val_acc"]))
+            best_trial.last_result["val_acc"]))
 
 
 def make_correct_config(hyper_params, all_params, global_params):
@@ -120,6 +121,7 @@ def make_correct_config(hyper_params, all_params, global_params):
     for key in hyper_params['config']:
         config[key] = eval(hyper_params['config'][key])
     return config
+
 
 def hyper_search_train(config, hyper_params=None, all_params=None, global_params=None):
     # check for global params in config
@@ -129,21 +131,36 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
     if hyper_params['PERFORM_PREPROCESS']:
         pre.run_preprocess(all_params, global_params)
 
-    if hyper_params['FINE_AND_PRE']:
+    if hyper_params['FINE_AND_PRE']: # testing only pre_training variables here.
         for key in all_params['pre_training']:
             if key in config:
                 all_params['pre_training'][key] = config[key]
+        for key in all_params['downstream_params']:
+            if key in config:
+                all_params['downstream_params'][key] = config[key]
+        for key in all_params['encoder_params']:
+            if key in config:
+                all_params['encoder_params'][key] = config[key]
         cf.pre_train_model(copy.deepcopy(all_params), global_params)
         fine_tuning_hypersearch(copy.deepcopy(all_params), global_params)
     elif hyper_params['PRE_TRAINING']:
         for key in all_params['pre_training']:
             if key in config:
                 all_params['pre_training'][key] = config[key]
+        for key in all_params['encoder_params']:
+            if key in config:
+                all_params['encoder_params'][key] = config[key]
         pre_train_hypersearch(all_params, global_params)
     elif hyper_params['FINE_TUNING']:
-        for key in all_params['pre_training']:
+        for key in all_params['fine_tuning']:
             if key in config:
-                all_params['pre_training'][key] = config[key]
+                all_params['fine_tuning'][key] = config[key]
+        for key in all_params['downstream_params']:
+            if key in config:
+                all_params['downstream_params'][key] = config[key]
+        for key in all_params['encoder_params']:
+            if key in config:
+                all_params['encoder_params'][key] = config[key]
         fine_tuning_hypersearch(copy.deepcopy(all_params), global_params)
 
 
@@ -180,14 +197,6 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
     # im thinking load one window
     ds_channel_order = dataset.__getitem__(0, window_order=True)
 
-    for i in range(math.floor(len(idx)*all_params['hyper_search']['fine_tune_split'])):
-        window_order = dataset.__getitem__(i, window_order=True)
-        # if not window_order == ds_channel_order:
-        #     changes = [ds_channel_order.index(ch_n) if ds_channel_order[i] != ch_n else i for i, ch_n in
-        #                enumerate(window_order)]
-            # print(ds_channel_order,'\n',windows_ds.windows.ch_names,'\n',changes)
-        #assert window_order == ds_channel_order, f'{window_order} \n {ds_channel_order}' # TODO fix assertion
-
     channel_groups = _make_adjacent_groups(ds_channel_order, global_params['n_channels'])
 
     train, valid = dataset.get_splits(params['train_split'])
@@ -206,7 +215,6 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
         test_loader = val_loader  # TODO remove this once we have test set
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
     try:
         all_params_2 = copy.deepcopy(all_params)
@@ -235,32 +243,35 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
                         test_loader, device,
                         loss_func,
                         optimizer, validate_test,
-                        n_folds,disable=global_params['TQDM'])
+                        n_folds, disable=global_params['TQDM'])
     else:
         train_model(epochs, model, train_loader,
                     val_loader, test_loader,
                     device,
                     loss_func, optimizer,
-                    validate_test,disable=global_params['TQDM'])
+                    validate_test, disable=global_params['TQDM'])
 
 
 def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,
-                early_stop=None,disable=False):
+                early_stop=None, disable=False):
     for epoch in range(epochs):
         print(f'============== HYPER SEARCH FINE-TUNING EPOCH: {epoch} of {epochs}==========================')
-        model, train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
-                                                                       optimizer,disable=disable)
+        model, train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device,
+                                                                                   loss_func,
+                                                                                   optimizer, disable=disable)
 
-        val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
+        val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,
+                                                                           disable=disable)
 
-        #checkpoint = Checkpoint.from_dict({"epoch": epoch})
+        # checkpoint = Checkpoint.from_dict({"epoch": epoch})
 
-        session.report({'val_loss': val_loss /num_eval_preds, 'train_loss': train_loss / num_train_preds,
-                        'val_acc': correct_eval_preds / num_eval_preds, 'train_acc': correct_train_preds/num_train_preds})#,checkpoint=checkpoint)
+        session.report({'val_loss': val_loss / num_eval_preds, 'train_loss': train_loss / num_train_preds,
+                        'val_acc': correct_eval_preds / num_eval_preds,
+                        'train_acc': correct_train_preds / num_train_preds})  # ,checkpoint=checkpoint)
 
 
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
-                    n_folds, early_stop=None, random_state=422,disable=False):
+                    n_folds, early_stop=None, random_state=422, disable=False):
     folds = KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
     print('========================== STARTED K-FOLD-TRAINING ====================================')
     for fold, (train_idx, val_idx) in enumerate(folds.split(np.arange(len(dataset)))):
@@ -273,13 +284,15 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
 
         for epoch in range(epochs):
             print('epoch number in k_fold training: ', epoch, 'of: ', epochs)
-            model,train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device, loss_func,
-                                                                           optimizer,disable=disable)
-            val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,disable=disable)
+            model, train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device,
+                                                                                       loss_func,
+                                                                                       optimizer, disable=disable)
+            val_loss, correct_eval_preds, num_eval_preds = validate_epoch_fine(model, val_loader, device, loss_func,
+                                                                               disable=disable)
 
-            #checkpoint = Checkpoint.from_dict({"epoch": epoch})
+            # checkpoint = Checkpoint.from_dict({"epoch": epoch})
             session.report({'val_loss': val_loss / len(val_loader), 'train_loss': train_loss / len(train_loader),
-                            'val_acc': correct_eval_preds / num_eval_preds})#, checkpoint=checkpoint)
+                            'val_acc': correct_eval_preds / num_eval_preds})  # , checkpoint=checkpoint)
 
 
 def pre_train_hypersearch(all_params=None, global_params=None):
@@ -289,9 +302,13 @@ def pre_train_hypersearch(all_params=None, global_params=None):
     datasets_dict = {}
     for dataset in pretrain_datasets:
         preprocess_root = preprocess_params[dataset]['preprocess_root']
-        with open(os.path.join(preprocess_root, 'pickles', f'{global_params["channel_select_function"]}_{global_params["n_channels"]}'+'split_idx_list.pkl'), 'rb') as fid:
+        with open(os.path.join(preprocess_root, 'pickles',
+                               f'{global_params["channel_select_function"]}_{global_params["n_channels"]}' + 'split_idx_list.pkl'),
+                  'rb') as fid:
             pre_train_ids = pickle.load(fid)
-        datasets_dict[dataset] = (os.path.join(preprocess_root, f'split_{global_params["channel_select_function"]}_{global_params["n_channels"]}'), pre_train_ids)
+        datasets_dict[dataset] = (os.path.join(preprocess_root,
+                                               f'split_{global_params["channel_select_function"]}_{global_params["n_channels"]}'),
+                                  pre_train_ids)
 
     dataset = ConcatPathDataset(datasets_dict, all_params, global_params)
 
@@ -315,7 +332,7 @@ def pre_train_hypersearch(all_params=None, global_params=None):
     if not os.path.exists(save_dir_model):
         os.makedirs(save_dir_model)
 
-    dataset,_ = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
+    dataset, _ = dataset.get_splits(all_params['hyper_search']['pre_train_split'])
     # load dataset
     train_set, val_set = dataset.get_splits(train_split)
 
@@ -348,8 +365,9 @@ def pre_train_hypersearch(all_params=None, global_params=None):
     for epoch in range(max_epochs):
         print(f'========== Epoch nr {epoch} of {max_epochs} =======================')
         model, counter, epoch_loss = train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func,
-                                                 time_process, batch_print_freq, time_names, batch_size,disable=global_params['TQDM'])
-        val_loss = validate_epoch(model, val_loader, device, loss_func,disable=global_params['TQDM'])
+                                                 time_process, batch_print_freq, time_names, batch_size,
+                                                 disable=global_params['TQDM'])
+        val_loss = validate_epoch(model, val_loader, device, loss_func, disable=global_params['TQDM'])
 
         losses.append(epoch_loss)
         val_losses.append(val_loss)
