@@ -242,6 +242,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         del x
         del y
         del pred
+        del loss
         torch.cuda.empty_cache()
 
     print(f'=== RESULTS FROM ONE FINETUNE TRAIN EPOCH, correct preds: {correct_train_preds / num_train_preds}, train_loss: {train_loss / num_train_preds}')
@@ -274,6 +275,7 @@ def validate_epoch(model, val_loader, device, loss_func,disable):
             del x
             del y
             del pred
+            del loss
             torch.cuda.empty_cache()
 
     print(f'==== VALIDATION RESULTS FROM FINETUNE,correct preds {correct_eval_preds / num_eval_preds}, loss: {val_loss / num_eval_preds}')
