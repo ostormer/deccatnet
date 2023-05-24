@@ -15,7 +15,7 @@ global:
   n_channels: 23
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
-  window_size: 20  # Window length in seconds
+  window_size: 120  # Window length in seconds
   embedding_size: 40
   magic_constant: 22 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
@@ -173,7 +173,7 @@ pre_training:
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
-  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre_finetune'
+  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_2m'
   encoder_path: '/models/encoder_test_anakin'
 
   n_classes: 2
