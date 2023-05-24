@@ -109,11 +109,11 @@ class FineTuneNet(nn.Module):
         #print(f'=============== debugging, this is encoder path {self.encoder_path} ==============')
         #print(f'=============== debugging, this is encoder path {os.getcwd()} ==============')
 
-        if torch.cuda.is_available():
-            self.encoder.load_state_dict(torch.load(self.encoder_path))
-        else:
-            self.encoder.load_state_dict(torch.load(self.encoder_path,map_location=torch.device('cpu'))) # saved in the hyperparameter tuning itself.
-
+        # if torch.cuda.is_available():
+        #     self.encoder.load_state_dict(torch.load(self.encoder_path))
+        # else:
+        #     self.encoder.load_state_dict(torch.load(self.encoder_path,map_location=torch.device('cpu'))) # saved in the hyperparameter tuning itself.
+        #
         self.encoder.requires_grad_(all_params['encoder_params']['FREEZE_ENCODER'])  # TODO Doesnt train the encoder during fine_tuning. (good for something i guess)
 
         self.out_layer_1 = all_params['downstream_params']['out_layer_1']
