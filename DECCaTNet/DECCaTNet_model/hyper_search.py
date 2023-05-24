@@ -80,8 +80,8 @@ def hyper_search(all_params, global_params):
             metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
             max_report_frequency=hyper_prams['max_report_frequency'])
     if global_params['n_gpu'] > 0:
-        trainable = tune.with_resources(hyper_search_train, resources={'gpu': 0.45, 'cpu': math.floor(
-            global_params['n_jobs'] / (2 * global_params['n_gpu'])), "accelerator_type:V100": 0.21})
+        trainable = tune.with_resources(hyper_search_train, resources={'gpu': 0.9, 'cpu': math.floor(
+            global_params['n_jobs'] / (2 * global_params['n_gpu'])), "accelerator_type:V100": 0.45})
     else:
         n_jobs = math.floor(global_params['n_jobs'] / 5)
         if n_jobs == 0:
