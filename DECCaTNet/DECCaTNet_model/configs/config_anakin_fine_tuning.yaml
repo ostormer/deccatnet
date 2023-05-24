@@ -181,7 +181,7 @@ fine_tuning:
   batch_size: 24 # kan endres
   max_epochs: 30
   #lr_rate: 0.0001 # kan endres
-  lr_rate: 0.00001
+  lr_rate: 0.0001
   weight_decay: 0.1 # kan endres
   train_split: 0.8
   SHUFFLE: True
@@ -190,7 +190,7 @@ fine_tuning:
   n_folds: 5
 
   early_stopper: #params for early stopper implementation, not used in hyper_search
-    patience: 4
+    patience: 6
     min_delta: 0.1
 
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
