@@ -221,7 +221,7 @@ def train_epoch(model, train_loader, device, loss_func, optimizer,disable):
         # update weights
         loss.backward()
 
-        if count % 20 == 0:
+        if count % 40 == 0:
             print(f'the obtained loss is {loss.item()} and we have the followinf predictions: {pred} for the followinf targets: {y}')
             print(f'resulting in prediction accuracy: {n_correct_preds(pred,y)}')
         #     plot_grad_flow(model.cpu().named_parameters(),count)
