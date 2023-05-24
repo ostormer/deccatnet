@@ -12,13 +12,13 @@ global:
   n_channels: 2
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
-  window_size: 30  # Window length in seconds
+  window_size: 120  # Window length in seconds
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
 
 
   # datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1'] # which datasets should be preprocessed
-  datasets: ['seed', 'bciciv_1'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
 
 
 preprocess:
@@ -39,9 +39,9 @@ preprocess:
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: False
-    exclude_channels: []  # remember to comment out if not used
+    exclude_channels: [ ]  # remember to comment out if not used
 
-  tuh_eeg_abnormal_train:  # This key must match one value in params_all['global']['datasets']
+  tuh_eeg_abnormal_train: # This key must match one value in params_all['global']['datasets']
     ds_name: 'tuh_eeg_abnormal_train'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre'
@@ -58,7 +58,7 @@ preprocess:
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: False
-    exclude_channels: []  # remember to comment out if not used
+    exclude_channels: [ ]  # remember to comment out if not used
 
   seed:
     ds_name: 'seed'  # Must match key
@@ -78,7 +78,7 @@ preprocess:
     reject_high_threshold: null  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: null  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: False
-    exclude_channels: []  # remember to comment out if not used
+    exclude_channels: [ ]  # remember to comment out if not used
 
   bciciv_1:
     ds_name: 'bciciv_1'  # Must match key
@@ -98,15 +98,16 @@ preprocess:
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (uV)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (uV)
     DELETE_STEP_1: False
-    exclude_channels: []  # remember to comment out if not used
+    exclude_channels: [ ]  # remember to comment out if not used
 
   # Abnormal eval is only used for testing after fine_tune
-  tuh_eeg_abnormal_eval:  # This key must match one value in params_all['global']['datasets']
+  tuh_eeg_abnormal_eval: # This key must match one value in params_all['global']['datasets']
     ds_name: 'tuh_eeg_abnormal_eval'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/eval'
     preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre'
     IS_FINE_TUNING_DS: True
     STOP_AFTER_PREPROC: True
+    target_name: 'pathological'
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -118,24 +119,22 @@ preprocess:
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: False
-    exclude_channels:
-      - 'EEG 26-REF'
-      - 'EEG 27-REF'
-      - 'EEG 28-REF'
-      - 'EEG 29-REF'
-      - 'EEG 30-REF'
+    exclude_channels: [ ]
+    include_channels:  # Include only these channels
+      [ 'EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF', 'EEG T1-REF', 'EEG T2-REF' ]
+
 
   tuh_eeg_abnormal_finetune: # Must match ds_name
     ds_name: 'tuh_eeg_abnormal_finetune'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
-    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre_finetune'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_2m'
     IS_FINE_TUNING_DS: True
     STOP_AFTER_PREPROC: True
     target_name: 'pathological'
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # needs to be none if new channels are excluded, else windows is acceptable
+    read_cache: 'preproc'  # needs to be none if new channels are excluded, else windows is acceptable
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -143,16 +142,13 @@ preprocess:
     reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
     reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: False
-    exclude_channels:
-      - 'EEG 26-REF'
-      - 'EEG 27-REF'
-      - 'EEG 28-REF'
-      - 'EEG 29-REF'
-      - 'EEG 30-REF'
+    exclude_channels: [ ]
+    include_channels:
+      [ 'EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF', 'EEG T1-REF', 'EEG T2-REF' ]
 
 
 pre_training:
-  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_train']
+  datasets: [ 'tuh_eeg', 'tuh_eeg_abnormal_train' ]
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
@@ -168,14 +164,14 @@ pre_training:
   batch_print_freq: 5
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'test' # Name of your model
-  TIME_PROCESS: True
+  TIME_PROCESS: False
 
   augmentation:
     noise_probability: 0
 
 
 fine_tuning:
-  ds_name: 'tuh_eeg_abnormal'
+  ds_name: 'tuh_eeg_abnormal_finetune'
   # get encoder path from pre_training params
   ds_path: '../datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune/pickles/windowed_ds.pkl'
   encoder_path: 'models/encoder_test'
@@ -218,11 +214,11 @@ fine_tuning:
     reject_flat_threshold: 0.00000  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: True
     exclude_channels:
-    - 'EEG 26-REF'
-    - 'EEG 27-REF'
-    - 'EEG 28-REF'
-    - 'EEG 29-REF'
-    - 'EEG 30-REF'
+      - 'EEG 26-REF'
+      - 'EEG 27-REF'
+      - 'EEG 28-REF'
+      - 'EEG 29-REF'
+      - 'EEG 30-REF'
 
 encoder_params:
   temporal_size: 40
