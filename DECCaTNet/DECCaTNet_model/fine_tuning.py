@@ -111,7 +111,7 @@ class FineTuneNet(nn.Module):
 
         # if torch.cuda.is_available():
         #     self.encoder.load_state_dict(torch.load(self.encoder_path))
-        # else:
+        # else: TODO: remeber that this is commented out.
         #     self.encoder.load_state_dict(torch.load(self.encoder_path,map_location=torch.device('cpu'))) # saved in the hyperparameter tuning itself.
         #
         self.encoder.requires_grad_(all_params['encoder_params']['FREEZE_ENCODER'])  # TODO Doesnt train the encoder during fine_tuning. (good for something i guess)
