@@ -436,14 +436,14 @@ def run_fine_tuning(all_params, global_params, test_set=None):
         all_params_2 = copy.deepcopy(all_params)
         to_join = str(os.getcwd())
         all_params_2['fine_tuning']['encoder_path'] = to_join + '/' + all_params_2['fine_tuning']['encoder_path']
-        model = FineTuneNetSimple(channel_groups, ds_channel_order, all_params_2, global_params)
+        model = FineTuneNet(channel_groups, ds_channel_order, all_params_2, global_params)
     except:
         assert all_params['hyper_search']['FINE_TUNING'] == True, (
             'assertion failed as this should only be accsessible when only finetuning')
         all_params['fine_tuning'][
             'encoder_path'] = '/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/' + \
                               all_params['fine_tuning']['encoder_path']
-        model = FineTuneNetSimple(channel_groups, ds_channel_order, all_params, global_params)
+        model = FineTuneNet(channel_groups, ds_channel_order, all_params, global_params)
 
     if torch.cuda.is_available():
         model.cuda()
