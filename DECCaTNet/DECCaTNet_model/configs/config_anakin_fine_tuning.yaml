@@ -180,8 +180,8 @@ fine_tuning:
 
   batch_size: 32 # kan endres
   max_epochs: 30
-  lr_rate: 0.01 # kan endres
-  weight_decay: 0.005 # kan endres
+  lr_rate: 0.1 # kan endres
+  weight_decay: 0.05 # kan endres
   train_split: 0.8
   SHUFFLE: True
 
@@ -223,7 +223,7 @@ fine_tuning:
 encoder_params:
   temporal_size: 40 # kan endres, men kan også bare følge conformer
   spatial_size: 40 # kan endres, men kan også bare følge conformer
-  CNN_dropout: 0 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
+  CNN_dropout: 0.1 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
 
   FREEZE_ENCODER: True # If False: dont fine-tune encoder. If True, fine-tune encoder during fine-tuning
 
