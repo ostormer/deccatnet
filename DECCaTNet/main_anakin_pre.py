@@ -21,4 +21,4 @@ def run(config_path_name):
 
 
 if __name__ == '__main__':
-    run('config_anakin_count_channels')
+    run('config_anakin_preprocess')
