@@ -174,7 +174,8 @@ fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
   ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_2m'
-  encoder_path: null #'/models/encoder_test_anakin' TODO remeber to add this when actually pretraining is performed.
+  encoder_path: '/models/encoder_test_anakin'
+  load_encoder: False
 
   n_classes: 2
 
