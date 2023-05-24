@@ -261,7 +261,7 @@ hyper_search:
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
     #weight_decay: 'tune.loguniform(1e-5, 1e-2)'
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
-    # batch_size: 'tune.choice([16,32,64])'
+    batch_size: 'tune.choice([32,128])'
     learning_rate: 'tune.loguniform(1e-5, 1e-1)'
     #batch_size: 'tune.choice([64,128,256,524])' # (100,1000)
     #temperature: 'tune.loguniform(0.01,0.2)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
