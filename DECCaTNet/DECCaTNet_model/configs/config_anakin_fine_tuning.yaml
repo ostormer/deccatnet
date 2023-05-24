@@ -234,8 +234,8 @@ encoder_params:
   latent_space_size: 128 # size of projection to contrastive loss
 
 downstream_params:
-  out_layer_1: 64
-  out_layer_2: 8
+  out_layer_1: 256
+  out_layer_2: 32
   dropout_1: 0.2
   dropout_2: 0.1
 
