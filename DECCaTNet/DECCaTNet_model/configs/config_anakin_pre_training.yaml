@@ -242,6 +242,7 @@ downstream_params:
   dropout_2: 0.1
 
 hyper_search:
+  experiment_name: 'pretraining'
   PERFORM_PREPROCESS: False
   FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
   PRE_TRAINING: False # only used when you only do pre_training

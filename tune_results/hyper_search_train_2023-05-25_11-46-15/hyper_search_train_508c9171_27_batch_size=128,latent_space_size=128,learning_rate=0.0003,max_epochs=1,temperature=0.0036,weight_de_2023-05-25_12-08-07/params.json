@@ -1,8 +1,0 @@
-{
-  "batch_size": 128,
-  "latent_space_size": 128,
-  "learning_rate": 0.00026397826008721874,
-  "max_epochs": 1,
-  "temperature": 0.003621530152654911,
-  "weight_decay": 0.15850902202129255
-}

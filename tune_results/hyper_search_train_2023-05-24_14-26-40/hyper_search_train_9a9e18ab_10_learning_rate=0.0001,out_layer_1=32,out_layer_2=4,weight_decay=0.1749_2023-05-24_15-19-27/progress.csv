@@ -1,2 +1,0 @@
-val_loss,train_loss,val_acc,train_acc,time_this_iter_s,done,training_iteration,trial_id,date,timestamp,time_total_s,pid,hostname,node_ip,time_since_restore,iterations_since_restore
-0.021754788402903714,0.021769223840479145,0.5076123282584478,0.5055006266536695,799.5966372489929,False,1,9a9e18ab,2023-05-24_15-32-47,1684935167,799.5966372489929,2151271,anakin02,129.241.113.29,799.5966372489929,1

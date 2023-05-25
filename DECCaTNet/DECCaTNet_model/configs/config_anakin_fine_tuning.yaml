@@ -148,6 +148,7 @@ preprocess:
 
 
 pre_training:
+  experiment_name: 'finetuning'
   datasets: ['tuh_eeg', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1']  # Which datasets to be used for pretraining
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
