@@ -317,12 +317,13 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, batch_number: int, 
     if not os.path.exists(split_save_dir):
         os.makedirs(split_save_dir)
     # Delete old contents of save_dir
-    for files in os.listdir(split_save_dir):
-        path = os.path.join(split_save_dir, files)
-        try:
-            shutil.rmtree(path)
-        except OSError:
-            os.remove(path)
+    if batch_number == 0:
+        for files in os.listdir(split_save_dir):
+            path = os.path.join(split_save_dir, files)
+            try:
+                shutil.rmtree(path)
+            except OSError:
+                os.remove(path)
 
     # Channel splitting
     print('Splitting recordings into separate channels')
