@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
-  HYPER_SEARCH: True
+  PREPROCESSING: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
   FINE_TUNING: False
 
@@ -32,7 +32,7 @@ preprocess:
     STOP_AFTER_PREPROC: False
 
     start_idx: 0
-    stop_idx: 400 # Which idx is the last to load? (null for all)
+    stop_idx: 1000 # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
@@ -70,7 +70,7 @@ preprocess:
     STOP_AFTER_PREPROC: False
 
     start_idx: 0
-    stop_idx: 400  # Which idx is the last to load? (null for all)
+    stop_idx: 1000  # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
