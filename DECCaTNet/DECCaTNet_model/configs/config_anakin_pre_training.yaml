@@ -17,7 +17,7 @@ global:
   s_freq: 200
   window_size: 60  # Window length in seconds, only used in preprocessing
   embedding_size: 40
-  magic_constant_pre_train: 60
+  magic_constant_pre_train: 49
   magic_constant_fine_tune: 102 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
