@@ -364,6 +364,9 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
         test_loss, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
         avg_test_loss.append(test_loss / len(test_loader))
         test_acc.append(correct_test_preds / num_test_preds)
+        writer.add_scalar('test_loss', test_loss / len(test_loader), epoch)
+        writer.add_scalar('test_acc', correct_test_preds / num_test_preds, epoch)
+
 
     return avg_loss, train_acc, avg_val_loss, val_acc, avg_test_loss, test_acc, model
 
