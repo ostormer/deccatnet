@@ -183,7 +183,7 @@ fine_tuning:
   batch_size: 32 # kan endres
   max_epochs: 30
   #lr_rate: 0.0001 # kan endres
-  lr_rate: 2e-05
+  lr_rate: 0.00002
   weight_decay: 0.0003 # kan endres
   train_split: 0.8
   SHUFFLE: True
