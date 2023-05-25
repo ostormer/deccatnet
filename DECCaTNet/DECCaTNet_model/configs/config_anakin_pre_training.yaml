@@ -159,7 +159,7 @@ pre_training:
   temperature: 0.03 # må endres
   learning_rate: 0.008 # må endres
   weight_decay: 0.01 # må endres
-  max_epochs: 10
+  max_epochs: 2
 
   save_freq: 10
   batch_print_freq: 10000
@@ -181,7 +181,7 @@ fine_tuning:
   n_classes: 2
 
   batch_size: 32 # kan endres
-  max_epochs: 30
+  max_epochs: 10
   #lr_rate: 0.0001 # kan endres
   lr_rate: 0.00002
   weight_decay: 0.0003 # kan endres
@@ -255,7 +255,7 @@ hyper_search:
   max_t: 30 # maximum training iteration before validation
   grace_period: 4 # minimum number of training iterations before validating.
   reduction_factor: 2 # how much of the iterations should be kept after grace period is reached.
-  num_samples: 30 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
+  num_samples: 15 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
   config:
@@ -270,8 +270,6 @@ hyper_search:
     #CNN_dropout: 0.2
     #dropout_1: 0.2
     #dropout_2: 0.1
-    max_epochs: 'tune.choice([1,4,10])'
-    latent_space_size: 'tune.choice([16,128,512])'
 
   inspiration:
     l1: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
