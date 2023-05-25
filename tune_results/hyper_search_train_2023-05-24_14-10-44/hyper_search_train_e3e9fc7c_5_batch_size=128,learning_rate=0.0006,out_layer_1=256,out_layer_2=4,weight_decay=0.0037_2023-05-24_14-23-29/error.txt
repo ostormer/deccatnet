@@ -1,0 +1,45 @@
+Failure # 1 (occurred at 2023-05-24_14-24-00)
+[36mray::ImplicitFunc.train()[39m (pid=2129618, ip=129.241.113.29, repr=hyper_search_train)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/trainable.py", line 384, in train
+    raise skipped from exception_cause(skipped)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/function_trainable.py", line 336, in entrypoint
+    return self._trainable_func(
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/function_trainable.py", line 653, in _trainable_func
+    output = fn()
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/util.py", line 421, in _inner
+    return inner(config, checkpoint_dir=None)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/util.py", line 413, in inner
+    return trainable(config, **fn_kwargs)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/hyper_search.py", line 164, in hyper_search_train
+    fine_tuning_hypersearch(copy.deepcopy(all_params), global_params)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/hyper_search.py", line 248, in fine_tuning_hypersearch
+    train_model(epochs, model, train_loader,
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/hyper_search.py", line 259, in train_model
+    model, train_loss, correct_train_preds, num_train_preds = train_epoch_fine(model, train_loader, device,
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/fine_tuning.py", line 220, in train_epoch
+    pred = model(x)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1110, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/fine_tuning.py", line 179, in forward
+    encoder_out.append(self.encoders[i](group))  # Encode group
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1110, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/DECCaTNet_model.py", line 28, in forward
+    return self.TransEncoder(x)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1110, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/DECCaTNet_model.py", line 94, in forward
+    x = self.encoder(x)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1110, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/transformer.py", line 202, in forward
+    output = mod(output, src_mask=mask, src_key_padding_mask=src_key_padding_mask)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1110, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/transformer.py", line 345, in forward
+    x = self.norm2(x + self._ff_block(x))
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/transformer.py", line 360, in _ff_block
+    x = self.linear2(self.dropout(self.activation(self.linear1(x))))
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/functional.py", line 1442, in relu
+    result = torch.relu(input)
+RuntimeError: CUDA out of memory. Tried to allocate 102.00 MiB (GPU 0; 31.75 GiB total capacity; 14.51 GiB already allocated; 56.69 MiB free; 14.53 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

@@ -1,0 +1,7 @@
+{
+  "batch_size": 128,
+  "learning_rate": 0.0005628966230727596,
+  "out_layer_1": 256,
+  "out_layer_2": 4,
+  "weight_decay": 0.0036897371219325598
+}

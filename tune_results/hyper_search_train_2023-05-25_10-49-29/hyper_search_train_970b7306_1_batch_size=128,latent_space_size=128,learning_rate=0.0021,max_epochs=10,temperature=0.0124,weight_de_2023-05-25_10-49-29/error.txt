@@ -1,0 +1,52 @@
+Failure # 1 (occurred at 2023-05-25_10-49-40)
+[36mray::ImplicitFunc.train()[39m (pid=3390675, ip=129.241.113.29, repr=hyper_search_train)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/trainable.py", line 384, in train
+    raise skipped from exception_cause(skipped)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/function_trainable.py", line 336, in entrypoint
+    return self._trainable_func(
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/function_trainable.py", line 653, in _trainable_func
+    output = fn()
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/util.py", line 421, in _inner
+    return inner(config, checkpoint_dir=None)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/util.py", line 413, in inner
+    return trainable(config, **fn_kwargs)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/hyper_search.py", line 144, in hyper_search_train
+    cf.pre_train_model(copy.deepcopy(all_params), global_params)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/contrastive_framework.py", line 437, in pre_train_model
+    model, counter, epoch_loss = train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func,
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/contrastive_framework.py", line 242, in train_epoch
+    for aug_1, aug_2, sample in tqdm(train_loader, disable=disable):
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/tqdm/std.py", line 1183, in __iter__
+    for obj in iterable:
+  File "/usr/local/lib/python3.8/dist-packages/torch/utils/data/dataloader.py", line 530, in __next__
+    data = self._next_data()
+  File "/usr/local/lib/python3.8/dist-packages/torch/utils/data/dataloader.py", line 1224, in _next_data
+    return self._process_data(data)
+  File "/usr/local/lib/python3.8/dist-packages/torch/utils/data/dataloader.py", line 1250, in _process_data
+    data.reraise()
+  File "/usr/local/lib/python3.8/dist-packages/torch/_utils.py", line 457, in reraise
+    raise exception
+FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0.
+Original Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/dist-packages/torch/utils/data/_utils/worker.py", line 287, in _worker_loop
+    data = fetcher.fetch(index)
+  File "/usr/local/lib/python3.8/dist-packages/torch/utils/data/_utils/fetch.py", line 49, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/usr/local/lib/python3.8/dist-packages/torch/utils/data/_utils/fetch.py", line 49, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/usr/local/lib/python3.8/dist-packages/torch/utils/data/dataset.py", line 416, in __getitem__
+    return self.datasets[dataset_idx][sample_idx]
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/custom_dataset.py", line 232, in __getitem__
+    signals = _load_signals(fif_file_path, self.preload, self.is_raw)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/braindecode/datautil/serialization.py", line 121, in _load_signals
+    signals = mne.read_epochs(fif_file, preload=preload)
+  File "<decorator-gen-283>", line 12, in read_epochs
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/mne/epochs.py", line 3211, in read_epochs
+    return EpochsFIF(fname, proj, preload, verbose)
+  File "<decorator-gen-284>", line 12, in __init__
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/mne/epochs.py", line 3260, in __init__
+    _check_fname(fname=fname, must_exist=True, overwrite="read")
+  File "<decorator-gen-0>", line 12, in _check_fname
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/mne/utils/check.py", line 251, in _check_fname
+    raise FileNotFoundError(f"{name} does not exist: {fname}")
+FileNotFoundError: File does not exist: /lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre/split_adjacent_groups_2/33705/33705-epo.fif

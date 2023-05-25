@@ -1,0 +1,19 @@
+Failure # 1 (occurred at 2023-05-25_11-59-18)
+[36mray::ImplicitFunc.train()[39m (pid=3455633, ip=129.241.113.29, repr=hyper_search_train)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/trainable.py", line 384, in train
+    raise skipped from exception_cause(skipped)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/function_trainable.py", line 336, in entrypoint
+    return self._trainable_func(
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/function_trainable.py", line 653, in _trainable_func
+    output = fn()
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/util.py", line 421, in _inner
+    return inner(config, checkpoint_dir=None)
+  File "/lhome/oskarsto/repos/master-eeg-trans/.venv/lib/python3.8/site-packages/ray/tune/trainable/util.py", line 413, in inner
+    return trainable(config, **fn_kwargs)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/hyper_search.py", line 145, in hyper_search_train
+    fine_tuning_hypersearch(copy.deepcopy(all_params), global_params)
+  File "/lhome/oskarsto/repos/master-eeg-trans/DECCaTNet/DECCaTNet_model/hyper_search.py", line 237, in fine_tuning_hypersearch
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
+  File "/usr/local/lib/python3.8/dist-packages/torch/optim/adam.py", line 69, in __init__
+    if not 0.0 <= lr:
+TypeError: '<=' not supported between instances of 'float' and 'str'

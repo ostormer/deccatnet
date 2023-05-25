@@ -1,0 +1,6 @@
+{
+  "learning_rate": 0.0085104111400027,
+  "out_layer_1": 256,
+  "out_layer_2": 32,
+  "weight_decay": 0.00018773421853822983
+}
