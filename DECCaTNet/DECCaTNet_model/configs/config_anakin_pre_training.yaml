@@ -2,11 +2,11 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False
-  HYPER_SEARCH: False
-  PRE_TRAINING: True
+  HYPER_SEARCH: True
+  PRE_TRAINING: False
   FINE_TUNING: False
 
-  TQDM: True # want to disable tqdm or not
+  TQDM: True # want to disable tqdm or not, True disables TQDM
 
   n_gpu: 2
   n_jobs: 50
@@ -15,9 +15,9 @@ global:
   n_channels: 2
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
-  window_size: 20  # Window length in seconds
+  window_size: 120  # Window length in seconds
   embedding_size: 40
-  magic_constant: 22 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
+  magic_constant: 102 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1',] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
@@ -148,22 +148,22 @@ preprocess:
 
 
 pre_training:
-  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_train','bciciv_1']  # Which datasets to be used for pretraining
+  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_train', 'seed', 'bciciv_1']  # Which datasets to be used for pretraining
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 256 # må endres, kanskje lettes å forkalre at man fastsetter.
-  train_split: 0.8
+  train_split: 1
   SHUFFLE: True
-  temperature: 0.0701247 # må endres
-  learning_rate: 0.002 # må endres
-  weight_decay: 0.00216529 # må endres
-  max_epochs: 50
+  temperature: 0.03 # må endres
+  learning_rate: 0.008 # må endres
+  weight_decay: 0.01 # må endres
+  max_epochs: 10
 
-  save_freq: 1000
+  save_freq: 10
   batch_print_freq: 10000
   save_dir_model: 'models' # directory which you wish to store your model to
-  model_file_name: 'test_anakin' # Name of your model
+  model_file_name: 'anakin_pre_trained' # Name of your model
   TIME_PROCESS: False
 
   augmentation:
@@ -173,15 +173,17 @@ pre_training:
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
-  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre_finetune'
+  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_2m'
   encoder_path: '/models/encoder_test_anakin'
+  load_encoder: False
 
   n_classes: 2
 
-  batch_size: 64 # kan endres
+  batch_size: 32 # kan endres
   max_epochs: 30
-  lr_rate: 0.1 # kan endres
-  weight_decay: 0.01 # kan endres
+  #lr_rate: 0.0001 # kan endres
+  lr_rate: 2e-05
+  weight_decay: 0.0003 # kan endres
   train_split: 0.8
   SHUFFLE: True
 
@@ -189,7 +191,7 @@ fine_tuning:
   n_folds: 5
 
   early_stopper: #params for early stopper implementation, not used in hyper_search
-    patience: 4
+    patience: 6
     min_delta: 0.1
 
   save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
@@ -223,35 +225,35 @@ fine_tuning:
 encoder_params:
   temporal_size: 40 # kan endres, men kan også bare følge conformer
   spatial_size: 40 # kan endres, men kan også bare følge conformer
-  CNN_dropout: 0.5 # følger conformer
+  CNN_dropout: 0.2 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
 
-  FREEZE_ENCODER: True # If False: dont fine-tune encoder. If True, fine-tune encoder. TODO: test what happens when encoder is not freezed.
+  FREEZE_ENCODER: False # If False: dont fine-tune encoder. If True, fine-tune encoder during fine-tuning
 
   n_encoder_heads: 8
-  n_encoder_layers: 6 # actually supposed to be 8 TODO:
+  n_encoder_layers: 8
 
   latent_space_size: 128 # size of projection to contrastive loss
 
 downstream_params:
   out_layer_1: 256
-  out_layer_2: 64
+  out_layer_2: 32
   dropout_1: 0.2
   dropout_2: 0.1
 
 hyper_search:
   PERFORM_PREPROCESS: False
-  FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
-  PRE_TRAINING: True # only used when you only do pre_training
+  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
+  PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
-  fine_tune_split: 0.1 # how much avaible data should be used for fine_tuning
-  pre_train_split: 1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  fine_tune_split: 1 # how much avaible data should be used for fine_tuning
+  pre_train_split: 0.4 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
-  max_t: 100 # maximum training iteration before validation
+  max_t: 30 # maximum training iteration before validation
   grace_period: 4 # minimum number of training iterations before validating.
-  reduction_factor: 2 # TODO: remember commented out, small as possible
-  num_samples: 25 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
+  reduction_factor: 2 # how much of the iterations should be kept after grace period is reached.
+  num_samples: 20 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
   config:
@@ -259,13 +261,15 @@ hyper_search:
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
     #weight_decay: 'tune.loguniform(1e-5, 1e-2)'
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
-    #batch_size: 'tune.choice([16,32,128])'
-    #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
-    batch_size: 'tune.choice([128,256,524])' # (100,1000)
-    temperature: 'tune.loguniform(0.01,0.2)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
-    learning_rate: 'tune.loguniform(1e-4, 1e-1)' #(1e-4, 1e-1)
-    weight_decay: 'tune.loguniform(1e-4, 1e-1)' # (1e-4,1e-1)
-
+    learning_rate: 'tune.loguniform(1e-5, 1e-1)'
+    batch_size: 'tune.choice([64,128,256])' # (100,1000)
+    temperature: 'tune.loguniform(1e-3,1)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
+    weight_decay: 'tune.loguniform(1e-4, 1)' # (1e-4,1e-1)
+    #CNN_dropout: 0.2
+    #dropout_1: 0.2
+    #dropout_2: 0.1
+    max_epochs: 'tune.choice([1,4,10])'
+    latent_space_size: 'tune.choice([16,128,512])'
 
   inspiration:
     l1: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
