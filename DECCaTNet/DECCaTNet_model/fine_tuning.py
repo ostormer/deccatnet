@@ -377,7 +377,7 @@ class EarlyStopper:
         return False
 
 
-def run_fine_tuning(all_params, global_params, test_set=None):
+def run_fine_tuning(all_params, global_params):
     params = all_params['fine_tuning']
     print('=================== START FINE-TUNING ====================')
     if params['REDO_PREPROCESS']:
@@ -397,6 +397,20 @@ def run_fine_tuning(all_params, global_params, test_set=None):
     ds_params = all_params['fine_tuning']['fine_tuning_preprocess']
 
     dataset = FineTunePathDataset(idx, preproc_path, ds_params, global_params, ds_params['target_name'])
+
+    TEST_SET = all_params['fine_tuning']['TEST_SET']
+    if TEST_SET:
+        preproc_path_test = os.path.join(all_params['fine_tuning']['test_set_path'], 'first_preproc')
+        indexes_test = os.listdir(preproc_path_test)
+        idx_test = []
+        for i in indexes_test:
+            sub_dir = os.path.join(preproc_path, str(i))
+            for i_window in range(
+                    int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
+                idx_test.append((i, i_window))
+
+        test_dataset = FineTunePathDataset(idx_test, preproc_path_test, ds_params, global_params, ds_params['target_name'])
+
     epochs = params["max_epochs"]
     learning_rate = params['lr_rate']
     weight_decay = params['weight_decay']
@@ -425,8 +439,8 @@ def run_fine_tuning(all_params, global_params, test_set=None):
                                                num_workers=num_workers, shuffle=params['SHUFFLE'])
     val_loader = torch.utils.data.DataLoader(valid, batch_size=params['batch_size'],
                                              num_workers=num_workers, shuffle=params['SHUFFLE'])
-    if test_set is not None:
-        test_loader = torch.utils.data.DataLoader(test_set, batch_size=params['batch_size'],
+    if TEST_SET:
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=params['batch_size'],
                                                   shuffle=params["SHUFFLE"],
                                                   num_workers=num_workers)
         validate_test = True
@@ -474,7 +488,6 @@ def run_fine_tuning(all_params, global_params, test_set=None):
                                                                                      loss_func, optimizer,
                                                                                      validate_test, early_stopper,disable=global_params['TQDM'])
 
-    # TODO: implement savinf parts of models underway in training
     # save function for final model
     if not os.path.exists(params['save_dir_model']):
         os.makedirs(params['save_dir_model'])
