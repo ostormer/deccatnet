@@ -14,6 +14,9 @@ from DECCaTNet_model.custom_dataset import ConcatPathDataset
 from tqdm import tqdm
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
 
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
+
 """
 SeqCLR contrastive pre-training algortihm summary
 Randomly transform a mininbatch of N channels into 2N augmented channels (two augmentations for each channel, creating pairs)
@@ -436,8 +439,6 @@ def pre_train_model(all_params, global_params):
     for epoch in range(max_epochs):
         model, counter, epoch_loss = train_epoch(model, epoch, max_epochs, train_loader, device, optimizer, loss_func,
                                                  time_process, batch_print_freq, time_names, batch_size,disable=global_params['TQDM'])
-        # TODO: decide how we can implement a validation_set for a SSL pretext task, SSL for biosignals has a porposal, not implemented
-        # maybe validation test, early stopping or something similar here. Or some other way for storing model here.
         # for now we will use save_frequencie
         if epoch % save_freq == 0 and epoch != 0:
             print('epoch number: ', epoch + 1, 'saving model  ')
@@ -450,6 +451,10 @@ def pre_train_model(all_params, global_params):
         losses.append(epoch_loss)
         val_loss = validate_epoch(model, val_loader, device, loss_func,disable=global_params['TQDM'])
         val_losses.append(val_loss)
+
+        writer.add_scalar('train_loss_pre_train', epoch_loss, epoch)
+        writer.add_scalar('validation_loss_pre_train', val_loss, epoch)
+
     # save function for final model
     save_path_model = os.path.join(save_dir_model, model_file_name)
     torch.save(model.state_dict(), save_path_model)

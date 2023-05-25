@@ -22,6 +22,9 @@ from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset, FineT
 
 import pandas as pd
 
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
+
 from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
 from .DECCaTNet_model import Encoder
 
@@ -303,6 +306,12 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
         val_loss.append(val_loss_out / len(val_loader))
         train_acc.append(correct_train_preds / num_train_preds)
         val_acc.append(correct_eval_preds / num_eval_preds)
+
+        writer.add_scalar('train_loss', train_loss / len(train_loader),epoch)
+        writer.add_scalar('validation_loss', val_loss_out / len(val_loader),epoch)
+        writer.add_scalar('train_acc', correct_train_preds / num_train_preds,epoch)
+        writer.add_scalar('validation_acc', correct_eval_preds / num_eval_preds,epoch)
+
         if early_stop:
             if early_stop.early_stop(val_loss_out / len(val_loader)):
                 print(f'reached stopping criteria in epoch {epoch}')
