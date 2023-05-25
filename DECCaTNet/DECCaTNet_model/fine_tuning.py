@@ -49,7 +49,7 @@ class FineTuneNetSimple(nn.Module):
         super().__init__()
         params = all_params['fine_tuning']
 
-        self.magic = global_params['magic_constant']
+        self.magic = global_params['magic_constant_fine_tune']
         self.encoder_path = params["encoder_path"]
 
         self.embedding_size = global_params["embedding_size"]
@@ -96,7 +96,7 @@ class FineTuneNet(nn.Module):
         super().__init__()
         params = all_params['fine_tuning']
 
-        self.magic = global_params['magic_constant']
+        self.magic = global_params['magic_constant_fine_tune']
         self.encoder_path = params["encoder_path"]
         self.channel_group_size = global_params["n_channels"]
         self.channel_groups = channel_groups  # Channel groups defined by names

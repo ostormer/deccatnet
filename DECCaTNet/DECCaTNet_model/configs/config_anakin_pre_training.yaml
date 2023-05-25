@@ -15,9 +15,10 @@ global:
   n_channels: 2
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
-  window_size: 120  # Window length in seconds
+  window_size: 60  # Window length in seconds
   embedding_size: 40
-  magic_constant: 102 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
+  magic_constant_pre_train: 60
+  magic_constant_fine_tune: 102 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1',] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',

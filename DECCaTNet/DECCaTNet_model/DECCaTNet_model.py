@@ -98,7 +98,7 @@ class TransEncoder(nn.Module):
 class Projector(nn.Module):
     def __init__(self, encoder_params,global_params):
         super().__init__()
-        self.magic = global_params['magic_constant']
+        self.magic = global_params['magic_constant_pre_train']
         self.emb_size = global_params['embedding_size']
         self.latent_space_size = encoder_params['latent_space_size']
         self.projection = nn.Sequential(
