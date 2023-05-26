@@ -15,7 +15,6 @@ from tqdm import tqdm
 from DECCaTNet_model import DECCaTNet_model as DECCaTNet
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter()
 
 """
 SeqCLR contrastive pre-training algortihm summary
@@ -369,6 +368,9 @@ def pre_train_model(all_params, global_params):
 
     :return: None
     """
+    logdir = 'runs/' + global_params['experiment_name']
+    writer = SummaryWriter(logdir=logdir)
+
     pretrain_params = all_params['pre_training']
     preprocess_params = all_params['preprocess']
     pretrain_datasets = pretrain_params['datasets']

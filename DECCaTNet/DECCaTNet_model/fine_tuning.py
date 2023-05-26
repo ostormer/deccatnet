@@ -23,7 +23,6 @@ from DECCaTNet_model.custom_dataset import PathDataset, ConcatPathDataset, FineT
 import pandas as pd
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter()
 
 from preprocessing.preprocess import _make_adjacent_groups, check_windows, run_preprocess
 from .DECCaTNet_model import Encoder
@@ -286,7 +285,7 @@ def validate_epoch(model, val_loader, device, loss_func,disable):
 
 
 def train_model(epochs, model, train_loader, val_loader, test_loader, device, loss_func, optimizer, validate_test,
-                early_stop=None,disable=False):
+                early_stop=None,disable=False,writer=None):
     loss = []
     val_loss = []
     test_loss = []
@@ -326,7 +325,7 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
 
 
 def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, loss_func, optimizer, validate_test,
-                    n_folds, early_stop=None, random_state=422):
+                    n_folds, early_stop=None, random_state=422,writer=None):
     folds = KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
     avg_loss = []
     avg_val_loss = []
@@ -390,6 +389,9 @@ class EarlyStopper:
 
 
 def run_fine_tuning(all_params, global_params):
+    logdir = 'runs/' + global_params['experiment_name']
+    writer = SummaryWriter(logdir=logdir)
+
     params = all_params['fine_tuning']
     print('=================== START FINE-TUNING ====================')
     if params['REDO_PREPROCESS']:
@@ -493,12 +495,12 @@ def run_fine_tuning(all_params, global_params):
                                                                                          params["batch_size"],
                                                                                          test_loader, device, loss_func,
                                                                                          optimizer, validate_test,
-                                                                                         n_folds, early_stopper)
+                                                                                         n_folds, early_stopper,writer=writer)
     else:
         loss, train_acc, val_loss, val_acc, test_loss, test_acc, model = train_model(epochs, model, train_loader,
                                                                                      val_loader, test_loader, device,
                                                                                      loss_func, optimizer,
-                                                                                     validate_test, early_stopper,disable=global_params['TQDM'])
+                                                                                     validate_test, early_stopper,disable=global_params['TQDM'],writer=writer)
 
     # save function for final model
     if not os.path.exists(params['save_dir_model']):
