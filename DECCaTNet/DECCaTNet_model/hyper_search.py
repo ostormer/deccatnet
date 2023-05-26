@@ -102,7 +102,7 @@ def hyper_search(all_params, global_params):
         scheduler=scheduler,
         progress_reporter=reporter,
         local_dir='../tune_results',
-        name=hyper_prams['experiment_name'],
+        name=global_params['experiment_name'],
         verbose=2,
         search_alg=TuneBOHB(metric=metric, mode=mode),
         # reuse_actors=False
