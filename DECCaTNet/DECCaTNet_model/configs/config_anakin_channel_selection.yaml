@@ -248,8 +248,8 @@ downstream_params:
   dropout_2: 0.1
 
 hyper_search:
-  PERFORM_PREPROCESS: False
-  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
+  PERFORM_PREPROCESS: True
+  FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
@@ -266,8 +266,9 @@ hyper_search:
   max_report_frequency: 240
 
   config:
+    n_channels: 'tune.grid_search([23])'
     #n_channels: 'tune.grid_search([1,2,3,5,8,12])'#,23])'
-    lr_rate: 'tune.loguniform(1e-4, 1e-1)'
+    #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
     #weight_decay: 'tune.loguniform(1e-5, 1e-2)'
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
     # learning_rate: 'tune.loguniform(1e-5, 1e-1)'
