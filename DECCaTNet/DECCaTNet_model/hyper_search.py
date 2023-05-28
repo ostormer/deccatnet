@@ -171,6 +171,7 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
         model_path = to_join + '/' + all_params['fine_tuning']['encoder_path']
         if not os.path.isfile(model_path):
             print('====== NO PRETRAINED MODEL, STARTING PRETRAINING =====')
+            print(f'Tried to find the following path {model_path}')
             cf.pre_train_model(copy.deepcopy(all_params), global_params)
         else:
             print('====== ALREADY PERFORMED PRETRAINING, GO TO FINETUNING =========')
