@@ -390,7 +390,7 @@ class EarlyStopper:
 
 def run_fine_tuning(all_params, global_params):
     logdir = 'runs/' + global_params['experiment_name']
-    writer = SummaryWriter(logdir=logdir)
+    writer = SummaryWriter(log_dir=logdir)
 
     params = all_params['fine_tuning']
     print('=================== START FINE-TUNING ====================')

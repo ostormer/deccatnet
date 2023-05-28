@@ -369,7 +369,7 @@ def pre_train_model(all_params, global_params):
     :return: None
     """
     logdir = 'runs/' + global_params['experiment_name']
-    writer = SummaryWriter(logdir=logdir)
+    writer = SummaryWriter(log_dir=logdir)
 
     pretrain_params = all_params['pre_training']
     preprocess_params = all_params['preprocess']
