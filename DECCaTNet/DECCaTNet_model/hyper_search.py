@@ -64,6 +64,8 @@ def hyper_search(all_params, global_params):
             max_report_frequency=hyper_prams['max_report_frequency'])
     elif hyper_prams['PERFORM_PREPROCESS']:
         scheduler = FIFOScheduler()
+        metric = 'val_acc'
+        mode = 'max'
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             max_report_frequency=hyper_prams['max_report_frequency'])
