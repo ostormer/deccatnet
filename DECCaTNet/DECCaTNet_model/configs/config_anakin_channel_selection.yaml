@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False
   FINE_TUNING: False
 
-  experiment_name: 'channel_selection_test'
+  experiment_name: 'channel_selection'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -155,15 +155,15 @@ pre_training:
 
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
-  batch_size: 256 # må endres, kanskje lettes å forkalre at man fastsetter.
+  batch_size: 128 # må endres, kanskje lettes å forkalre at man fastsetter.
   train_split: 0.99
   SHUFFLE: True
   temperature: 0.03 # må endres
-  learning_rate: 0.008 # må endres
+  learning_rate: 0.000003 # må endres
   weight_decay: 0.01 # må endres
-  max_epochs: 10
+  max_epochs: 6
 
-  save_freq: 10
+  save_freq: 100
   batch_print_freq: 10000
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'parameter_search' # Name of your model
@@ -248,26 +248,26 @@ downstream_params:
   dropout_2: 0.1
 
 hyper_search:
-  PERFORM_PREPROCESS: True
-  FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
+  PERFORM_PREPROCESS: False
+  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
-  GRID_SEARCH: False
+  GRID_SEARCH: True
 
-  fine_tune_split: 0.01 # how much avaible data should be used for fine_tuning
-  pre_train_split: 0.01 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  fine_tune_split: 1 # how much avaible data should be used for fine_tuning
+  pre_train_split: 1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
-  max_t: 30 # maximum training iteration before validation
-  grace_period: 4 # minimum number of training iterations before validating.
+  max_t: 10 # maximum training iteration before validation
+  grace_period: 8 # minimum number of training iterations before validating.
   reduction_factor: 2 # how much of the iterations should be kept after grace period is reached.
   num_samples: 1 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
   config:
-    n_channels: 'tune.grid_search([23])'
-    #n_channels: 'tune.grid_search([1,2,3,5,8,12])'#,23])'
+    #n_channels: 'tune.grid_search([23])'
+    n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
     #weight_decay: 'tune.loguniform(1e-5, 1e-2)'
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'
