@@ -53,6 +53,7 @@ def hyper_search(all_params, global_params):
     if hyper_prams['PRE_TRAINING']:
         mode = 'min'
         metric = 'val_loss'
+        search_alg = TuneBOHB(metric=metric, mode=mode)
         scheduler = HyperBandForBOHB(
             metric=metric,
             mode=mode,
@@ -66,6 +67,7 @@ def hyper_search(all_params, global_params):
         scheduler = FIFOScheduler()
         metric = 'val_acc'
         mode = 'max'
+        search_alg = None
         scheduler = ASHAScheduler(
             metric=metric,
             mode=mode,
@@ -75,9 +77,24 @@ def hyper_search(all_params, global_params):
         reporter = CLIReporter(
             # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
             max_report_frequency=hyper_prams['max_report_frequency'])
+
+    elif hyper_prams['GRID_SEARCH']:
+        mode = 'max'
+        metric = 'val_acc'
+        search_alg = None
+        scheduler = ASHAScheduler(
+            metric=metric,
+            mode=mode,
+            max_t=hyper_prams['max_t'],
+            reduction_factor=hyper_prams['reduction_factor'])
+        reporter = CLIReporter(
+            # ``parameter_columns=["l1", "l2", "lr", "batch_size"]``,
+            metric_columns=["val_loss", "train_loss", 'val_acc', "training_iteration"],
+            max_report_frequency=hyper_prams['max_report_frequency'])
     else:
         mode = 'max'
         metric = 'val_acc'
+        search_alg = TuneBOHB(metric=metric, mode=mode)
         scheduler = HyperBandForBOHB(
             metric=metric,
             mode=mode,
@@ -112,7 +129,7 @@ def hyper_search(all_params, global_params):
         local_dir='../tune_results',
         name=global_params['experiment_name'],
         verbose=2,
-        #search_alg=TuneBOHB(metric=metric, mode=mode),
+        search_alg=search_alg,
         # reuse_actors=False
     )
 
