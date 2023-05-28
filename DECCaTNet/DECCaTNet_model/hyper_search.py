@@ -95,20 +95,39 @@ def hyper_search(all_params, global_params):
     # configs['RAY_DEDUP_LOGS'] = 0
     # configs['log_level'] = 'ERROR'
     # os.environ['RAY_DEDUP_LOGS'] = '0'
-
-    result = tune.run(
-        tune.with_parameters(trainable, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
-                             global_params=copy.deepcopy(global_params)),
-        config=configs,
-        num_samples=hyper_prams['num_samples'],
-        scheduler=scheduler,
-        progress_reporter=reporter,
-        local_dir='../tune_results',
-        name=global_params['experiment_name'],
-        verbose=2,
-        search_alg=TuneBOHB(metric=metric, mode=mode),
-        # reuse_actors=False
-    )
+    try:
+        result = tune.run(
+            tune.with_parameters(trainable, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
+                                 global_params=copy.deepcopy(global_params)),
+            config=configs,
+            num_samples=hyper_prams['num_samples'],
+            scheduler=scheduler,
+            progress_reporter=reporter,
+            local_dir='../tune_results',
+            name=global_params['experiment_name'],
+            verbose=2,
+            search_alg=TuneBOHB(metric=metric, mode=mode),
+            # reuse_actors=False
+        )
+    except:
+        scheduler = ASHAScheduler(
+            metric=metric,
+            mode=mode,
+            max_t=hyper_prams['max_t'],
+            reduction_factor=hyper_prams['reduction_factor'])
+        result = tune.run(
+            tune.with_parameters(trainable, hyper_params=hyper_prams, all_params=copy.deepcopy(all_params),
+                                 global_params=copy.deepcopy(global_params)),
+            config=configs,
+            num_samples=hyper_prams['num_samples'],
+            scheduler=scheduler,
+            progress_reporter=reporter,
+            local_dir='../tune_results',
+            name=global_params['experiment_name'],
+            verbose=2,
+            search_alg=TuneBOHB(metric=metric, mode=mode),
+            # reuse_actors=False
+        )
 
     best_trial = result.get_best_trial(metric=metric, mode=mode)
     print("Best trial config: {}".format(best_trial.config))
