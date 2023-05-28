@@ -114,6 +114,7 @@ def hyper_search(all_params, global_params):
         verbose=2,
         #search_alg=TuneBOHB(metric=metric, mode=mode),
         # reuse_actors=False
+    )
 
     best_trial = result.get_best_trial(metric=metric, mode=mode)
     print("Best trial config: {}".format(best_trial.config))
