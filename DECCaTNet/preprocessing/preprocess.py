@@ -341,7 +341,6 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, batch_number: int, 
     for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets),
                               miniters=len(windowed_concat_ds.datasets) / 25, maxinterval=600):
         if len(windows_ds.windows.ch_names) < n_channels:  # Skip entries with too few channels
-            print(f"Dropping sample with {len(windows_ds.windows.ch_names)} < {n_channels} channels")
             continue
         idx_n_windows_pair = _split_channels_parallel(windows_ds, i, batch_number, split_save_dir, n_channels,
                                                       channel_split_func, delete_step_1)

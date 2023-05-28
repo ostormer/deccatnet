@@ -1,20 +1,24 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
+  PREPROCESSING: False
   HYPER_SEARCH: False
-  PRE_TRAINING: False
+  PRE_TRAINING: True
   FINE_TUNING: False
+
+  experiment_name: 'Test_drop_channels'
 
   n_jobs: 8
   random_state: null # remember null and not None
 
-  n_channels: 23
+  n_channels: 28
   s_freq: 200
   window_size: 30  # Window length in seconds
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
+  magic_constant_pre_train: 49
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
+  TQDM: False
 
   datasets: ['tuh_eeg_abnormal_train', 'tuh_eeg'] # which datasets should be preprocessed
 #  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
@@ -154,12 +158,12 @@ pre_training:
   pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
 
   batch_size: 16
-  train_split: 0.01
+  train_split: 0.8
   SHUFFLE: True
   temperature: 1 # Temperature of normalized temperature contrastive loss
   learning_rate: 0.1
   weight_decay: 0.01
-  max_epochs: 2
+  max_epochs: 1
 
   save_freq: 1
   batch_print_freq: 5
@@ -169,7 +173,6 @@ pre_training:
 
   augmentation:
     noise_probability: 0
-
 
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
