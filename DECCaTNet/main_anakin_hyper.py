@@ -26,5 +26,5 @@ def run(config_path_name):
 # TODO: how to report correct performance when we are ready to do so.
 
 if __name__ == '__main__':
-    run('config_anakin_pre_training_more_parameters')
+    run('config_anakin_channel_selection')
 
