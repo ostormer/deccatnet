@@ -142,7 +142,12 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
         for key in all_params['encoder_params']:
             if key in config:
                 all_params['encoder_params'][key] = config[key]
-        cf.pre_train_model(copy.deepcopy(all_params), global_params)
+        to_join = str(os.getcwd())
+        model_path = to_join + '/' + all_params['fine_tuning']['encoder_path']
+        if not os.path.isfile(model_path):
+            cf.pre_train_model(copy.deepcopy(all_params), global_params)
+        else:
+            print('====== ALREADY PERFORMED PRETRAINING, GO TO FINETUNING =========')
         fine_tuning_hypersearch(copy.deepcopy(all_params), global_params)
     elif hyper_params['PRE_TRAINING']:
         for key in all_params['pre_training']:
