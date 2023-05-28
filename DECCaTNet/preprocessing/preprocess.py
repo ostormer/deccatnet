@@ -1,5 +1,4 @@
 import gc
-import gc
 import itertools
 import os
 import pickle
@@ -338,12 +337,22 @@ def split_by_channels(windowed_concat_ds: BaseConcatDataset, batch_number: int, 
     # )
 
     # Not parallelized equivalent of the above
-    idx_n_windows = [
-        _split_channels_parallel(windows_ds, i, batch_number, split_save_dir, n_channels, channel_split_func,
-                                 delete_step_1)
-        for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets),
-                                  miniters=len(windowed_concat_ds.datasets) / 25, maxinterval=600)
-    ]
+    idx_n_windows = []
+    for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets),
+                              miniters=len(windowed_concat_ds.datasets) / 25, maxinterval=600):
+        if len(windows_ds.windows.ch_names) < n_channels:  # Skip entries with too few channels
+            print(f"Dropping sample with {len(windows_ds.windows.ch_names)} < {n_channels} channels")
+            continue
+        idx_n_windows_pair = _split_channels_parallel(windows_ds, i, batch_number, split_save_dir, n_channels,
+                                                      channel_split_func, delete_step_1)
+        idx_n_windows.append(idx_n_windows_pair)
+
+    # idx_n_windows = [
+    #     _split_channels_parallel(windows_ds, i, batch_number, split_save_dir, n_channels, channel_split_func,
+    #                              delete_step_1)
+    #     for i, windows_ds in tqdm(enumerate(windowed_concat_ds.datasets), total=len(windowed_concat_ds.datasets),
+    #                               miniters=len(windowed_concat_ds.datasets) / 25, maxinterval=600)
+    # ]
 
     print('Creating idx list')
     # make list with an element for each window in the entire dataset,
@@ -673,6 +682,8 @@ def _preproc_split(ds_params, global_params):
     while next_batch <= last_batch_to_load:
         print(f"Splitting batch {next_batch} of {last_batch_to_load}")
         batch_dir_path = os.path.join(preproc_save_dir, batch_dirs[next_batch])
+
+        # Find which files in batch to load
         if next_batch == start_idx // 500:  # First batch:
             first_file = start_idx % 500
         else:  # All other batches
@@ -683,6 +694,7 @@ def _preproc_split(ds_params, global_params):
             if stop_file == 0:
                 stop_file = 500
         # All boundaries are corrected and set, load BaseConcatDataset
+
         concat_ds = load_concat_dataset(batch_dir_path, preload=False, ids_to_load=list(range(first_file, stop_file)))
 
         batch_idx_list = split_by_channels(concat_ds, next_batch, ds_params, global_params)

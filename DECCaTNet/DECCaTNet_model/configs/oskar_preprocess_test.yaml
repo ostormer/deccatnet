@@ -9,14 +9,14 @@ global:
   n_jobs: 8
   random_state: null # remember null and not None
 
-  n_channels: 3
+  n_channels: 23
   s_freq: 200
   window_size: 30  # Window length in seconds
   embedding_size: 40
   magic_constant: 49 #TODO find a way to fix this
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
 
-  datasets: ['tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg_abnormal_train', 'tuh_eeg'] # which datasets should be preprocessed
 #  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
 
 preprocess:
