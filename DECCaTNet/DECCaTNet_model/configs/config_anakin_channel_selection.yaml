@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True
-  HYPER_SEARCH: False
+  PREPROCESSING: False
+  HYPER_SEARCH: True
   PRE_TRAINING: False
   FINE_TUNING: False
 
@@ -75,7 +75,7 @@ preprocess:
 
     start_idx: 0
     stop_idx: 1000  # Which idx is the last to load? (null for all)
-    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -250,7 +250,7 @@ downstream_params:
 
 hyper_search:
   PERFORM_PREPROCESS: True
-  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
+  FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
