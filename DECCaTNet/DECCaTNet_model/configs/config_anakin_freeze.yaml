@@ -1,9 +1,9 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: True # first we need to do some preprocessing.
+  PREPROCESSING: False # first we need to do some preprocessing.
   HYPER_SEARCH: False
-  PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
+  PRE_TRAINING: True # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
   experiment_name: 'freeze_encoder_preprocess'
@@ -160,10 +160,10 @@ pre_training:
   SHUFFLE: True
   temperature: 0.03 # må endres
   learning_rate: 0.000003 # må endres
-  weight_decay: 0.01 # må endres
-  max_epochs: 10
+  weight_decay: 0.005 # må endres
+  max_epochs: 100
 
-  save_freq: 100
+  save_freq: 10
   batch_print_freq: 10000
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'freeze_encoder' # Name of your model
