@@ -131,8 +131,6 @@ def hyper_search(all_params, global_params):
         name=global_params['experiment_name'],
         verbose=2,
         search_alg=search_alg,
-        keep_checkpoint_num=1,
-        checkpoint_score_attr=metric,
         # reuse_actors=False
     )
 
