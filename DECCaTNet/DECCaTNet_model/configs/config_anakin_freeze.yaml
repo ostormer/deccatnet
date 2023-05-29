@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: True # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
-  experiment_name: 'freeze_encoder_preprocess'
+  experiment_name: 'freeze_encoder'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -161,9 +161,7 @@ pre_training:
   temperature: 0.03 # må endres
   learning_rate: 0.000003 # må endres
   weight_decay: 0.005 # må endres
-  max_epochs: 100
-
-  save_freq: 10
+  max_epoch
   batch_print_freq: 10000
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'freeze_encoder' # Name of your model
