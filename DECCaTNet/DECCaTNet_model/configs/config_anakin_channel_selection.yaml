@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False
   FINE_TUNING: False
 
-  experiment_name: 'channel_selection_3'
+  experiment_name: 'channel_selection_3_can_delete'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -24,8 +24,7 @@ global:
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1',] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  #datasets: ['seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
-  datasets: ['tuh_eeg_abnormal_train']
+  datasets: ['seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
 
 preprocess:
   tuh_eeg:
@@ -249,8 +248,8 @@ downstream_params:
   dropout_2: 0.1
 
 hyper_search:
-  PERFORM_PREPROCESS: False
-  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
+  PERFORM_PREPROCESS: True
+  FINE_AND_PRE: False # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
   PRE_TRAINING: False # only used when you only do pre_training
   FINE_TUNING: False
 
