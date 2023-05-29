@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False
   FINE_TUNING: False
 
-  experiment_name: 'channel_selection_3_can_delete'
+  experiment_name: 'channel_selection_3'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
