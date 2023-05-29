@@ -1,8 +1,8 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
-  HYPER_SEARCH: True
+  PREPROCESSING: True
+  HYPER_SEARCH: False
   PRE_TRAINING: False
   FINE_TUNING: False
 
@@ -14,7 +14,7 @@ global:
   n_jobs: 50
   random_state: null # remember null and not None
 
-  n_channels: 2
+  n_channels: 5
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
   window_size: 60  # Window length in seconds, only used in preprocessing
@@ -24,7 +24,8 @@ global:
   # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsize used for classification.
 
   #datasets: ['tuh_eeg_abnormal_finetune',, 'seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train','seed', 'bciciv_1',] # which datasets should be preprocessed 'tuh_eeg_abnormal_eval',
-  datasets: ['seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
+  #datasets: ['seed', 'bciciv_1','tuh_eeg',  'tuh_eeg_abnormal_train'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg_abnormal_train']
 
 preprocess:
   tuh_eeg:
@@ -74,7 +75,7 @@ preprocess:
 
     start_idx: 0
     stop_idx: 1000  # Which idx is the last to load? (null for all)
-    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
