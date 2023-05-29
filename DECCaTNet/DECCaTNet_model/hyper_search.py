@@ -83,6 +83,7 @@ def hyper_search(all_params, global_params):
         metric = 'val_acc'
         search_alg = None
         scheduler = ASHAScheduler(
+            grace_period=hyper_prams['grace_period'],
             metric=metric,
             mode=mode,
             max_t=hyper_prams['max_t'],
