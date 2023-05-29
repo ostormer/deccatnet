@@ -1,12 +1,12 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
+  PREPROCESSING: True # first we need to do some preprocessing.
   HYPER_SEARCH: False
-  PRE_TRAINING: True # first we need to pre_train an encoder which can be tseted.
+  PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
-  experiment_name: 'freeze_encoder'
+  experiment_name: 'freeze_encoder_preprocess'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -14,7 +14,7 @@ global:
   n_jobs: 50
   random_state: null # remember null and not None
 
-  n_channels: 2
+  n_channels: 4
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
   window_size: 60  # Window length in seconds, only used in preprocessing
@@ -35,7 +35,7 @@ preprocess:
     STOP_AFTER_PREPROC: False
 
     start_idx: 0
-    stop_idx: 1000 # Which idx is the last to load? (null for all)
+    stop_idx: 2700 # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
@@ -55,7 +55,7 @@ preprocess:
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
-    read_cache: 'peproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
     bandpass_hi: 80
@@ -73,7 +73,7 @@ preprocess:
     STOP_AFTER_PREPROC: False
 
     start_idx: 0
-    stop_idx: 1000  # Which idx is the last to load? (null for all)
+    stop_idx: null  # Which idx is the last to load? (null for all)
     read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
 
     bandpass_lo: 0.3
@@ -266,7 +266,7 @@ hyper_search:
   max_report_frequency: 240
 
   config:
-    FREEZE_ENCODER: 'tune.grid_search([True,False])'
+    FREEZE_ENCODER: 'tune.grid_search([True,False])'  # include more data
     load_encoder: 'tune.grid_search([True,False])'
     #n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
