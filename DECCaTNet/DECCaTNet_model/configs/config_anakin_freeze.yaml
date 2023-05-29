@@ -161,7 +161,9 @@ pre_training:
   temperature: 0.03 # må endres
   learning_rate: 0.000003 # må endres
   weight_decay: 0.005 # må endres
-  max_epoch
+  max_epochs: 100
+
+  save_freq: 10
   batch_print_freq: 10000
   save_dir_model: 'models' # directory which you wish to store your model to
   model_file_name: 'freeze_encoder' # Name of your model
