@@ -131,6 +131,8 @@ def hyper_search(all_params, global_params):
         name=global_params['experiment_name'],
         verbose=2,
         search_alg=search_alg,
+        keep_checkpoint_num=1,
+        checkpoint_score_attr=metric,
         # reuse_actors=False
     )
 
@@ -158,7 +160,7 @@ def hyper_search_train(config, hyper_params=None, all_params=None, global_params
     if hyper_params['PERFORM_PREPROCESS']:
         pre.run_preprocess(all_params, global_params)
 
-    if hyper_params['FINE_AND_PRE']: # testing only pre_training variables here.
+    if hyper_params['FINE_AND_PRE']:  # testing only pre_training variables here.
         for key in all_params['pre_training']:
             if key in config:
                 all_params['pre_training'][key] = config[key]
