@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
-  experiment_name: 'experiment_freeze_encoder'
+  experiment_name: 'experiment_freeze_encoder_2'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -259,8 +259,8 @@ hyper_search:
   pre_train_split: 1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
-  max_t: 11 # maximum training iteration before validation
-  grace_period: 10 # minimum number of training iterations before validating.
+  max_t: 21 # maximum training iteration before validation
+  grace_period: 20 # minimum number of training iterations before validating.
   reduction_factor: 2 # how much of the iterations should be kept after grace period is reached.
   num_samples: 1 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
