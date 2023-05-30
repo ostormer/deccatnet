@@ -10,7 +10,7 @@ global:
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
-  n_gpu: 1 # try to run on the avaiable gpu
+  n_gpu: 2 # try to run on the avaiable gpu
   n_jobs: 50
   random_state: null # remember null and not None
 
