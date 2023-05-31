@@ -2,11 +2,11 @@
 # All boolean variables are in UPPERCASE lettering
 global:
   PREPROCESSING: False # first we need to do some preprocessing.
-  HYPER_SEARCH: False
-  PRE_TRAINING: True # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
+  HYPER_SEARCH: True
+  PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
-  experiment_name: 'add_noise_pretraining_harder'
+  experiment_name: 'percentage_labels'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -179,7 +179,7 @@ fine_tuning:
   ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_2m'
   test_set_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_train_pre_finetune'
 
-  encoder_path: '/models/temp_encoder61_freeze_encoder'
+  encoder_path: '/models/temp_encoder61_freeze_encoder' # TODO: wait to see which one we choose here.
   TEST_SET: False # if we want to obtain final results on test set
   load_encoder: True
 
@@ -234,7 +234,7 @@ encoder_params:
   spatial_size: 40 # kan endres, men kan også bare følge conformer
   CNN_dropout: 0.2 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
 
-  FREEZE_ENCODER: False # If False: dont fine-tune encoder. If True, fine-tune encoder during fine-tuning
+  FREEZE_ENCODER: True # If False: dont fine-tune encoder. If True, fine-tune encoder during fine-tuning
 
   n_encoder_heads: 8
   n_encoder_layers: 8
@@ -259,14 +259,14 @@ hyper_search:
   pre_train_split: 1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
   #however all data should necessearli be used for pre_training
 
-  max_t: 21 # maximum training iteration before validation
-  grace_period: 20 # minimum number of training iterations before validating.
+  max_t: 31 # maximum training iteration before validation
+  grace_period: 30 # minimum number of training iterations before validating.
   reduction_factor: 2 # how much of the iterations should be kept after grace period is reached.
   num_samples: 1 # how many iterations of each example/sample should be performed (when grid_search), samrt when aveaging over for example fiveresults
   max_report_frequency: 240
 
   config:
-    FREEZE_ENCODER: 'tune.grid_search([True,False])'  # include more data
+    percentage_labels: 'tune.grid_search([0.05,0.2,0.5,1])'  # include more data
     load_encoder: 'tune.grid_search([True,False])'
     #n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'

@@ -235,6 +235,8 @@ def fine_tuning_hypersearch(all_params=None, global_params=None, test_set=None):
 
     train, valid = dataset.get_splits(params['train_split'])
 
+    train,_ = train.get_splits(params['percentages_labels'])
+
     train_loader = torch.utils.data.DataLoader(train, batch_size=params["batch_size"],
                                                num_workers=num_workers, shuffle=params['SHUFFLE'])
     val_loader = torch.utils.data.DataLoader(valid, batch_size=params['batch_size'],
