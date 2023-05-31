@@ -269,6 +269,7 @@ hyper_search:
     "/models/temp_encoder31_freeze_encoder","/models/temp_encoder51_freeze_encoder","/models/temp_encoder81_freeze_encoder",
     "/models/encoder_freeze_encoder","/models/encoder_transfer_learning"])'
     #n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
+
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
     #weight_decay: 'tune.loguniform(1e-5, 1e-2)'
     # n_channels: 'tune.grid_search([1,2,3,4,5,6,7])'

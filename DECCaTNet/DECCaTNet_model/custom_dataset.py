@@ -188,16 +188,16 @@ class PathDataset(Dataset):
 
                               }
         self.augment_params = {'permutation': {'n_permutations': (5, 10)},
-                               'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([2000])),
+                               'masking': {'mask_start_per_sample': (torch.Tensor([1000]), torch.Tensor([6000])), # 2000
                                            # TODO we have different sequence length, so this should be changed
-                                           'mask_len_samples': (150, 1000)},
+                                           'mask_len_samples': (1500, 4000)}, # (150,1000)
                                'bandstop': {'sfreq': self.sfreq, 'bandwidth': 5,  # TODO same here, bandwidth length
                                             'freqs_to_notch': (torch.Tensor([20.]), torch.Tensor([82.5]))},
-                               'gaussian': {'std': (0, 0.2)},
-                               'freq_shift': {'delta_freq': (-10, 10), 'sfreq': self.sfreq},
-                               'scale': {'scale_factor': (0.5, 2)},
-                               'time_shift': {'time_shift': (-50, 50)},  # TODO same here
-                               'add_noise': {'std': (0, 0.05)}
+                               'gaussian': {'std': (0.05, 0.3)}, # (0,0.2)
+                               'freq_shift': {'delta_freq': (-15, 15), 'sfreq': self.sfreq}, # (10,10)
+                               'scale': {'scale_factor': (0.1, 3)}, #(0.5,2)
+                               'time_shift': {'time_shift': (-500, 500)},  # TODO same here (50,50)
+                               'add_noise': {'std': (0.02, 0.1)} # (0,0.05)
 
                                # {'p_drop': 0.2, 'random_state': random_state},
                                #                    {'std': 8, 'random_state': random_state},
