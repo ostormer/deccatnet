@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
-  experiment_name: 'transfer_learning'
+  experiment_name: 'transfer_learning_2'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -186,10 +186,10 @@ fine_tuning:
 
   n_classes: 2
 
-  batch_size: 32 # kan endres
+  batch_size: 64 # kan endres
   max_epochs: 30
   #lr_rate: 0.0001 # kan endres
-  lr_rate: 0.00002
+  lr_rate: 0.00003
   weight_decay: 0.0003 # kan endres
   train_split: 0.8
   SHUFFLE: True
