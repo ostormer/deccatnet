@@ -71,7 +71,7 @@ ar_channels = sorted([
 #     'EEG RESP2-REF'])
 
 
-def select_duration(concat_ds: BaseConcatDataset, t_min=0, t_max: int = None):
+def select_duration(concat_ds: BaseConcatDataset, t_min=0, t_max: int = None) -> BaseConcatDataset:
     """
     Selects all recordings which fulfills: t_min < duration < t_max, data is not loaded here, only metadata
     :param concat_ds: dataset
@@ -145,16 +145,16 @@ def custom_turn_off_log(raw, verbose='ERROR'):
     return raw
 
 
-def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> BaseConcatDataset:
+def window_ds(concat_ds: BaseConcatDataset, ds_params, global_params) -> BaseConcatDataset:
     n_jobs = global_params['n_jobs']
     window_size = global_params['window_size']
-    temp_save_dir = os.path.join(preproc_params['preprocess_root'], 'temp')
+    temp_save_dir = os.path.join(ds_params['preprocess_root'], 'temp')
     # Drop too short recordings and uninteresting channels
     keep_ds = []
     print('Dropping short recordings and excluded channels:')
 
-    exclude_ch = preproc_params['exclude_channels']
-    include_ch = preproc_params['include_channels']
+    exclude_ch = ds_params['exclude_channels']
+    include_ch = ds_params['include_channels']
 
     for ds in concat_ds.datasets:
         if ds.raw.n_times * ds.raw.info['sfreq'] >= window_size:
@@ -169,7 +169,7 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
     print("Rescaling to microVolts...")
     preprocessors = [
         Preprocessor(custom_turn_off_log),  # turn off verbose
-        Preprocessor(lambda data: np.multiply(data, preproc_params["scaling_factor"]), apply_on_array=True),
+        Preprocessor(lambda data: np.multiply(data, ds_params["scaling_factor"]), apply_on_array=True),
     ]
     if not os.path.exists(temp_save_dir):
         os.makedirs(temp_save_dir)
@@ -182,27 +182,41 @@ def window_ds(concat_ds: BaseConcatDataset, preproc_params, global_params) -> Ba
                            )
     print("Done rescaling to microVolts")
 
-    if preproc_params['reject_high_threshold'] is None:
+    if ds_params['reject_high_threshold'] is None:
         reject_dict = None
     else:
-        reject_dict = dict(eeg=preproc_params['reject_high_threshold'])
-    if preproc_params['reject_flat_threshold'] is None:
+        reject_dict = dict(eeg=ds_params['reject_high_threshold'])
+    if ds_params['reject_flat_threshold'] is None:
         flat_dict = None
     else:
-        flat_dict = dict(eeg=preproc_params['reject_flat_threshold'])
+        flat_dict = dict(eeg=ds_params['reject_flat_threshold'])
     print('Splitting dataset into windows:')
-    windows_ds = create_fixed_length_windows(
-        concat_ds,
-        n_jobs=n_jobs,
-        start_offset_samples=0,
-        stop_offset_samples=None,
-        window_size_seconds=window_size,
-        drop_last_window=True,
-        drop_bad_windows=True,
-        reject=reject_dict,  # Peak-to-peak high rejection threshold within each window
-        flat=flat_dict,  # Peak-to peak low rejection threshold
-        verbose='ERROR'
-    )
+    if not ds_params["FIRST_WINDOW_ONLY"]:  # Regular
+        windows_ds = create_fixed_length_windows(
+            concat_ds,
+            n_jobs=n_jobs,
+            start_offset_samples=0,
+            stop_offset_samples=None,
+            window_size_seconds=window_size,
+            drop_last_window=True,
+            drop_bad_windows=True,
+            reject=reject_dict,  # Peak-to-peak high rejection threshold within each window
+            flat=flat_dict,  # Peak-to peak low rejection threshold
+            verbose='ERROR'
+        )
+    else:  # Only keeping first window, do not drop bad windows
+        windows_ds = create_fixed_length_windows(
+            concat_ds,
+            n_jobs=n_jobs,
+            start_offset_samples=0,
+            stop_offset_samples=None,
+            window_size_seconds=window_size,
+            drop_last_window=True,
+            drop_bad_windows=True,
+            reject=None,  # Peak-to-peak high rejection threshold within each window
+            flat=None,  # Peak-to peak low rejection threshold
+            verbose='ERROR'
+        )
     # Trying to free up memory
     for ds in concat_ds.datasets:
         del ds
@@ -505,8 +519,19 @@ def _preproc_window(ds_params, global_params, dataset=None):
     # Select by duration
     print(f'Start selecting samples with duration over {window_size} sec')
     dataset = select_duration(dataset, t_min=window_size, t_max=None)
+
+    if ds_params["FIRST_WINDOW_ONLY"]:
+        print("Cropping samples to only include first window.")
+        for ds in dataset.datasets:
+            ds.raw.crop(tmin=0, tmax=window_size+0.1)
+
     print('Windowing dataset...')
-    windowed_ds = window_ds(dataset, preproc_params=ds_params, global_params=global_params)
+    windowed_ds = window_ds(dataset, ds_params=ds_params, global_params=global_params)
+
+    if ds_params["FIRST_WINDOW_ONLY"]:
+        print("Asserting each recording has one window")
+        for ds in windowed_ds.datasets:
+            assert len(ds) == 1, f"A dataset does not have one window, it has {len(ds)} windows"
 
     with open(os.path.join(cache_dir, 'windowed_ds.pkl'), 'wb') as f:
         pickle.dump(windowed_ds, f)
@@ -752,6 +777,12 @@ def run_preprocess(params_all, global_params, fine_tuning=False):
         except KeyError:
             include_channels = []
         ds_params["include_channels"] = include_channels
+
+        try:
+            first_window_only = ds_params["FIRST_WINDOW_ONLY"]
+        except KeyError:
+            first_window_only = False
+        ds_params["FIRST_WINDOW_ONLY"] = first_window_only
 
         ds_params['cache_dir'] = os.path.join(ds_params['preprocess_root'], 'pickles')
         ds_params['preproc_save_dir'] = os.path.join(ds_params['preprocess_root'], 'first_preproc')

@@ -1,9 +1,9 @@
 # This is a template for how config files should look, all parameters are in chronological order of use
 # All boolean variables are in UPPERCASE lettering
 global:
-  PREPROCESSING: False
+  PREPROCESSING: True
   HYPER_SEARCH: False
-  PRE_TRAINING: True
+  PRE_TRAINING: False
   FINE_TUNING: False
 
   experiment_name: 'Test_drop_channels'
@@ -15,12 +15,12 @@ global:
   s_freq: 200
   window_size: 30  # Window length in seconds
   embedding_size: 40
-  magic_constant: 49 #TODO find a way to fix this
+  magic_constant: 49
   magic_constant_pre_train: 49
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   TQDM: False
 
-  datasets: ['tuh_eeg_abnormal_train', 'tuh_eeg'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg_abnormal_finetune', 'tuh_eeg_abnormal_eval'] # which datasets should be preprocessed
 #  datasets: ['tuh_eeg', 'tuh_eeg_abnormal_eval', 'tuh_eeg_abnormal_train', 'tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
 
 preprocess:
@@ -67,10 +67,11 @@ preprocess:
   tuh_eeg_abnormal_eval: # This key must match one value in params_all['global']['datasets']
     ds_name: 'tuh_eeg_abnormal_eval'  # Must match key
     dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg_abnormal/v3.0.0/edf/eval'
-    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\abnormal_eval_pre'
+    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\abnormal_eval_pre_firstonly'
     IS_FINE_TUNING_DS: True
     STOP_AFTER_PREPROC: True
     target_name: 'pathological'
+    FIRST_WINDOW_ONLY: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -89,10 +90,11 @@ preprocess:
   tuh_eeg_abnormal_finetune: # Must match ds_name
     ds_name: 'tuh_eeg_abnormal_finetune'  # Must match key
     dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg_abnormal/v3.0.0/edf/train'
-    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg_abnormal_finetune_pre'
+    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\TUH\tuh_eeg_abnormal_finetune_pre_firstonly'
     IS_FINE_TUNING_DS: True
     STOP_AFTER_PREPROC: True
     target_name: 'pathological'
+    FIRST_WINDOW_ONLY: True
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
