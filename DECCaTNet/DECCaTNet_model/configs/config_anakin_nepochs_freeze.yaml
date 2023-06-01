@@ -6,7 +6,8 @@ global:
   PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
-  experiment_name: 'experiment_addnoise_2'
+  experiment_name: 'experiment_addnoise_2' # maybe extend this with one train for 100 epochs, just to see
+  # I think this needs to be done.
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -266,10 +267,8 @@ hyper_search:
   max_report_frequency: 240
 
   config:
-    encoder_path: 'tune.grid_search(["/models/temp_encoder51_freeze_encoder",
-    "/models/temp_encoder51_add_noise","/models/temp_encoder51_add_noise_harder","/models/temp_encoder11_freeze_encoder",
-    "/models/temp_encoder11_add_noise","/models/temp_encoder11_add_noise_harder","/models/temp_encoder31_freeze_encoder",
-    "/models/temp_encoder31_add_noise","/models/temp_encoder31_add_noise_harder"])'
+    encoder_path: 'tune.grid_search(["/models/encoder_freeze_encoder",
+    "/models/encoder_add_noise","/models/encoder_add_noise_harder"])'
     #n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
 
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
