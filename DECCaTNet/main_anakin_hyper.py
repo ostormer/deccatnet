@@ -26,5 +26,5 @@ def run(config_path_name):
 # TODO: how to report correct performance when we are ready to do so.
 
 if __name__ == '__main__':
-    run('config_anakin_nepochs_freeze')
-
+    run('config_anakin_percentage')
+# TODO remeber to add one more run of config_anakin_nepochs_freeze with same experiment name.
