@@ -267,8 +267,7 @@ hyper_search:
   max_report_frequency: 240
 
   config:
-    encoder_path: 'tune.grid_search(["/models/encoder_freeze_encoder",
-    "/models/encoder_add_noise","/models/encoder_add_noise_harder"])'
+    encoder_path: 'tune.grid_search(["/models/encoder_add_noise","/models/encoder_add_noise_harder"])'
     #n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
 
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
