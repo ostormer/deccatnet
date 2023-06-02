@@ -4,7 +4,7 @@ global:
   PREPROCESSING: False # first we need to do some preprocessing.
   HYPER_SEARCH: False
   PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
-  FINE_TUNING: False
+  FINE_TUNING: True
 
   experiment_name: 'test_set'
 
