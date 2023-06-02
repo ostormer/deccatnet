@@ -320,6 +320,8 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
         test_loss_out, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
         test_loss.append(test_loss_out / len(test_loader))
         test_acc.append(correct_test_preds / num_test_preds)
+        writer.add_scalar('test_loss', test_loss / len(test_loader), epoch)
+        writer.add_scalar('test_acc', correct_test_preds / num_test_preds, epoch)
 
     return loss, train_acc, val_loss, val_acc, test_loss, test_acc, model
 
