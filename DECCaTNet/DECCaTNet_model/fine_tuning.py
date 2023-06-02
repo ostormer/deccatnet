@@ -361,12 +361,12 @@ def k_fold_training(epochs, model, dataset, batch_size, test_loader, device, los
                     print(f'reached stopping criteria in epoch {epoch} for fold {fold} ')
                     break
 
-    if validate_test:
-        test_loss, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
-        avg_test_loss.append(test_loss / len(test_loader))
-        test_acc.append(correct_test_preds / num_test_preds)
-        writer.add_scalar('test_loss', test_loss / len(test_loader), epoch)
-        writer.add_scalar('test_acc', correct_test_preds / num_test_preds, epoch)
+            if validate_test:
+                test_loss, correct_test_preds, num_test_preds = validate_epoch(model, test_loader, device, loss_func)
+                avg_test_loss.append(test_loss / len(test_loader))
+                test_acc.append(correct_test_preds / num_test_preds)
+                writer.add_scalar('test_loss', test_loss / len(test_loader), epoch)
+                writer.add_scalar('test_acc', correct_test_preds / num_test_preds, epoch)
 
 
     return avg_loss, train_acc, avg_val_loss, val_acc, avg_test_loss, test_acc, model
@@ -423,6 +423,7 @@ def run_fine_tuning(all_params, global_params):
             sub_dir = os.path.join(preproc_path, str(i))
             for i_window in range(
                     int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
+                print(i_window)
                 idx_test.append((i, i_window))
 
         test_dataset = FineTunePathDataset(idx_test, preproc_path_test, ds_params, global_params, ds_params['target_name'])
