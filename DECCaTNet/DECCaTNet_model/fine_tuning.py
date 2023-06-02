@@ -423,7 +423,6 @@ def run_fine_tuning(all_params, global_params):
             sub_dir = os.path.join(preproc_path_test, str(i))
             for i_window in range(
                     int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
-                print(i_window)
                 idx_test.append((i, i_window))
 
         test_dataset = FineTunePathDataset(idx_test, preproc_path_test, ds_params, global_params, ds_params['target_name'])
