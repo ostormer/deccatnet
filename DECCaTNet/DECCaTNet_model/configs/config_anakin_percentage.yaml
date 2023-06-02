@@ -234,7 +234,7 @@ encoder_params:
   spatial_size: 40 # kan endres, men kan også bare følge conformer
   CNN_dropout: 0.2 # følger conformer, confomrer hadde 0.5, justerer ned til 0.3
 
-  FREEZE_ENCODER: True # If False: dont fine-tune encoder. If True, fine-tune encoder during fine-tuning
+  FREEZE_ENCODER: false # If False: dont fine-tune encoder. If True, fine-tune encoder during fine-tuning
 
   n_encoder_heads: 8
   n_encoder_layers: 8
@@ -267,7 +267,7 @@ hyper_search:
 
   config:
     percentage_labels: 'tune.grid_search([0.05,0.2,0.5])'  # include more data
-    load_encoder: 'tune.grid_search([True,False])'
+    #load_encoder: 'tune.grid_search([True,False])'
 
     #n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
     #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
