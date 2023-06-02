@@ -420,7 +420,7 @@ def run_fine_tuning(all_params, global_params):
         indexes_test = os.listdir(preproc_path_test)
         idx_test = []
         for i in indexes_test:
-            sub_dir = os.path.join(preproc_path, str(i))
+            sub_dir = os.path.join(preproc_path_test, str(i))
             for i_window in range(
                     int(pd.read_json(os.path.join(sub_dir, "description.json"), typ='series')['n_windows'])):
                 print(i_window)
