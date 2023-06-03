@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: True
 
-  experiment_name: 'test_set'
+  experiment_name: 'test_set_2'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -186,7 +186,7 @@ fine_tuning:
   percentages_labels: 1
   n_classes: 2
 
-  batch_size: 32 # kan endres
+  batch_size: 64 # kan endres
   max_epochs: 30
   #lr_rate: 0.0001 # kan endres
   lr_rate: 0.00002
@@ -242,9 +242,9 @@ encoder_params:
   latent_space_size: 128 # size of projection to contrastive loss
 
 downstream_params:
-  out_layer_1: 256
-  out_layer_2: 32
-  dropout_1: 0.2
+  out_layer_1: 526
+  out_layer_2: 128
+  dropout_1: 0.3
   dropout_2: 0.1
 
 hyper_search:
