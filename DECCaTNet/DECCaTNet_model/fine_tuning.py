@@ -310,7 +310,6 @@ def train_model(epochs, model, train_loader, val_loader, test_loader, device, lo
         writer.add_scalar('validation_loss', val_loss_out / len(val_loader),epoch)
         writer.add_scalar('train_acc', correct_train_preds / num_train_preds,epoch)
         writer.add_scalar('validation_acc', correct_eval_preds / num_eval_preds,epoch)
-
         if early_stop:
             if early_stop.early_stop(val_loss_out / len(val_loader)):
                 print(f'reached stopping criteria in epoch {epoch}')
