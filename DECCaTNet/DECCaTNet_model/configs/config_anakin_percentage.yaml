@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: False
 
-  experiment_name: 'percentage_labels'
+  experiment_name: 'percentage_labels_2'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -266,7 +266,7 @@ hyper_search:
   max_report_frequency: 240
 
   config:
-    percentage_labels: 'tune.grid_search([0.05,0.2,0.5])'  # include more data
+    percentage_labels: 'tune.grid_search([0.01,0.1])'  # include more data
     #load_encoder: 'tune.grid_search([True,False])'
 
     #n_channels: 'tune.grid_search([1,2,3,5,8,12,23])'
