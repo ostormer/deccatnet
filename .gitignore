@@ -2,8 +2,8 @@
 /models
 /src/
 /datasets/
-!/datasets/Download_links.md
 /tune_results
+!/datasets/Download_links.md
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -19,3 +19,29 @@ $ .venv/Scripts/Activate.ps1
 
 $ pip install -r requirements.txt
 (requirements.txt for pip has not been set up as of 2023-02-17)
+
+To run tensorboard when ray tune:
+tensorboard --host 0.0.0.0 --logdir=~/repos/master-eeg-trans/tune_results/your tensorboard dir
+
+Tensorboard when no ray_tune is involved:
+tensorboard --host 0.0.0.0 --logdir=~/repos/master-eeg-trans/DECCaTNet/runs/your tensorboard di
+
+
+
+======= Preprocessed finetune dataset folder names: =========
+
+abnormal_eval_pre : 1 minute windows from TUAB eval. Bad windows dropped  # DON'T USE THIS?
+
+abnormal_eval_pre_first1m : First 1 minute of each file in TUAB eval. No windows dropped
+abnormal_eval_pre_first2m : First 2 minutes of each file in TUAB eval. No windows dropped
+abnormal_eval_pre_first11m : First 11 minutes of each file in TUAB eval. No windows dropped
+
+abnormal_pre_finetune_first1m : First 1 minute of each file in TUAB train. No windows dropped
+abnormal_pre_finetune_first2m : First 2 minutes of each file in TUAB train. No windows dropped
+abnormal_pre_finetune_first11m : First 11 minutes of each file in TUAB train. No windows dropped
+
+abnormal_train_pre : 1 minute windows from TUAB train. Bad windows dropped.
+abnormal_pre_finetune_2m : 2 minute windows from TUAB train. Bad windows dropped.
+abnormal_pre_finetune_11m : 11 minute windows from TUAB train. Bad windows dropped.  # Smaller than abnormal_pre_finetune_first11m because dropped windows
+
+abnormal_pre_finetune_all11m : 11 minute windows from TUAB train. No windows dropped  # This is the largest pretraining dataset for 11m windows

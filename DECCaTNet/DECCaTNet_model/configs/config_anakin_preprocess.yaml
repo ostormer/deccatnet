@@ -12,12 +12,12 @@ global:
   n_channels: 4
   channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
   s_freq: 200
-  window_size: 60  # Window length in seconds
+  window_size: 660  # Window length in seconds
   embedding_size: 40
   magic_constant: 49
 
 
-  datasets: ['tuh_eeg_abnormal_finetune', 'tuh_eeg_abnormal_eval'] # which datasets should be preprocessed
+  datasets: ['tuh_eeg_abnormal_finetune'] # which datasets should be preprocessed
 
 
 preprocess:
@@ -102,11 +102,11 @@ preprocess:
   tuh_eeg_abnormal_finetune: # Must match ds_name
     ds_name: 'tuh_eeg_abnormal_finetune'  # Must match key
     dataset_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
-    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_first1m'
+    preprocess_root: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_all11m'
     IS_FINE_TUNING_DS: True
     STOP_AFTER_PREPROC: True
     target_name: 'pathological'
-    FIRST_WINDOW_ONLY: True
+    FIRST_WINDOW_ONLY: False
 
     start_idx: 0
     stop_idx: null  # Which idx is the last to load? (null for all)
@@ -115,8 +115,8 @@ preprocess:
     bandpass_lo: 0.3
     bandpass_hi: 80
     scaling_factor: 1000000  # Scaling factor to convert to microVolts
-    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
-    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    reject_high_threshold: 99999999999  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 0  # Reject windows flatter than this peak-to-peak (V)
     DELETE_STEP_1: False
     exclude_channels: [ ]
     include_channels:
@@ -146,7 +146,6 @@ preprocess:
     include_channels:  # Include only these channels
       [ 'EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF', 'EEG T1-REF', 'EEG T2-REF' ]
 
-
 pre_training:
   datasets: [ 'tuh_eeg', 'tuh_eeg_abnormal_train' ]
 
@@ -168,7 +167,6 @@ pre_training:
 
   augmentation:
     noise_probability: 0
-
 
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal_finetune'
