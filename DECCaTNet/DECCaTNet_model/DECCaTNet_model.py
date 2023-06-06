@@ -47,7 +47,7 @@ class Convolution(nn.Module):
 
         self.temporal = nn.Sequential(nn.Conv2d(1,temporal, kernel_size=(1, 25), stride=(1, 1))
                                       )
-        self.spatial = nn.Sequential(nn.Conv2d(temporal, spatial, kernel_size=(self.n_channels, 1), stride=(1, 15)))
+        self.spatial = nn.Sequential(nn.Conv2d(temporal, spatial, kernel_size=(self.n_channels, 1), stride=(1, 1)))
         self.pooling = nn.Sequential(nn.BatchNorm2d(spatial),
                                      nn.ELU(),
                                      nn.AvgPool2d((1, 75), (1, 15))

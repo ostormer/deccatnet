@@ -182,7 +182,7 @@ fine_tuning:
 
   encoder_path: '/models/temp_encoder11_freeze_encoder' # This one seams to be the best.
   TEST_SET: True # if we want to obtain final results on test set
-  load_encoder: True
+  load_encoder: False
 
   percentages_labels: 1
   n_classes: 2
