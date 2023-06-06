@@ -176,8 +176,8 @@ pre_training:
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
-  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_all11m'
-  test_set_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre_first11m'
+  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_2m'
+  test_set_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre_first2m'
 
   encoder_path: '/models/temp_encoder11_freeze_encoder' # This one seams to be the best.
   TEST_SET: True # if we want to obtain final results on test set
@@ -242,7 +242,7 @@ encoder_params:
   latent_space_size: 128 # size of projection to contrastive loss
 
 downstream_params:
-  out_layer_1: 10024
+  out_layer_1: 5024
   out_layer_2: 64
   dropout_1: 0.002
   dropout_2: 0.8
