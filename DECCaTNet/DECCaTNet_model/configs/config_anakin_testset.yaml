@@ -6,7 +6,7 @@ global:
   PRE_TRAINING: False # first we need to pre_train an encoder, then pre_train_encoder, then ray tune.
   FINE_TUNING: True
 
-  experiment_name: 'test_set_5'
+  experiment_name: 'test_set_11m'
 
   TQDM: True # want to disable tqdm or not, True disables TQDM
 
@@ -176,8 +176,8 @@ pre_training:
 fine_tuning:
   ds_name: 'tuh_eeg_abnormal'
   # get encoder path from pre_training params
-  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_2m'
-  test_set_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre_first2m'
+  ds_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_pre_finetune_all11m'
+  test_set_path: '/lhome/oskarsto/repos/master-eeg-trans/datasets/TUH/abnormal_eval_pre_first11m'
 
   encoder_path: '/models/temp_encoder11_freeze_encoder' # This one seams to be the best.
   TEST_SET: True # if we want to obtain final results on test set
@@ -186,7 +186,7 @@ fine_tuning:
   percentages_labels: 1
   n_classes: 2
 
-  batch_size: 80 # kan endres
+  batch_size: 64 # kan endres
   max_epochs: 30
   #lr_rate: 0.0001 # kan endres
   lr_rate: 0.00004
