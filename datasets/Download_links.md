@@ -2,3 +2,4 @@
 - EEG motory/imagery dataset: https://physionet.org/content/eegmmidb/1.0.0/
 - MindBigData: http://mindbigdata.com/opendb/index.html
 - UCI MachineLearningRepository: https://archive.ics.uci.edu/ml/datasets/eeg+database
+- BCICIV-1: https://www.bbci.de/competition/iv/#dataset1

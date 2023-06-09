@@ -1,5 +1,9 @@
-tuh-test/
-
+/.idea/
+/models
+/src/
+/datasets/
+/tune_results
+!/datasets/Download_links.md
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

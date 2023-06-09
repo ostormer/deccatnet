@@ -1,0 +1,17 @@
+encoder_path: "models/encoder_test_n_channels_2"
+epochs: 3
+
+channel_group_size: 2
+embedding_size: 32
+n_classes: 2
+
+train_split: 0.7
+batch_size: 16
+shuffle: True
+num_workers: 8
+
+
+
+dataset:
+  path: "datasets/TUH/preprocessed_abnormal/step_1"
+  windowed_pickle_path: "datasets/TUH/pickles_abnormal/windowed_ds.pkl"

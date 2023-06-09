@@ -1,0 +1,255 @@
+# This is a template for how config files should look, all parameters are in chronological order of use
+# All boolean variables are in UPPERCASE lettering
+global:
+  PREPROCESSING: False
+  HYPER_SEARCH: True
+  PRE_TRAINING: Flase
+  FINE_TUNING: False
+
+  TQDM: True
+
+  n_gpu: 0
+  n_jobs: 4
+  random_state: null # remember null and not None
+
+  n_channels: 3
+  channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
+  s_freq: 200
+  window_size: 20  # Window length in seconds
+  embedding_size: 50
+  magic_constant: 13 # the magic constant only relies on one factor, and that is the window size. As we are not going to change the window size during pre training, we are ok.
+  # however when performing fine-tuning and downstream classification. The magic_constant have to be adapted to the new windowsized used for classification.
+
+  datasets: ['tuh_eeg', 'tuh_eeg_abnormal'] # which datasets should be preprocessed
+
+preprocess:
+  tuh_eeg_abnormal:  # This key must match one value in params_all['global']['datasets']
+    ds_name: 'tuh_eeg_abnormal'  # Must match key
+    dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
+    preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed'
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
+
+    start_idx: 0
+    stop_idx: 20  # Which idx is the last to load? (null for all)
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
+    exclude_channels: []  # remember to comment out if not used
+
+  tuh_eeg:
+    ds_name: 'tuh_eeg'  # Must match key
+    dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg'
+    preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_preprocessed'
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
+
+    start_idx: 0
+    stop_idx: 20 # Which idx is the last to load? (null for all)
+    read_cache: 'preproc'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
+    exclude_channels: []  # remember to comment out if not used
+
+  seed:
+    ds_name: 'seed'  # Must match key
+    dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\SEED\seed_raw'
+    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\SEED\preprocessed'
+    IS_FINE_TUNING_DS: False
+    STOP_AFTER_PREPROC: False
+
+    start_idx: 0
+    stop_idx: null  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: null  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: null  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: True
+    exclude_channels: [ ]  # remember to comment out if not used
+
+  bciciv_1:
+    ds_name: 'bciciv_1'  # Must match key
+    dataset_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\BCICIV_1\bciciv_1_raw'
+    preprocess_root: 'C:\Users\oskar\repos\master-eeg-trans\datasets\BCICIV_1\preprocessed'
+    IS_FINE_TUNING_DS: False
+
+    start_idx: 0
+    stop_idx: null  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # Read pickled dataset or generate new. Allowed ['none', 'raw', 'windows', 'preproc', 'split']
+
+    channel_select_function: 'adjacent_groups'  # How to select pairs of channels to keep
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 0.1  # Scaling factor to convert to microVolts
+    reject_high_threshold: 8000  # Reject windows with higher peak-to-peak than this (uV)
+    reject_flat_threshold: 1  # Reject windows flatter than this peak-to-peak (uV)
+    DELETE_STEP_1: True
+    exclude_channels: [ ]  # remember to comment out if not used
+
+  tuh_eeg_abnormal_finetune:
+    ds_name: 'tuh_eeg_abnormal_finetune'  # Must match key
+    dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
+    preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune'
+    IS_FINE_TUNING_DS: True
+    STOP_AFTER_PREPROC: True
+    target_name: 'pathological'
+
+    start_idx: 0
+    stop_idx: 10  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # needs to be none if new channels are excluded, else windows is acceptable
+
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 0.00001  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
+    exclude_channels:
+      - 'EEG 26-REF'
+      - 'EEG 27-REF'
+      - 'EEG 28-REF'
+      - 'EEG 29-REF'
+      - 'EEG 30-REF'
+
+
+pre_training:
+  datasets: ['tuh_eeg', 'tuh_eeg_abnormal']  # Which datasets to be used for pretraining
+
+  pretrained_model_path: null # this is the path of an already pretrained model which you wish to continue training (remember null)
+
+  batch_size: 16
+  train_split: 0.8
+  SHUFFLE: True
+  temperature: 1 # Temperature of normalized temperature contrastive loss
+  learning_rate: 0.1
+  weight_decay: 0.01
+  max_epochs: 1
+
+  save_freq: 1
+  batch_print_freq: 5
+  save_dir_model: 'models' # directory which you wish to store your model to
+  model_file_name: 'test' # Name of your model
+  TIME_PROCESS: False
+
+  augmentation:
+    noise_probability: 0
+
+
+fine_tuning:
+  ds_name: 'tuh_eeg_abnormal_finetune'
+  # get encoder path from pre_training params
+  ds_path: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune/pickles/windowed_ds.pkl'
+  encoder_path: 'models/encoder_test'
+
+  n_classes: 2
+
+  batch_size: 16
+  max_epochs: 1
+  lr_rate: 0.01
+  weight_decay: 0.005
+  train_split: 0.7
+  SHUFFLE: True
+
+  PERFORM_KFOLD: False # should be false when hyperparametersearching,
+  n_folds: 5
+
+  early_stopper: #params for early stopper implementation
+    patience: 4
+    min_delta: 0.1
+
+  save_dir_model: 'models_fine_tune' # directory which you wish to store your model to
+  model_file_name: 'test' # Name of your model
+
+  REDO_PREPROCESS: False # Should atleats be done once to ensure that correct channels is kept, not done in hypersearch
+  fine_tuning_preprocess:
+    ds_name: 'tuh_eeg_abnormal'
+    dataset_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal/v3.0.0/edf/train'
+    preprocess_root: 'C:/Users/Styrk/OneDrive-NTNU/Documents/Skole/Master/master_code/master-eeg-trans/datasets/TUH/tuh_eeg_abnormal_preprocessed_finetune'
+    IS_FINE_TUNING_DS: True
+    target_name: 'pathological'
+
+    start_idx: 0
+    stop_idx: 10  # Which idx is the last to load? (null for all)
+    read_cache: 'none'  # needs to be none if new channels are excluded, else windows is acceptable
+
+    bandpass_lo: 0.3
+    bandpass_hi: 80
+    scaling_factor: 1000000  # Scaling factor to convert to microVolts
+    reject_high_threshold: 800  # Reject windows with higher peak-to-peak than this (V)
+    reject_flat_threshold: 0.00001  # Reject windows flatter than this peak-to-peak (V)
+    DELETE_STEP_1: False
+    exclude_channels:
+    - 'EEG 26-REF'
+    - 'EEG 27-REF'
+    - 'EEG 28-REF'
+    - 'EEG 29-REF'
+    - 'EEG 30-REF'
+
+encoder_params:
+  temporal_size: 50
+  spatial_size: 60
+  CNN_dropout: 0.5
+
+  n_encoder_heads: 10
+  n_encoder_layers: 6
+
+  latent_space_size: 128
+
+downstream_params:
+  out_layer_1: 256
+  out_layer_2: 64
+  dropout_1: 0.5
+  dropout_2: 0.3
+
+hyper_search:
+  PERFORM_PREPROCESS: False
+  FINE_AND_PRE: True # Need to know which one has parameter changes, both can't have. New rule: Not allowed to preprocess fine_tuning dataset when hyper_searching
+  PRE_TRAINING: False # only used when you only do pre_training
+  FINE_TUNING: False
+
+  fine_tune_split: 1
+  pre_train_split: 1 # how much of the aviable data should be used for pretraining? The tought here is that all data will be preprocessed
+  #however all data should necessearli be used for pre_training
+
+  max_t: 10 # maximum training iteration before validation
+  grace_period: 1 # minimum number of training iterations before validating.
+  reduction_factor: 10 #
+  num_samples: 20 # how many iterations of each example/sample should be performed, samrt when aveaging over for example fiveresults
+  max_report_frequency: 60
+
+  config:
+    batch_size: 'tune.choice([128,256,524])' # (100,1000)
+    temperature: 'tune.loguniform(0.01,0.2)' # Temperature of normalized temperature contrastive loss (0.01, 0.2)
+    learning_rate: 'tune.loguniform(1e-4, 1e-1)' #(1e-4, 1e-1)
+    weight_decay: 'tune.loguniform(1e-4, 1e-1)' # (1e-4,1e-1)
+    #batch_size: 'tune.choice([16,32,128])'
+    #lr_rate: 'tune.loguniform(1e-4, 1e-1)'
+
+
+  inspiration:
+    l1: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
+    l2: 'tune.sample_from(lambda _: 2 ** np.random.randint(2, 9))'
+    lr: 'tune.loguniform(1e-4, 1e-1)'
+    batch_size: 'tune.choice([2, 4, 8, 16])'
+
+
+# Checklist running hyperparamsearch:
+# - All pre_training datasets preprocessed with delete_Step_1=False
+# - Fine_tuning dataset preprocessed togheter with other datasets
+# - Change to preproc in all pre_training datasets and remove fine_tuning dataset
+# - Run hyper_search, if first time with channels or channel_selection method, PERFORM_PREPROCESS must be true
+# - If not first or not changes to channels or channel_selection, run without PERFORM_PREPROCESS
